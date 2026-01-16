@@ -15,6 +15,14 @@ Week 1/2: Milestone 1 – Project Plan
 * FR-001: [a short title] - description then priority of Must, Should, or Could
 * FR-002: [a short title] - description then priority of Must, Should, or Could
 
+* uptime targets
+* response time
+* throughput targets
+* authentication
+* standards and metrics
+* logging
+* regulatory or privacy constraints
+
 Minimum Viable Product
 
 Product Artifacts to produce
