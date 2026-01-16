@@ -11,8 +11,9 @@ Week 1/2: Milestone 1 – Project Plan
 * Cost estimate:
 * Timeline for benefits:
 
-
-Functional and nonfunctional requirements
+**Functional and nonfunctional requirements**
+* FR-001: [a short title] - description then priority of Must, Should, or Could
+* FR-002: [a short title] - description then priority of Must, Should, or Could
 
 Minimum Viable Product
 
