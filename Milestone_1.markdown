@@ -11,36 +11,23 @@ Week 1/2: Milestone 1 – Project Plan
 * Cost estimate:
 * Timeline for benefits:
 
-**Functional and nonfunctional requirements**
-* FR-001: [a short title] - description then priority of Must, Should, or Could
-* FR-002: [a short title] - description then priority of Must, Should, or Could
-* FR-003: [Encryption of Data] - Password System (Could)
 
-* uptime targets
-* response time
-* throughput targets
-* authentication
-* standards and metrics
-* logging
-* regulatory or privacy constraints
+Functional and nonfunctional requirements
 
-**Minimum Viable Product**
-* _
+Minimum Viable Product
 
-**Product Artifacts to produce**
-* _
+Product Artifacts to produce
 
-**Product**
-* _
+Product
 
-**Configuration Documentation needed**
-* _
+Configuration Documentation needed
 
-**Systems Documentation needed**
-* _
+Systems Documentation needed
 
-**Customer interaction schedule**
-* _
+Customer interaction schedule 
 
-**Project timeline**
-* _
+## Project timeline
+### Milestone 1 | Tues Jan 20th
+### Milestone 2 | Teus Feb 3rd
+### Milestone 3 | Tues Feb 17th
+### Milestone  | Tues
