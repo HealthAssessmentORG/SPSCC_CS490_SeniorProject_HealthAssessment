@@ -24,16 +24,23 @@ Week 1/2: Milestone 1 – Project Plan
 * logging
 * regulatory or privacy constraints
 
-Minimum Viable Product
+**Minimum Viable Product**
+* _
 
-Product Artifacts to produce
+**Product Artifacts to produce**
+* _
 
-Product
+**Product**
+* _
 
-Configuration Documentation needed
+**Configuration Documentation needed**
+* _
 
-Systems Documentation needed
+**Systems Documentation needed**
+* _
 
-Customer interaction schedule 
+**Customer interaction schedule**
+* _
 
-Project timeline
+**Project timeline**
+* _
