@@ -12,7 +12,10 @@ Week 1/2: Milestone 1 – Project Plan
 * Timeline for benefits:
 
 
-Functional and nonfunctional requirements
+**Functional and nonfunctional requirements**
+* FR-001: [a short title] - description then priority of Must, Should, or Could
+* FR-002: [a short title] - description then priority of Must, Should, or Could
+* FR-003: [Encryption of Data] - Password System (Could)
 
 Minimum Viable Product
 
