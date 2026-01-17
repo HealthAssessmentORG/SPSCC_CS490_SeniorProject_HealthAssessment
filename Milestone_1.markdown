@@ -4,9 +4,9 @@ Week 1/2: Milestone 1 – Project Plan
 
 **Business case**
 * Problem statement:
-* Market need:
+* Market need: Orginizations that want to reduce hours spent on data entry.
 * Stakeholders:
-* Benefits:
+* Benefits: Less work hours spent on data entry.
 * Success criteria:
 * Cost estimate:
 * Timeline for benefits:
