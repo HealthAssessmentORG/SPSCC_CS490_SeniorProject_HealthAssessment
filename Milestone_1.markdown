@@ -29,8 +29,53 @@ Systems Documentation needed
 
 Customer interaction schedule 
 
-## Project timeline
+# Project timeline
+
+## Quarter 1 Start | Tues Jan 13th
+
 ### Milestone 1 | Tues Jan 20th
-### Milestone 2 | Teus Feb 3rd
+Project Plan
+
+### Milestone 2 | Tues Feb 3rd
+Application Flow
+UI Mockup
+Database Design
+Test Plan
+Bug Tracking Plan
+-provision for customer findings
+
 ### Milestone 3 | Tues Feb 17th
-### Milestone  | Tues
+pre-Alpha
+Dev/Ops Plan
+
+### Milestone 4 | Tues Mar 3rd
+Alpha
+Dev/Ops Trial
+
+### Milestone 5 | Tues Mar 17th
+Self-Reflection
+Quarter 2 Goals
+
+## Quarter 2 Start | Mon Apr 6th
+
+### Milestone 6 | Tues Apr 14th
+Alpha 2
+Bug Tracking System
+
+### Milestone 7 | Tues Apr 28th
+Beta
+CI/CD Process
+
+### Milestone 8 | Tues May 12th
+Beta 2
+Finalizing Docs
+
+### Gold Master | Tues May 26th
+Gold Master
+Finalizing Docs
+
+### Final Product | Tues Jun 9th
+Final Product
+Finalized Docs
+Self-Reflection
+Final Project Plan
