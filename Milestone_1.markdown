@@ -4,11 +4,11 @@
 
 **Business case**
 * Problem statement:
-* Market need: Orginizations that want to reduce hours spent on data entry.
+* Market need: Orginizations that want to reduce hours spent on data entry and visualization.
 * Stakeholders:
-* Benefits: Less work hours spent on data entry.
+* Benefits: Less work hours spent on data entry and visualization.
 * Success criteria:
-* Cost estimate:
+* Cost estimate: Class hours of SPSCC students, school resources, and students off hours.
 * Timeline for benefits:
 
 
