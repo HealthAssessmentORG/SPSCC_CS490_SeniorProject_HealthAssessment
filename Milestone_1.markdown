@@ -21,6 +21,11 @@
 * FR-006: [Fixed-width File Generator] - Emit flat-text fixed-width files according to spec, optimized for throughput (Must)
 * FR-007: [Logging] - metadata, logs, and storage. (Should)
 
+* NR-001: Scalability: Support larger volumes (100k+)
+* NR-002: Maintainability: Modular code, clear interfaces, automated tests
+* NR-003: Compatibility: Support common DBs
+* NR-004: Reliability / Availability: Deterministic runs with reproducible seed; rety system?
+
 **Minimum Viable Product**
 * Database that stores Pre-DHA information
 * Tool with UI that exports information in fixed-width format
