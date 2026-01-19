@@ -3,20 +3,23 @@
 ### Week 1/2: Milestone 1 – Project Plan
 
 **Business case**
-* Problem statement:
-* Market need: Orginizations that want to reduce hours spent on data entry and visualization.
-* Stakeholders:
-* Benefits: Less work hours spent on data entry and visualization.
-* Success criteria:
+* Problem statement: Manual creation, mapping, exporting, and validation of form-based data is time-consuming, error-prone, and does not scale with large volumes needed for testing and certification processes.
+* Market need: Provides an automated toolchain that converts a PDFs into a populated database, produces high-volume varied test data, and this is valid against specificed criteria. Orginizations that want to reduce hours spent on data entry and visualization.
+* Stakeholders: QA teams, data engineers, compliance teams, & academics (schema design exercise)
+* Benefits: Rapid creation of representative data sets, reduced manual data entry effort, and demonstrable coverage metrics for testing.
+* Success criteria: Ability to generate ≥ 10,000 records within performance targets
 * Cost estimate: Class hours of SPSCC students, school resources, and students off hours.
 * Timeline for benefits:
 
 
 **Functional and nonfunctional requirements**
-* FR-001: [Random Data] - generates data in a formated structure. (Must)
-* FR-002: [Data Order] - data matches the order of the form (Should)
-* FR-003: [Encryption of Data] - Password System (Could)
-
+* FR-001: [Random Data] - Produce 10,000+ random records per run with configurable variance and distributions; support deterministic seeding for reproducibility. (Must)
+* FR-002: [Data Order] - Define a relational schema derived from the provided PDF form, including field names, types, lengths, constraints, and mapping metadata. (Must)
+* FR-003: [Mapping] - Map database fields to export specification fields including the transformations, concatenation, padding, default values. Editable mapping definitions and versioned. (Must)
+* FR-004: [Validation] = Verify that mapped values conform to export schema constraints (lengths, allowed values, checksums). Provide a detailed output to see spcific validation fails. (Must)
+* FR-005: [Encryption of Data] - Password System (Could)
+* FR-006: [Fixed-width File Generator] - Emit flat-text fixed-width files according to spec, optimized for throughput (Must)
+* FR-007: [Logging] - metadata, logs, and storage. (Should)
 
 **Minimum Viable Product**
 * Database that stores Pre-DHA information
