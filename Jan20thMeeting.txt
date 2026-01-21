@@ -1,0 +1,580 @@
+18:50:58 FR4, validation.
+18:51:02 Yeah, that should be a dash instead of an equal sign.
+18:51:05 Oh,
+18:51:08 I was typing too fast.
+18:51:10 Yeah. And then the…
+18:51:15 format between the NR and FR changed.
+18:51:20 So, it'd be good to kind of keep your format.
+18:51:22 Uh, similar, okay.
+18:51:23 consistent. Yeah.
+18:51:25 Uh, those, uh, you know, for us developers, that seemed like a small deal, but those are the small details that are really most important.
+18:51:33 to keep mindful of as you implement solutions.
+18:51:37 is the small details that always get us.
+18:51:41 Um, uh, the small details…
+18:51:44 are the what makes a difference between your products meeting 80%,
+18:51:48 Versus 100%. Um, usually, most of our software project ends up spending about…
+18:51:55 95% on the budget for the 80%,
+18:51:58 And then just a little bit left to get to the 100%.
+18:52:01 So, if we're able to focus heavily on the big picture, as well as knowing where those small pictures are,
+18:52:08 You'll be able to have enough time and schedule and budget to be able to finish your project successfully.
+18:52:16 So…
+18:52:18 That'll be something to keep in mind.
+18:52:20 Um, timeline looks good. I think we… those milestones that, you know, we have… you guys worked out, it's… it kind of really helps.
+18:52:28 Um, do you guys have any questions with your…
+18:52:32 regards to, like, what the application's flow diagram could be,
+18:52:37 What a pre-alpha means, what an alpha means…
+18:52:40 Um…
+18:52:39 Um, or DevOps, or those details.
+18:52:44 What does a pre-alpha mean? Like, I know, like, there's alpha, beta, and then release, but, like…
+18:52:51 pre-alpha, pre-beta, like, these other, like, terms, what do they really, like, mean? Like,
+18:52:58 isn't it just alpha is, like…
+18:53:02 the minimum viable product, and then beta is, like, with some features, and then releases with all your features.
+18:53:07 Ooh, that's a really good question.
+18:53:09 So, MVP is actually the final product. So, a minimum viable product…
+18:53:14 is that that is what would constitute
+18:53:17 to the customer that what we agreed to,
+18:53:20 as the product that they are willing to accept as the final product. That's your minimum viable product.
+18:53:26 So, MVP is release.
+18:53:28 It is the goal, yes, final release product.
+18:53:31 That is the minimum requirement for the customer to accept as a viable product.
+18:53:37 Okay, and then alpha and beta are incomplete MVPs on… at various stages.
+18:53:43 Yes. So, for the metric that I use for myself,
+18:53:48 So, kind of work our way back.
+18:53:50 Uh, in terms of the beta, there's initial beta,
+18:53:54 And then it kind of goes through about multiple rounds, and there's Gold Master.
+18:53:59 Goldmaster is a final release product. That is,
+18:54:03 we're ready to push this final review.
+18:54:05 don't think there are any more issues.
+18:54:07 take a look, and the Gold Master is certified, then we go to production with that build.
+18:54:12 Okay.
+18:54:13 Um, initial data is we feel that that is feature complete.
+18:54:19 about, you know, it should be feature complete, or, like, 90%, 80-90% features are done, everything else is being developed,
+18:54:27 And it should be available within 1 or 2 cycles of the beta.
+18:54:30 In this particular case,
+18:54:32 Right? We're looking at fairly short beta cycle.
+18:54:36 Yeah.
+18:54:36 You might want to, you know, you're happy… I mean, you might want to do, like I said, a weekly goal instead of every two weeks.
+18:54:42 In second quarter, okay?
+18:54:44 Um, now and then we'll talk about pre-beta.
+18:54:48 Which means that…
+18:54:50 It's an internal development goal, is we want to have a bill that we feel that is ready for beta.
+18:54:57 Beta also involves customer interaction, so that's when you really have the customer dig into your product and start to really, really use it.
+18:55:06 So…
+18:55:06 at least in a traditional sense.
+18:55:09 So, beta is…
+18:55:11 not release, but usable with someone
+18:55:16 as a user, as a customer, someone can use the product.
+18:55:20 Yes.
+18:55:21 that that means alpha is some kind of build, but it's like…
+18:55:25 more developer-oriented. You only have the command terminal,
+18:55:29 or something like that.
+18:55:31 Usually, alpha is when your QA team starts to hit your product pretty hard. So, it's QA ready.
+18:55:35 Okay.
+18:55:37 QA ready, which means people with experience to use the product.
+18:55:42 internal customer… your internal assets are starting to use it and give you feedback.
+18:55:46 Is it?
+18:55:47 And since it hasn't been released, the only experienced people would be the QA team.
+18:55:52 Yes, I guess experience will be probably a term you want to be careful with.
+18:55:57 Okay.
+18:55:58 But your internal team. Yeah, experience usually in the corporate world means you're looking for junior, senior staff.
+18:56:03 Okay.
+18:56:03 Rather than entry-journey level, yeah.
+18:56:05 people familiar with your software, so people who are on…
+18:56:08 QA or development.
+18:56:10 Mm-hmm.
+18:56:13 Okay, I'm kind of, like, internalizing these…
+18:56:16 terms, like, thinking about them.
+18:56:20 Yeah. So then pre-beta will be like, hey, testing, we want to give… we feel that, as a development team, or as a company,
+18:56:28 We feel that this is a product that we will be happy to show
+18:56:33 our customer, have them start to really go to town with it.
+18:56:36 Rather than gingerly touch and get a feel for it. They're gonna actually, like, really use it, put some real data on it,
+18:56:42 Hit it hard, give you good feedback, because…
+18:56:43 see what breaks, yeah.
+18:56:45 Yeah, or see how much of the product… this is like UAT, right? U.S. or acceptance testing.
+18:56:51 Your users are going to look at it and say,
+18:56:52 Um, am I willing to put my job on the line
+18:56:55 to release your product.
+18:56:55 for this. Yeah.
+18:56:58 So the customer is paying you…
+18:57:01 And not this case, but, right, if this was a real job.
+18:57:04 somewhere, yeah.
+18:57:05 you're a software engineer, you're a consultant.
+18:57:08 Someone's paying you to do a job on their behalf.
+18:57:11 So now your customer is looking at it and saying, I just put my money on the line to hire you to do the job, and now is this product that I'm gonna get?
+18:57:20 Allow me to get a better job, or give me a better future.
+18:57:23 Or is it going to sink my career? So they have to be fully vested,
+18:57:28 Uh, in your product, and they can't scapegoat you at this point anymore.
+18:57:33 Okay.
+18:57:33 So, a good beta tester…
+18:57:37 Um, and you need to encourage that from your customer, too. It's like, hey, this really means a lot to me.
+18:57:43 a developer hired by you,
+18:57:44 And I want you to use it.
+18:57:46 Yeah, and really use it, like, really take it to town.
+18:57:49 Spend time with it.
+18:57:51 You know, that's… it's your time, your money.
+18:57:55 you know, you don't have to pay me
+18:57:56 and my time, and my reputation.
+18:57:57 Yeah, and their reputation, it's your relationship.
+18:58:02 Uh, something that my company has…
+18:58:04 And I have, you know, really being appreciative is my customers. I had the same customer
+18:58:09 One, for example, for 25 years.
+18:58:14 Do you keep them coming back, coming back, coming back, as we put…
+18:58:16 My career, my reputation on the line every year to make sure we deliver a
+18:58:22 top-notch product that's used DOD-wide.
+18:58:27 So, that's really important to do. So that's the idea behind beta.
+18:58:31 So, that means that you, as a company,
+18:58:34 or a group that's producing the product, saying, I want you to take a look at this, because we think this is a really great product.
+18:58:41 products that are really stable, solid, awesome,
+18:58:44 These are the features, we got, like,
+18:58:46 8 out of 10 features done. The last two is a small feature.
+18:58:51 go to town, we'll finish this, fix bugs, we still got development time, we want you to give us feedback.
+18:58:57 That's the initial beta 1.
+18:58:58 So that means that you need to have an internal milestone
+18:59:01 to hit to say, this is the product we want to send to the customer. And that's the pre-beta.
+18:59:07 What did they say? You know…
+18:59:09 Like, it's the vernacular of it allows us to have a psychological shift in our experience and development.
+18:59:19 So then, what is an alpha? Well, alpha, like we said, you know, Nils, like you say,
+18:59:25 It's for internal use.
+18:59:27 internal testing, you want… you're taking to test it really hard, you want it to knock it while you're still dealing with
+18:59:34 really green, or partially completed features and functionalities?
+18:59:38 So there's not very a lot of explaining you have to do, because you're dealing with technical staff,
+18:59:43 who are knowledgeable in the technical field,
+18:59:46 And Mae knows the product in the form of really a back-end perspective.
+18:59:51 So, that's alpha. So then…
+18:59:54 pre-alpha,
+18:59:56 is development product. So that's just a development team,
+19:00:00 testing it, they're working hard on it, they're…
+19:00:03 you guys are working on it.
+19:00:05 And so, pre-alpha is like, okay, do we… this is… we feel that this is a stable enough product for the test team to test it,
+19:00:13 With some constraints, some
+19:00:14 predefined guardrails.
+19:00:17 But it will not be breaking every time they touch it.
+19:00:21 Like…
+19:00:20 So, basically, just the programmers, pretty much, but it will run without breaking.
+19:00:26 And if it does any testing, it's…
+19:00:28 a walled garden test.
+19:00:30 Mm-hmm.
+19:00:31 in specific features.
+19:00:33 Yes. And then, so then…
+19:00:35 Okay.
+19:00:36 So, just the devs is…
+19:00:38 like, pre-alpha, then alpha is within the company,
+19:00:43 And then the beta testing is within a customer or predefined set of…
+19:00:48 Users by the customer,
+19:00:50 limited population exposure.
+19:00:59 In this particular case, I will be acting somewhat like your test team,
+19:01:04 Also, as a customer, um…
+19:01:07 I, um… I'll be nice. I'm a pretty mean tester.
+19:01:12 I break… my job as part of… as a principal is to ensure quality of a product.
+19:01:20 Okay.
+19:01:18 So you guys will kind of get to see what kind of testing that happens. Some test techno- techniques.
+19:01:24 As well, uh, braking tests.
+19:01:28 Uh, limit tests, you know, those kind of…
+19:01:32 techniques, because I think those are very useful techniques to have.
+19:01:36 So I would like to share some of that with you guys as if, you know, we get more opportunities.
+19:01:41 Yeah, um, should we…
+19:01:44 model our, like, process diagrams like a…
+19:01:48 directed acycled graph where it just branches down from one
+19:01:56 Uh… nah.
+19:01:54 in order to make it more piecemeal and understandable.
+19:01:59 piecemeal it, yeah, small blocks of sectors.
+19:02:02 it'll be easier? Yeah.
+19:02:02 Yeah, so… so, like, I have this, like, one process that I want to do, but I don't want to model all of it, so I'll have, like, an arrow come from above into a…
+19:02:12 into a node, and then I'll just have it going from left to right, a bunch of arrows to blocks to model the process, and then I have it for each
+19:02:20 Kind of thing.
+19:02:23 Okay.
+19:02:23 What do you guys… what are you using to…
+19:02:26 do this, um…
+19:02:28 flow. Are you using stuff like draw.io?
+19:02:30 Yeah, I have Draw.io, and that's how I make my, uh…
+19:02:34 diagrams. Um…
+19:02:35 Okay.
+19:02:37 These are the kind of graphs that I'm…
+19:02:40 kind of thinking of.
+19:02:42 You could also, um…
+19:02:44 with the Markdown files, there is another way to do it in, uh, GitHub.
+19:02:49 Mm-hmm.
+19:02:51 Um…
+19:02:53 I don't see…
+19:02:57 In your view,
+19:02:59 Um, let me pull up my GitHub.
+19:03:02 Is there a specific file type I could make a test file?
+19:03:06 Um, in GitHub, you could create pages.
+19:03:10 pages…
+19:03:12 or wiki? Do you have that?
+19:03:16 Um, I'm in pages, I can add a domain.
+19:03:21 Um…
+19:03:22 So… I'll go, um, you should have, uh, to the right of…
+19:03:28 projects. Do you have Wiki?
+19:03:34 Is this in the organization settings or the project settings?
+19:03:39 In your actual repo, so your project.
+19:03:41 Okay, I'll go to the project settings.
+19:03:45 Settings, uh…
+19:03:45 So, not even the settings.
+19:03:48 I have pages… oh, it should be on the left or right?
+19:03:53 Um, sure, let me just highlight it. I don't…
+19:03:56 I have.
+19:03:59 I don't see a wiki.
+19:04:02 Under projects…
+19:04:09 I have a wiki in my GitHub.
+19:04:13 Next to projects.
+19:04:25 Uh, let me see if I could pull up the…
+19:04:30 project in this URL, let's see, on this browser.
+19:04:36 I separate my browsers by project.
+19:04:39 So…
+19:04:42 Sorry about that, the dial-up dropped it.
+19:04:50 You don't… I don't have…
+19:04:53 Projects, templates…
+19:04:56 Um, I have pages, um…
+19:04:58 Okay?
+19:04:59 I have branch, deploy,
+19:05:01 tags, rules, actions, models, webhook, co-pilot, environment pages, custom properties, I don't see wiki.
+19:05:12 Okay…
+19:05:20 With how it displays Markdown natively, do you think using HTML, it would do the same thing, or…?
+19:05:27 Would it not?
+19:05:31 Because then you could just make, like, a folder called wiki, and then just have a bunch of HTML files in there.
+19:05:37 Yeah, that might work. Just the thing about the wiki, um…
+19:05:43 It could be that you guys don't have it.
+19:05:45 I know, like, some wikis, I think, cost money.
+19:05:52 Um…
+19:06:04 I guess… okay, so it says to…
+19:06:07 Um, ICF.
+19:06:09 You might be disabled. I've never seen a disabled.
+19:06:12 go to your settings,
+19:06:16 Uh, respiratory settings.
+19:06:19 So you've got your settings…
+19:06:22 And then it says go to…
+19:06:26 features section.
+19:06:28 features?
+19:06:29 features… where is the…
+19:06:32 Uh…
+19:06:35 All right, so on the general tabs in your settings,
+19:06:39 for your repository. So you see a repository name, default branch, releases,
+19:06:42 general.
+19:06:44 Yeah.
+19:06:46 access, collaborators, moderator options?
+19:06:50 Um…
+19:06:52 For example…
+19:06:55 Let's see, do you have…
+19:07:01 Because, like, I have, like, the top left-right, which is code, issues, poll, actions, projects, security, insights, Settings.
+19:07:11 Do you have the view that I have?
+19:07:19 So, if you just click on General on the left tab,
+19:07:23 In your settings.
+19:07:32 You're gonna have to link it rather than upload it.
+19:07:40 Pardon?
+19:07:41 you're gonna have to link it, rather than upload it.
+19:07:44 Because it kicks me, yeah.
+19:07:44 the image?
+19:07:47 Okay.
+19:07:47 I have dial-up, so…
+19:07:49 Okay. So, um, in your GitHub,
+19:07:54 settings, you're in the settings tab, correct?
+19:07:56 Yes, for the respiratory.
+19:07:57 Okay. Uh, for the… you mean repository?
+19:08:01 repository, the…
+19:08:02 Okay.
+19:08:03 the code branch thing.
+19:08:05 Okay. Um…
+19:08:09 So, in your project…
+19:08:13 So, in the settings, so you have the repository name at the very, very top?
+19:08:16 Yep, uh, Senior Project Health Assessment.
+19:08:18 Okay.
+19:08:20 Okay, and then next one is default branch.
+19:08:23 And you have releases.
+19:08:27 social preview features okay, and…
+19:08:31 Wiki hosts, okay.
+19:08:33 Turn that on.
+19:08:32 Restrict editing to user… okay.
+19:08:35 Yeah.
+19:08:36 set button, and then just save it.
+19:08:38 Or…
+19:08:39 It should auto, uh… it should auto-do it for you. If you… make sure that's checked,
+19:08:44 Yeah.
+19:08:45 then that turns on Wiki for you.
+19:08:47 Oh, nice.
+19:08:49 And then… oh, there's Wiki.
+19:08:51 Yeah, so now you can start adding pages and take the milestone one and put it in there.
+19:09:00 Yeah.
+19:08:59 So, and then you could add your, um…
+19:09:05 something to… and most likely you'll have to do this in your job, too, is add your functional and non-functional requirements.
+19:09:12 as issues.
+19:09:14 as issues.
+19:09:15 Yes.
+19:09:16 Okay…
+19:09:21 I know how to do that.
+19:09:23 Okay.
+19:09:24 I've done that quite a few times.
+19:09:28 So, then you could start create labels and other things to market as required, non…
+19:09:34 you know, functional, non-functional, you could also categorize it as
+19:09:38 you know, could, should,
+19:09:42 Yep. Yep.
+19:09:40 Must, could, and should, right? I saw those terminologies, so which is a great Agile terminologies.
+19:09:45 So, start to play with it a little bit.
+19:09:49 I'm not looking for, and this isn't a real full-scale, right?
+19:09:54 Um, do everything has to be right.
+19:09:56 I just want you guys to get experience on it, and you guys are trying, and that's guarantees an A.
+19:10:02 Right? Put in good effort… good faith effort,
+19:10:04 get a product, get something working. If you guys wanted the problem, we just need to adjust.
+19:10:10 are must-dos.
+19:10:12 Okay? So…
+19:10:15 Like, once you get going on that part, then you could start to also add
+19:10:20 Um, your other projects,
+19:10:23 Or, like, your, um…
+19:10:26 Second, your application flow diagram, actually, you could just drop it in your wiki.
+19:10:32 Yeah, that'd be good.
+19:10:35 Ooh.
+19:10:32 And it'll show up in the wiki, so then, much easier for you to look… go, and you could be like, hey, I got this, Satoshi, can I take a look at it?
+19:10:40 You could just ping me anytime, you know, during the week, and I'll look at it, I'll give you feedback.
+19:10:46 Um, so…
+19:10:50 That should make it easier. That's gonna be more fun than working in a text file, you know, just typing things up.
+19:10:55 Yeah.
+19:10:56 Yeah. So, okay. So that gets you guys going pretty well, and also with regards to, you know, beta and pre-beta,
+19:11:04 Um…
+19:11:05 How are we doing on time? I don't see the time.
+19:11:09 I think…
+19:11:09 It is 7-11 currently.
+19:11:11 Okay, so we still have about 20 minutes.
+19:11:14 45 minutes. So, um…
+19:11:17 But we're going a little bit over the 15-minute mark, but you guys have such good questions.
+19:11:21 Um, how about in terms of, like, um…
+19:11:25 CICD, or…?
+19:11:30 C, I, C, D, what's the full name of that?
+19:11:34 CICD is continuous integration, continuous deployment.
+19:11:42 So, that will kind of fall under GitHub Actions.
+19:11:46 Okay. That's the, like…
+19:11:47 Yeah.
+19:11:50 auto build and tests.
+19:11:52 uh… kind of stuff.
+19:11:52 Mm-hmm.
+19:11:54 Yes. So it'll be… that's where you need… like, we have test planning,
+19:11:59 Fairly early in our project goals.
+19:12:03 All right, milestones.
+19:12:06 Uh… yeah, Milestone 2, test planning, right? Confirmation test, UAT, BVT test.
+19:12:11 So, once you start planning those, and you start to have a product code,
+19:12:17 you want to have those unit tests.
+19:12:19 And write your bill verification test. That's what BVT stands for. Build Verification.
+19:12:25 verification test, okay.
+19:12:26 Yes. It hits major features.
+19:12:31 that allows the… that indicates that if it passes the BVT,
+19:12:35 It's ready for testing.
+19:12:37 Mm-hmm.
+19:12:38 It's not com… like, a lot of… I don't know if you guys wrote code, I'm assuming you have,
+19:12:43 Yeah.
+19:12:43 And you try to run the F5, and you log in, it's…
+19:12:48 just crashes right away after, like, you try to log in, it's like, database not found, and it's like, oh my gosh!
+19:12:53 Yeah, that would be bad.
+19:12:53 Well,
+19:12:55 If you have a BVT, for example,
+19:12:58 When you start the website, it automatically fires, and it runs everything.
+19:13:03 Even before your test team starts to test it, or your customer starts to test it,
+19:13:08 it passed the BVT. You have a confidence level to say, this can… this is a viable product,
+19:13:14 for my team to test.
+19:13:15 Because it passes this…
+19:13:18 threshold.
+19:13:19 Yeah, minimum threshold, like, with the BVT that I run for my projects,
+19:13:24 Uh, it's a web application project, so it's written in a technology called Playwright.
+19:13:30 Uh, we had used…
+19:13:32 TypeScript actually write the code for Playwright?
+19:13:34 I like TypeScript.
+19:13:36 So, cool. So, Playwright…
+19:13:38 Um, it's actually an open source project by Microsoft. It is becoming fairly widely used, so those are actually a good tech…
+19:13:45 technical skills to have.
+19:13:47 So, it's an automated playwright, and it logs in…
+19:13:52 fills in a bunch of surveys,
+19:13:54 It goes through all the application rules and makes sure that you actually get it from A to Z.
+19:13:58 So that's how the VVT works for us.
+19:14:01 So you might be something for you. I'm happy to work with you on BVT planning.
+19:14:05 Mm-hmm.
+19:14:07 Also, and then UAT is user acceptance test.
+19:14:12 So that would be, um, I think you guys took a project management class, like, user stories?
+19:14:19 So you're used to acceptance test will be a mirror of your user stories.
+19:14:24 And you could give that to your customer, and they start to check off, that works, that works, that works. So that means the user accepted
+19:14:30 your product, though that's the test that the user will do to accept your product.
+19:14:36 Confirmation test is to confirm that your product is working.
+19:14:40 kind of a minimum test.
+19:14:42 If I click on this button, does it work?
+19:14:45 Yeah.
+19:14:45 No.
+19:14:46 You'd be surprised. I mean…
+19:14:48 Case in point today, I'm testing on other teams' product.
+19:14:54 The whole page just didn't load data.
+19:14:58 Guess that explains why they have entire libraries just for making buttons.
+19:15:03 Yeah, or they just didn't tie in the back-end table, no one looked at it. They didn't run the BVT on the page. So…
+19:15:09 Yeah.
+19:15:09 You have a product being worked on,
+19:15:12 by a… led by a senior team.
+19:15:15 member who's been with the company over 15 years that I trained,
+19:15:17 And you have two people who has five-plus years of experience,
+19:15:22 So you're looking at cumulative 25-plus years of experience,
+19:15:27 And the page didn't load.
+19:15:26 delivering a product that's supposed to go live next week with breaking changes,
+19:15:32 Because they're not doing confirmation tests.
+19:15:35 So, you know, kind of…
+19:15:36 needs to be done.
+19:15:38 Yeah.
+19:15:40 You know, it sounds like simple,
+19:15:42 But simplest tests are always the best tests, because expose… if your product is failing at the simplest test level,
+19:15:49 the new product has a lot more problems.
+19:15:53 Yeah.
+19:15:52 Yeah. I feel a bit better about my mistakes.
+19:16:00 UI mockup.
+19:16:00 We have 10 minutes.
+19:16:02 Yep, okay. With UI mockup, you could also use draw.io, and it gave me just a few things, right? It don't…
+19:16:08 Okay.
+19:16:09 No details.
+19:16:11 Keep it light.
+19:16:13 Typical UI mockups, at least from the classes I've took,
+19:16:18 shapes will do.
+19:16:19 square with the… with, like, a name of what… of what it is. This is buttoned this…
+19:16:24 has image.
+19:16:26 Mm-hmm.
+19:16:28 Yeah, I…
+19:16:26 Okay. I hope it's more than just shapes, because I'm like, what does this square mean?
+19:16:32 Yeah, I mean, kind of gives me an idea
+19:16:35 Um, any mock-up that ends up writing a lot of stuff on there,
+19:16:39 it's gonna start to create a situation where your customer gets, um…
+19:16:44 married to it.
+19:16:44 overwhelmed. Oh, married, too. Oh!
+19:16:47 they hook onto it.
+19:16:48 first presentation bias.
+19:16:51 I learned that in psychology. The first thing that you show them, they kind of…
+19:16:56 Electron to it.
+19:16:56 It anchors them, hangs on, yeah.
+19:16:58 Yeah, so especially with the more detail it'll provide,
+19:17:02 they will… they will kill you on requirements. They'll pull that as your requirement. They will not remember.
+19:17:08 They'll have a hard time remembering the progressive changes that you made to the design.
+19:17:12 So that's why you keep the UI mock-up a true mock-up.
+19:17:16 Very simple.
+19:17:17 Yeah. It's like you cut a bunch of sticky notes and said, this orange one's…
+19:17:22 a screen, this red one or pink one, is a button, and it's gonna look like this on an 8.5x11. The customer's like, that sounds great!
+19:17:31 Looks good. Really, that's enough.
+19:17:34 Yeah.
+19:17:35 Any more than that, you are going to put yourself
+19:17:38 in a hole that you can't get it yourself, ever get yourself out.
+19:17:43 So, I've been there. I've had to work with the customer, say, that's what we talked about.
+19:17:48 As we discussed, and as we went…
+19:17:51 We had to change the UI, and that became, like, a… every time I met with him, that was the thing, they don't… they didn't remember.
+19:17:56 remember it.
+19:17:58 Yeah, so first presentation bias. It just is very, very true.
+19:18:03 Um, buck tracking plan, I think you should just use the buck issues.
+19:18:09 And the project plan, again, make it into a wiki, and that'll make it easier.
+19:18:13 feel free to add pages, don't add too many.
+19:18:17 But see how you could organize it. You know, maybe the milestone, project milestone as one,
+19:18:22 project business logic, or business, um…
+19:18:25 business case as another one.
+19:18:28 UI mockup is another.
+19:18:31 application flow was another, and, you know, keep it grouped. That's enough.
+19:18:35 don't have to fill it, don't… be free to leave a bunch of stuff out.
+19:18:40 I don't want you guys to spend too much time with over-documentation,
+19:18:45 Yeah.
+19:18:44 Right? One of the Agile presentation, right, requirement is, or…
+19:18:49 principle is a really big one, is
+19:18:51 documentation, uh, functionality over documentation.
+19:18:55 Okay, functionality over documentation.
+19:18:57 Right, so you want to have documentation,
+19:19:00 But documentation should never trump
+19:19:03 your working product.
+19:19:05 If you spent so much…
+19:19:05 don't drop it, but don't focus on it.
+19:19:09 Yeah. It's important.
+19:19:09 Don't drop it.
+19:19:11 be prescribed.
+19:19:14 be metered, used just enough.
+19:19:18 But don't spend half your budget and your time
+19:19:20 on documentation.
+19:19:22 you're not Microsoft.
+19:19:23 No.
+19:19:24 Yeah.
+19:19:27 That's good on my end, uh…
+19:19:32 Kyle might have some questions, I'm not sure.
+19:19:36 And Kyle and, you know, you guys, feel free after this,
+19:19:41 think about it, shoot me a bunch of emails.
+19:19:43 Okay.
+19:19:44 Yeah. That's fine.
+19:19:49 Over-communicate is fine. If I say, you know what, too many questions, I'll let you know, but most of the time, that never happens.
+19:19:55 Okay.
+19:19:55 So, yeah.
+19:19:57 If you do an update to the, um…
+19:20:00 If you get the wiki stuff up on the GitHub, just shoot me an email.
+19:20:05 I think grading is… on this stuff is next week.
+19:20:08 Okay.
+19:20:08 I'll be looking at it. I mean, you guys met the requirements.
+19:20:11 Already.
+19:20:12 Nice.
+19:20:14 Yeah, so, I mean, good effort.
+19:20:17 I want to see where you guys go.
+19:20:19 Mm-hmm.
+19:20:20 You guys met the lubric, uh, rubric I have for week, uh, Module 1.
+19:20:26 Okay.
+19:20:28 So, milestone 1. So, good job.
+19:20:35 I have no more questions.
+19:20:37 Thank you.
+19:20:37 Okay. All right.
+19:20:41 Okay.
+19:20:43 Um, you know what? One thing I don't… did you… I didn't see it.
+19:20:47 That's not bad for not checking close enough.
+19:20:51 Oh?
+19:20:53 um… is…
+19:20:55 What technology are you going to use?
+19:20:57 Um…
+19:21:01 I think we discussed it was…
+19:21:07 was it a desktop app, Kyle?
+19:21:16 Okay?
+19:21:15 I think we haven't nailed it down, but we went through all the stuff that it needed.
+19:21:21 Okay.
+19:21:21 But not the form for prototyping.
+19:21:24 Okay, so play with it. Um, are you guys using .NET?
+19:21:28 Python, TypeScript?
+19:21:31 I know…
+19:21:31 F-sharp? I don't know F-sharp, but…
+19:21:33 I know how to bundle C++ and Python together. There's a… there's a binding where you can do that, so you can get the easy…
+19:21:42 Python libraries for graphs.
+19:21:46 You might need to do, like, a couple different codes, too. You might end up with a one set
+19:21:51 or, like, once they're writing the translation,
+19:21:54 Yeah.
+19:21:55 And another product for doing your QA.
+19:21:59 Um, so…
+19:22:02 Uh, for example, like, if you use something like Plotly and NumPy, right, that's gonna make your life much easier for DataViz.
+19:22:09 Yeah.
+19:22:09 Because they both just have built-in
+19:22:13 DataVis capabilities.
+19:22:31 Or you're like, you know what, I could get the data out, or you just want to write it in AR, because you know how to do geocodes, okay, G-code?
+19:22:31 Go nuts! I'm not good with R, but I know how to read it.
+19:22:31 So…
+19:22:31 Um, my primary languages were C++, C Sharp, and, uh, TypeScript.
+19:22:37 So, I'm alright if you guys write a command line product, that could be a UI, but, you know, it would be nice to have something with the UI.
+19:22:44 So… yeah.
+19:22:44 Yeah. Definitely you, I.
+19:22:47 Yeah. Okay, so…
+19:22:49 talk about it. I didn't put it on the list of requirements, but we… Milestone 1, so not a big deal, I was just curious.
+19:22:57 But, uh, yeah.
+19:22:56 Okay. Definitely something we should do this week, and then start doing something with prototyping mock-ups.
+19:23:04 Yeah, let's dig in, have fun.
+19:23:06 Yeah.
+19:23:07 And then update the requirements as you go. Keep it alive. I'd rather be…
+19:23:10 part of your planning process as you guys go in, like, hey, we added this, we changed this, we added this, we changed it. Or just tell me, hey, we updated the website, here are a couple of…
+19:23:19 Yeah.
+19:23:19 The wiki, here's a couple things you want to look at.
+19:23:22 So…
+19:23:22 That's why, every couple days, that's why.
+19:23:25 every day… every other day, send a little update.
+19:23:28 Or, you know, every 3 days, just more updates you can provide, it's better for you.
+19:23:34 Mm-hmm.
+19:23:34 Rather than waiting for a week.
+19:23:36 Yeah. Don't want to do that.
+19:23:37 Yeah. Okay.
+19:23:40 And then, Kyle, I know you're going through some health issues. If we need to adjust the…
+19:23:46 Um, our overall milestone and goals?
+19:23:48 Well, let's get that discussion going so that you are going to be successful, right? The goal is to have a working product.
+19:23:55 What degree? Not that…
+19:23:57 that is something we need to negotiate.
+19:23:59 Because your guys' health, mental and physical health,
+19:24:03 is really important.
+19:24:06 Just because the project plan says this don't mean you have to.
+19:24:11 we could adjust, okay? Your health,
+19:24:14 And your success is the plan.
+19:24:16 So, we just got 30 seconds, and so let's finish with that, unless you guys have one more thing to say.
+19:24:20 Okay. I'm good, thank you for your time.
+19:24:23 My pleasure. Hey, thanks, guys. This looks good, I'm really excited.
+19:24:28 I am too. See ya.
+19:24:30 All right. See ya.
