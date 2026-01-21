@@ -16,15 +16,15 @@
 * FR-001: [Random Data] - Produce 10,000+ random records per run with configurable variance and distributions; support deterministic seeding for reproducibility. (Must)
 * FR-002: [Data Order] - Define a relational schema derived from the provided PDF form, including field names, types, lengths, constraints, and mapping metadata. (Must)
 * FR-003: [Mapping] - Map database fields to export specification fields including the transformations, concatenation, padding, default values. Editable mapping definitions and versioned. (Must)
-* FR-004: [Validation] = Verify that mapped values conform to export schema constraints (lengths, allowed values, checksums). Provide a detailed output to see spcific validation fails. (Must)
+* FR-004: [Validation] - Verify that mapped values conform to export schema constraints (lengths, allowed values, checksums). Provide a detailed output to see spcific validation fails. (Must)
 * FR-005: [Encryption of Data] - Password System (Could)
 * FR-006: [Fixed-width File Generator] - Emit flat-text fixed-width files according to spec, optimized for throughput (Must)
 * FR-007: [Logging] - metadata, logs, and storage. (Should)
 
-* NR-001: Scalability: Support larger volumes (100k+)
-* NR-002: Maintainability: Modular code, clear interfaces, automated tests
-* NR-003: Compatibility: Support common DBs
-* NR-004: Reliability / Availability: Deterministic runs with reproducible seed; rety system?
+* NR-001: [Scalability] - Support larger volumes (100k+)
+* NR-002: [Maintainability] - Modular code, clear interfaces, automated tests
+* NR-003: [Compatibility] - Support common DBs
+* NR-004: [Reliability / Availability] - Deterministic runs with reproducible seed; rety system?
 
 **Minimum Viable Product**
 * Database that stores Pre-DHA information
