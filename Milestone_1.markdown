@@ -59,10 +59,10 @@
 Project Plan
 
 ### Milestone 2 | Tues Feb 3rd
-Application Flow
-UI Mockup
-Database Design
-Test Plan
+Application Flow, 
+UI Mockup, 
+Database Design, 
+Test Plan, 
 Bug Tracking Plan
 -provision for customer findings
 
