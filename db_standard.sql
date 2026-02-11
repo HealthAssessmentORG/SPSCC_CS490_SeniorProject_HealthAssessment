@@ -1,6 +1,7 @@
 -- SQL Standard, first 20 fields (ORDER 1..20)
 -- Note: D_EVENT and DOB are stored as CHAR(8) in YYYYMMDD format (as in the export).
 
+DROP TABLE IF EXISTS dd2795_pre_response;
 CREATE TABLE dd2795_pre_response (
     response_id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
