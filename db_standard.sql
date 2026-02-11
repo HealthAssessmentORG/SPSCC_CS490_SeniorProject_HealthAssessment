@@ -38,7 +38,7 @@ CREATE TABLE dd2795_pre_response (
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     -- Validity checks (enforcement varies by database)
-    CONSTRAINT chk_sex            CHECK (sex IS NULL OR sex IN ('M','F')),
+    CONSTRAINT chk_sex            CHECK (sex IS NULL OR sex IN ('M','F','X')),
     CONSTRAINT chk_form_service   CHECK (form_service IS NULL OR form_service IN ('A','C','D','F','M','N','P','X')),
     CONSTRAINT chk_form_component CHECK (form_component IS NULL OR TRIM(form_component) IN ('A','N','R','X')),
     CONSTRAINT chk_grade          CHECK (grade IS NULL OR grade IN (
