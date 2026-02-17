@@ -1,10 +1,11 @@
-import psycopg2
 from faker import Faker
 import random
 import datetime
+import mssql_python
 
 # connect to db
-connection = psycopg2.connect(database="postgres", user="postgres", password="3939", host="localhost", port=5432)
+connString = "SERVER=localhost;DATABASE=master;UID=sa;PWD=3939;Encrypt=no;Trusted_Connection=yes;"
+connection = mssql_python.connect(connString)
 cursor = connection.cursor()
 
 # TODO: Make arrays for columns to be inserted
