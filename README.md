@@ -69,6 +69,55 @@ sqlcmd -No -S "localhost,1433" -U "$DB_USER" -P "$DB_PASSWORD" -d master \
   -Q "SELECT SUSER_SNAME() AS whoami, @@SERVERNAME AS servername;"
 ```
 
+## Running the App
+
+### Run once (first time / fresh database)
+
+This applies the schema in `./sql/00_schema.sql` then runs generation & export.
+
+```bash
+npx tsx main.ts \
+  -form ./files/ExportFixedWidthForDD2975.xlsx \
+  -gen 100 \
+  --seed 0 \
+  --out ./out/dd2975_prealpha_seed0.txt \
+  --apply-schema
+```
+
+### Normal run (schema already exists)
+
+```bash
+npx tsx main.ts \
+  -form ./files/ExportFixedWidthForDD2975.xlsx \
+  -gen 100 \
+  --seed 0 \
+  --out ./out/dd2975_prealpha_seed0.txt
+```
+> Note: `--seed` controls deterministic generation. Re-running with the same seed will reproduce the same values.
+
+### Output Notes (Fixed-Width “Looks Blank”)
+The export file is fixed-width and can appear blank in editors because it contains many spaces.
+
+Quick sanity checks:
+```bash
+wc -l ./out/dd2975_prealpha_seed0.txt
+wc -c ./out/dd2975_prealpha_seed0.txt
+
+# show first 200 chars with whitespace visible
+head -n 1 ./out/dd2975_prealpha_seed0.txt | cut -c1-200 | cat -A
+
+# confirm row length (expect 5172)
+awk '{print length($0)}' ./out/dd2975_prealpha_seed0.txt | head
+```
+
+**Tip:** view in `terminal` with horizontal scrolling:
+
+```bash
+less -S ./out/dd2975_prealpha_seed0.txt
+```
+
+
+
 
 
 
