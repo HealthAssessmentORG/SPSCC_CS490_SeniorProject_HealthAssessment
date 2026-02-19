@@ -2,6 +2,9 @@
 Generitive data fill for Health Assessment form data.
 
 ## Prerequisites
+* https://docs.microsoft.com/en-us/sql/linux
+* TypeScript
+* Comfortable using terminal commands
 
 ### 1) SQL Server (Linux) + `sqlcmd`
 Install SQL Server + tools following Microsoft docs:
@@ -116,21 +119,26 @@ awk '{print length($0)}' ./out/dd2975_prealpha_seed0.txt | head
 less -S ./out/dd2975_prealpha_seed0.txt
 ```
 
+## Troubleshooting
 
+### “There is already an object named 'RUN'”
 
+You re-ran `--apply-schema` on an existing schema. Use the normal run command (no `--apply-schema`), or reset the DB.
 
+#### Reset the database (dev only)
+```bash
+sqlcmd -No -S "localhost,1433" -U "sa" -P 'password' -d master -b -Q "
+IF DB_ID('CS490_SeniorProject') IS NOT NULL
+BEGIN
+  ALTER DATABASE [CS490_SeniorProject] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+  DROP DATABASE [CS490_SeniorProject];
+END
+CREATE DATABASE [CS490_SeniorProject];
+"
+```
+Then re-run the “Create app login/user + permissions” steps and run with `--apply-schema`.
 
+#### SQLCMD SSL error: “certificate verify failed: self-signed certificate”
 
+Use: `sqlcmd -No ...` (trust server certificate) or configure certificates properly.
 
-## To Run
-* https://docs.microsoft.com/en-us/sql/linux
-* npm i after git pull for node modules
-* *wip*
-
-Run once
-
-`npx tsx main.ts -form ./files/ExportFixedWidthForDD2975.xlsx -gen 100 --seed 0 --out ./out/dd2975_prealpha_seed0.txt --apply-schema`
-
-Run:
-
-`npx tsx main.ts -form ./files/ExportFixedWidthForDD2975.xlsx -gen 100 --seed 0 --out ./out/dd2975_prealpha_seed0.txt`
