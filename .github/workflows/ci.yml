@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ "pre-alpha" ]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint --if-present
+      - run: npm run typecheck --if-present
+      - run: npm test --if-present
+
+  integration-smoke:
+    runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2025-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+          MSSQL_PID: "Developer"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -C || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 30
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+
+      # Create DB + app login/user inside the container (using sqlcmd inside the container)
+      - name: Provision DB + app user
+        run: |
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d master -b -Q "
+              IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
+              IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
+                CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
+            "
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -Q "
+              IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
+                CREATE USER [cs490_app] FOR LOGIN [cs490_app];
+              ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
+              ALTER ROLE db_datareader ADD MEMBER [cs490_app];
+              ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
+            "
+
+      - name: Run pipeline smoke
+        env:
+          DB_SERVER: localhost
+          DB_PORT: "1433"
+          DB_DATABASE: CS490_SeniorProject
+          DB_USER: cs490_app
+          DB_PASSWORD: password
+        run: |
+          mkdir -p out
+          npx tsx main.ts \
+            -form ./files/ExportFixedWidthForDD2975.xlsx \
+            -gen 25 \
+            --seed 0 \
+            --apply-schema \
+            --out ./out/ci_smoke.txt
+
+      - name: Assert output not all spaces
+        run: |
+          test -f ./out/ci_smoke.txt
+          test "$(wc -l < ./out/ci_smoke.txt)" -eq 25
+          # must contain at least one non-space char somewhere
+          grep -qP '\S' ./out/ci_smoke.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-output
+          path: |
+            out/*.txt
