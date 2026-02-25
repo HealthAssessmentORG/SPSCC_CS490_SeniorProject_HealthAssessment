@@ -30,7 +30,7 @@ export function getDbConfigFromEnv(): sql.config {
     user,
     password,
     options: {
-      encrypt: false, // local Linux SQL Server commonly uses no TLS
+      encrypt: false, // local Linux SQL Server commonly uses no TLS (needs to be changed if used accross the net)
       trustServerCertificate: true
     },
     pool: {
