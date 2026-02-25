@@ -12,7 +12,6 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@playwright/test": "^1.51.0",
     "@types/mssql": "^9.1.9",
     "@types/node": "^25.2.1",
     "@types/typescript": "^0.4.29",
