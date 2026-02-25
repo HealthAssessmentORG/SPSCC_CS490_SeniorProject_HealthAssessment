@@ -73,7 +73,7 @@ jobs:
         run: |
           mkdir -p out
           npx tsx main.ts \
-            -form ./files/ExportFixedWidthForDD2975.xlsx \
+            -form ./files/ExportFixedWidthSmoke.xlsx \
             -gen 25 \
             --seed 0 \
             --apply-schema \
