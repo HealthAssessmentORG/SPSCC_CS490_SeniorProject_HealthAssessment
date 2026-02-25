@@ -1,4 +1,7 @@
 node_modules
 .env
+out/
 files/ExportFixedWidthForDD2975.xlsx
+files/ProjectGoals.docx
+files/ProposedMileStones.docx
 out/dd2975_prealpha.txt
