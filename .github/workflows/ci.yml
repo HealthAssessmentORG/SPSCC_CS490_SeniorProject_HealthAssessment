@@ -4,6 +4,7 @@ on:
   push:
     branches: [ "pre-alpha" ]
   pull_request:
+    branches: [ "pre-alpha" ]
 
 jobs:
   unit:
