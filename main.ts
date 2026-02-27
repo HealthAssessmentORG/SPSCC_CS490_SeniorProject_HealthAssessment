@@ -84,18 +84,29 @@ async function ensureMappingSetForPreAlpha(pool: any, exportSpecId: string): Pro
     fv: { type: sql.NVarChar(50), value: "DD2795_202006" }
   });
 
-  if (existing.recordset.length) return String(existing.recordset[0].mapping_set_id);
+  let mappingSetId: string;
+  if (existing.recordset.length) {
+    mappingSetId = String(existing.recordset[0].mapping_set_id);
+  } else {
+    mappingSetId = randomUUID();
+    await execSql(pool, `
+      INSERT INTO dbo.MAPPING_SET (mapping_set_id, export_spec_id, form_version_observed, mapping_name, mapping_version)
+      VALUES (@id, @sid, @fv, @name, 1)
+    `, {
+      id: { type: sql.UniqueIdentifier, value: mappingSetId },
+      sid: { type: sql.UniqueIdentifier, value: exportSpecId },
+      fv: { type: sql.NVarChar(50), value: "DD2795_202006" },
+      name: { type: sql.NVarChar(200), value: "prealpha_20" }
+    });
+  }
 
-  const mappingSetId = randomUUID();
-  await execSql(pool, `
-    INSERT INTO dbo.MAPPING_SET (mapping_set_id, export_spec_id, form_version_observed, mapping_name, mapping_version)
-    VALUES (@id, @sid, @fv, @name, 1)
-  `, {
-    id: { type: sql.UniqueIdentifier, value: mappingSetId },
-    sid: { type: sql.UniqueIdentifier, value: exportSpecId },
-    fv: { type: sql.NVarChar(50), value: "DD2795_202006" },
-    name: { type: sql.NVarChar(200), value: "prealpha_20" }
-  });
+  const ruleCount = await execSql(pool, `
+    SELECT COUNT(1) AS cnt
+    FROM dbo.MAPPING_RULE
+    WHERE mapping_set_id = @mid
+  `, { mid: { type: sql.UniqueIdentifier, value: mappingSetId } });
+  const existingRuleCount = Number(ruleCount.recordset[0]?.cnt ?? 0);
+  if (existingRuleCount > 0) return mappingSetId;
 
   // Insert rules for the fields we care about if present in the spec.
   // We key by field_name so it works whether you imported 20 fields or all 237.
