@@ -83,6 +83,7 @@ npx tsx main.ts \
   -form ./files/ExportFixedWidthForDD2975.xlsx \
   -gen 100 \
   --seed 0 \
+  --mapping-profile spec \
   --out ./out/dd2975_prealpha_seed0.txt \
   --apply-schema
 ```
@@ -94,9 +95,22 @@ npx tsx main.ts \
   -form ./files/ExportFixedWidthForDD2975.xlsx \
   -gen 100 \
   --seed 0 \
+  --mapping-profile spec \
   --out ./out/dd2975_prealpha_seed0.txt
 ```
 > Note: `--seed` controls deterministic generation. Re-running with the same seed will reproduce the same values.
+> Note: default profile is `spec`, so the run follows the provided XLSX field/question metadata. Use `--mapping-profile prealpha` for the legacy hardcoded DD2795 behavior.
+
+### Legacy compatibility run
+
+```bash
+npx tsx main.ts \
+  -form ./files/ExportFixedWidthForDD2975.xlsx \
+  -gen 100 \
+  --seed 0 \
+  --mapping-profile prealpha \
+  --out ./out/dd2975_prealpha_seed0.txt
+```
 
 ### Output Notes (Fixed-Width “Looks Blank”)
 The export file is fixed-width and can appear blank in editors because it contains many spaces.
@@ -141,4 +155,3 @@ Then re-run the “Create app login/user + permissions” steps and run with `--
 #### SQLCMD SSL error: “certificate verify failed: self-signed certificate”
 
 Use: `sqlcmd -No ...` (trust server certificate) or configure certificates properly.
-

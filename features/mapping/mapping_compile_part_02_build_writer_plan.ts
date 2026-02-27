@@ -126,7 +126,9 @@ export function buildWriterPlan(fields: ExportField[], rules: Map<string, Parsed
         let raw = rule.default_value;
 
         const src = rule.source;
-        if (src.kind === "col") {
+        if (src.kind === "const") {
+          raw = rule.default_value ?? "";
+        } else if (src.kind === "col") {
           if (src.table === "ASSESSMENT") raw = toIsoDateIfDate(ctx.assessment?.[src.column] ?? rule.default_value ?? "");
           else if (src.table === "DEPLOYER") raw = toIsoDateIfDate(ctx.deployer?.[src.column] ?? rule.default_value ?? "");
           else raw = toIsoDateIfDate(ctx.provider_review?.[src.column] ?? rule.default_value ?? "");

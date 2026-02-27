@@ -124,4 +124,41 @@ test.describe("writer plan getValue", () => {
     const v = plan[0]!.getValue(ctx);
     expect(v).toBe("007");
   });
+
+  test("CONST source uses default value", () => {
+    const fields: ExportField[] = [
+      {
+        export_field_id: "F4",
+        field_name: "FORM_TYPE",
+        start_pos: 1,
+        end_pos: 5,
+        field_length: 5,
+        domain_type: null,
+      },
+    ];
+
+    const rules = new Map<string, ParsedRule>([
+      [
+        "F4",
+        mkRule({
+          export_field_id: "F4",
+          source: { kind: "const" },
+          transforms: [{ kind: "trim" }],
+          pad: { kind: "right_space" },
+          default_value: "CAM",
+        }),
+      ],
+    ]);
+
+    const plan = buildWriterPlan(fields, rules);
+    const ctx: RecordContext = {
+      assessment: {},
+      deployer: {},
+      provider_review: {},
+      responses: new Map(),
+    };
+
+    const v = plan[0]!.getValue(ctx);
+    expect(v).toBe("CAM  ");
+  });
 });

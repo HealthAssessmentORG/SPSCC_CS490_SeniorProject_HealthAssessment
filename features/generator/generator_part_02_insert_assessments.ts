@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 export type RunRow = { run_id: string };
 export type DeployerRow = { deployer_id: string; dod_id: string };
 export type AssessmentRow = { assessment_id: string; deployer_id: string; event_date: string };
+export type AssessmentFormObserved = { form_type_observed: string; form_version_observed: string };
 
 const deployerIdCache = new Map<string, string>();
 
@@ -77,12 +78,15 @@ export async function createAssessments(
   run_id: string,
   rng: Rng,
   deployers: DeployerRow[],
-  count: number
+  count: number,
+  formObserved: AssessmentFormObserved = {
+    form_type_observed: "PRE",
+    form_version_observed: "DD2795_202006"
+  }
 ): Promise<AssessmentRow[]> {
   const out: AssessmentRow[] = [];
-
-  const form_type_observed = "PRE";
-  const form_version_observed = "DD2795_202006";
+  const form_type_observed = formObserved.form_type_observed;
+  const form_version_observed = formObserved.form_version_observed;
 
   for (let i = 0; i < count; i++) {
     const assessment_id = randomUUID();

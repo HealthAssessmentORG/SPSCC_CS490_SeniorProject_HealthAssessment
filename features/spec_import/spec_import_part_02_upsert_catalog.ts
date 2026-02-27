@@ -1,6 +1,7 @@
 import { DbPool, execSql, sql } from "../../db/db_connect";
 import { ExportSpecModel, ExportFieldRow } from "./spec_import_part_01_read_xlsx";
 import { randomUUID } from "node:crypto";
+import { classifyValuesSpec } from "./spec_values_part_01_utils";
 
 type DomainGuess = {
   domain_type: string;
@@ -8,59 +9,34 @@ type DomainGuess = {
   enum_pairs?: Array<{ code: string; meaning: string }>;
 };
 
-function parseEnumPairs(raw: string): Array<{ code: string; meaning: string }> | undefined {
-  // Handles patterns like: "M=Male, F=Female"
-  if (!raw.includes("=")) return undefined;
-
-  const parts = raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const pairs: Array<{ code: string; meaning: string }> = [];
-  for (const p of parts) {
-    const eq = p.indexOf("=");
-    if (eq < 1) continue;
-
-    const code = p.slice(0, eq).trim().replace(/^"+|"+$/g, "");
-    const meaning = p.slice(eq + 1).trim().replace(/^"+|"+$/g, "");
-    if (code) pairs.push({ code, meaning });
-  }
-
-  return pairs.length ? pairs : undefined;
-}
-
 function guessDomain(f: ExportFieldRow): DomainGuess {
-  const raw = (f.values_spec_raw ?? "").trim();
+  const spec = classifyValuesSpec(f.field_name, f.values_spec_raw);
 
-  if (!raw || raw.toLowerCase() === "text field") {
-    return { domain_type: "TEXT", raw_spec: raw || "Text Field" };
+  if (spec.kind === "text") {
+    return { domain_type: "TEXT", raw_spec: spec.raw };
   }
-
-  if (raw.includes("YYYYMMDD") || /date/i.test(raw)) {
-    return { domain_type: "DATE_YYYYMMDD", raw_spec: raw };
+  if (spec.kind === "date_yyyymmdd") {
+    return { domain_type: "DATE_YYYYMMDD", raw_spec: spec.raw };
   }
-
-  if (f.field_name.toUpperCase() === "DODID" || raw.includes("9999999999")) {
-    return { domain_type: "DODID10", raw_spec: raw };
+  if (spec.kind === "dodid10") {
+    return { domain_type: "DODID10", raw_spec: spec.raw };
   }
-
-  // Common “checked” domain
-  if (/checked/i.test(raw) && raw.includes("Y") && raw.includes("N")) {
+  if (spec.kind === "enum_yn") {
     return {
       domain_type: "ENUM_YN",
-      raw_spec: raw,
-      enum_pairs: [
-        { code: "Y", meaning: "Yes" },
-        { code: "N", meaning: "No" }
-      ]
+      raw_spec: spec.raw,
+      enum_pairs: spec.enum_pairs
+    };
+  }
+  if (spec.kind === "enum") {
+    return {
+      domain_type: "ENUM",
+      raw_spec: spec.raw,
+      enum_pairs: spec.enum_pairs
     };
   }
 
-  const enumPairs = parseEnumPairs(raw);
-  if (enumPairs) return { domain_type: "ENUM", raw_spec: raw, enum_pairs: enumPairs };
-
-  return { domain_type: "SPEC_RAW", raw_spec: raw };
+  return { domain_type: "SPEC_RAW", raw_spec: spec.raw };
 }
 
 export async function upsertExportSpec(pool: DbPool, spec: ExportSpecModel): Promise<string> {

@@ -11,23 +11,30 @@ const shouldRun = process.env.RUN_DB_E2E === "1";
 
 test.describe("full pipeline export (DB)", () => {
   test.skip(!shouldRun, "Set RUN_DB_E2E=1 to enable (requires SQL Server + env vars).");
+  test.describe.configure({ mode: "serial" });
 
-  test("generates a fixed-width export with expected record count/width", async ({}, testInfo) => {
-    const xlsxPath = path.resolve(process.cwd(), "files", "ExportFixedWidthForDD2975.xlsx");
-    expect(fs.existsSync(xlsxPath)).toBeTruthy();
+  test("spec mode honors smoke XLSX metadata and formats", async ({}, testInfo) => {
+    const smokeXlsx = path.resolve(process.cwd(), "files", "ExportFixedWidthForSmoke.xlsx");
+    expect(fs.existsSync(smokeXlsx)).toBeTruthy();
 
-    const spec = readExportSpecXlsx(xlsxPath, "DD2975_like", "integration");
-    const outPath = testInfo.outputPath("dd2975_export.txt");
+    const spec = readExportSpecXlsx(smokeXlsx, "smoke_like", "integration_smoke");
+    const outPath = testInfo.outputPath("smoke_export.txt");
 
     const r = await runCli(
       [
         "--apply-schema",
+        "--mapping-profile",
+        "spec",
         "-form",
-        xlsxPath,
+        smokeXlsx,
         "-gen",
         "5",
         "--seed",
         "12345",
+        "--spec-name",
+        "smoke_like",
+        "--spec-version",
+        "integration_smoke",
         "--out",
         outPath,
       ],
@@ -43,5 +50,71 @@ test.describe("full pipeline export (DB)", () => {
     for (const line of lines) {
       expect(line).toHaveLength(spec.row_length);
     }
+
+    const first = lines[0]!;
+    const byName = (fieldName: string) => {
+      const f = spec.fields.find((x) => x.field_name === fieldName);
+      expect(f).toBeTruthy();
+      return first.slice((f!.start_pos - 1), f!.end_pos);
+    };
+
+    expect(byName("FORM_TYPE").trim()).toBe("CAM");
+    expect(byName("FORM_VERSION").trim()).toBe("XX1999_123456");
+
+    const id = byName("ID").trim();
+    expect(id.length).toBeGreaterThan(0);
+    expect(id).toMatch(/^\d+$/);
+
+    const ok = byName("OK").trim();
+    expect(["Y", "N", "U"]).toContain(ok);
+
+    const rating = byName("RATING").trim();
+    expect(["E", "V", "G", "F", "P"]).toContain(rating);
+  });
+
+  test("legacy prealpha profile preserves PRE/DD2795 form metadata", async ({}, testInfo) => {
+    const ddXlsx = path.resolve(process.cwd(), "files", "ExportFixedWidthForDD2975.xlsx");
+    expect(fs.existsSync(ddXlsx)).toBeTruthy();
+
+    const spec = readExportSpecXlsx(ddXlsx, "DD2975_like", "integration_legacy");
+    const outPath = testInfo.outputPath("legacy_prealpha_export.txt");
+
+    const r = await runCli(
+      [
+        "--mapping-profile",
+        "prealpha",
+        "-form",
+        ddXlsx,
+        "-gen",
+        "3",
+        "--seed",
+        "12345",
+        "--spec-name",
+        "DD2975_like",
+        "--spec-version",
+        "integration_legacy",
+        "--out",
+        outPath,
+      ],
+      { cwd: process.cwd() }
+    );
+
+    expect(r.code).toBe(0);
+
+    const text = await fs.promises.readFile(outPath, "utf8");
+    const lines = text.trimEnd().split(/\r?\n/);
+    expect(lines).toHaveLength(3);
+
+    const first = lines[0]!;
+    const formType = spec.fields.find((x) => x.field_name === "FORM_TYPE");
+    const formVersion = spec.fields.find((x) => x.field_name === "FORM_VERSION");
+    expect(formType).toBeTruthy();
+    expect(formVersion).toBeTruthy();
+
+    const formTypeValue = first.slice(formType!.start_pos - 1, formType!.end_pos).trim();
+    const formVersionValue = first.slice(formVersion!.start_pos - 1, formVersion!.end_pos).trim();
+
+    expect(formTypeValue).toBe("PRE");
+    expect(formVersionValue).toBe("DD2795_202006");
   });
 });

@@ -53,7 +53,7 @@ test.describe("validateRecord", () => {
     const good = validateRecord(1, plan, new Map([["DATE", "20260214"]]));
     expect(good).toHaveLength(0);
 
-    const bad = validateRecord(1, plan, new Map([["DATE", "2026-02-14"]]));
+    const bad = validateRecord(1, plan, new Map([["DATE", "2026AB14"]]));
     expect(bad).toHaveLength(1);
     expect(bad[0]!.error_code).toBe("BAD_DATE");
   });

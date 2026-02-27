@@ -22,6 +22,12 @@ test.describe("mapping rule parsing", () => {
     });
   });
 
+  test("parses CONST sources", () => {
+    expect(parseSourceExpression("CONST")).toEqual({
+      kind: "const",
+    });
+  });
+
   test("parses transform pipelines", () => {
     const ops = parseTransformPipeline("trim|lower|date:yyyymmdd");
     expect(ops.map((o) => o.kind)).toEqual(["trim", "lower", "date_yyyymmdd"]);

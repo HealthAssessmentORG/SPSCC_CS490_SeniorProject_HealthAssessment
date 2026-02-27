@@ -1,6 +1,7 @@
 export type SourceExpr =
   | { kind: "col"; table: "ASSESSMENT" | "DEPLOYER" | "PROVIDER_REVIEW"; column: string }
-  | { kind: "resp"; question_code: string; field_name: string };
+  | { kind: "resp"; question_code: string; field_name: string }
+  | { kind: "const" };
 
 export type TransformOp =
   | { kind: "trim" }
@@ -21,6 +22,9 @@ export type ParsedRule = {
 };
 
 export function parseSourceExpression(src: string): SourceExpr {
+  if (src === "CONST") {
+    return { kind: "const" };
+  }
   if (src.startsWith("COL:")) {
     // COL:TABLE.column
     const rest = src.slice(4);
