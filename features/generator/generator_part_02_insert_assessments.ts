@@ -10,7 +10,24 @@ export type AssessmentFormObserved = { form_type_observed: string; form_version_
 
 const deployerIdCache = new Map<string, string>();
 
-export async function getOrCreateDeployerId(pool: DbPool, dodid: string): Promise<string> {
+/**
+ * Retrieves or creates a deployer ID associated with a given DoD ID.
+ * 
+ * This function first checks an in-memory cache for the deployer ID. If not found,
+ * it performs a MERGE operation on the DEPLOYER table to either retrieve an existing
+ * deployer_id or insert a new record with a generated UUID. The operation is
+ * concurrency-safe using HOLDLOCK.
+ * 
+ * @param pool - The database connection pool used to execute the SQL query
+ * @param dodid - The Department of Defense ID (10 characters) to look up or associate with a deployer
+ * @returns A promise that resolves to the deployer_id (as a string) associated with the given DoD ID
+ * 
+ * @remarks
+ * - The function maintains an internal cache (`deployerIdCache`) to avoid redundant database queries
+ * - The MERGE statement ensures atomicity when checking for existence and inserting if needed
+ * - The DoD ID is trimmed of whitespace before processing
+ */
+async function getOrCreateDeployerId(pool: DbPool, dodid: string): Promise<string> {
   const key = dodid.trim();
   const cached = deployerIdCache.get(key);
   if (cached) return cached;
@@ -42,7 +59,15 @@ export async function getOrCreateDeployerId(pool: DbPool, dodid: string): Promis
   return deployerId;
 }
 
-export async function createRun(pool: DbPool, runName: string, seed: number, target: number): Promise<string> {
+/**
+ * Creates a new run record in the database with the specified parameters.
+ * @param pool - The database connection pool to use for the query.
+ * @param runName - The name of the run to create.
+ * @param seed - The seed value for random data generation.
+ * @param target - The target number of records to generate.
+ * @returns A promise that resolves to the unique identifier of the created run.
+ */
+async function createRun(pool: DbPool, runName: string, seed: number, target: number): Promise<string> {
   const run_id = randomUUID();
   await execSql(pool, `
     INSERT INTO dbo.[RUN] (run_id, run_name, seed, target_record_count, status)
@@ -56,7 +81,15 @@ export async function createRun(pool: DbPool, runName: string, seed: number, tar
   return run_id;
 }
 
-export async function createDeployers(pool: DbPool, rng: Rng, count: number): Promise<DeployerRow[]> {
+/**
+ * Creates an array of unique deployers with generated DOD identifiers.
+ * 
+ * @param pool - The database connection pool used to query or create deployer records
+ * @param rng - The random number generator used to generate unique DOD identifiers
+ * @param count - The number of unique deployers to create
+ * @returns A promise that resolves to an array of deployer rows containing deployer IDs and DOD IDs
+ */
+async function createDeployers(pool: DbPool, rng: Rng, count: number): Promise<DeployerRow[]> {
   const deployers: DeployerRow[] = [];
   const used = new Set<string>();
 
@@ -73,7 +106,17 @@ export async function createDeployers(pool: DbPool, rng: Rng, count: number): Pr
   return deployers;
 }
 
-export async function createAssessments(
+/**
+ * Creates assessment records in the database.
+ * @param pool - The database connection pool
+ * @param run_id - The run identifier
+ * @param rng - Random number generator instance
+ * @param deployers - Array of deployer rows to associate with assessments
+ * @param count - Number of assessments to create
+ * @param formObserved - Assessment form observation details (form type and version)
+ * @returns Promise resolving to an array of created assessment rows
+ */
+async function createAssessments(
   pool: DbPool,
   run_id: string,
   rng: Rng,
@@ -118,7 +161,14 @@ export async function createAssessments(
   return out;
 }
 
-export async function finishRun(pool: DbPool, run_id: string, status: string) {
+/**
+ * Finalizes a run by updating its status and completion timestamp.
+ * @param pool - The database connection pool
+ * @param run_id - The unique identifier of the run to finalize
+ * @param status - The final status to set for the run
+ * @returns A promise that resolves when the update is complete
+ */
+async function finishRun(pool: DbPool, run_id: string, status: string) {
   await execSql(pool, `
     UPDATE dbo.[RUN]
     SET status = @st, finished_at = SYSUTCDATETIME()
@@ -128,3 +178,5 @@ export async function finishRun(pool: DbPool, run_id: string, status: string) {
     id: { type: sql.UniqueIdentifier, value: run_id }
   });
 }
+
+export { getOrCreateDeployerId, createRun, createDeployers, createAssessments, finishRun };
