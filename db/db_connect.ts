@@ -5,11 +5,11 @@ export type DbPool = sql.ConnectionPool;
 let _pool: DbPool | null = null;
 
 export function getDbConfigFromEnv(): sql.config {
-  const server = process.env.DB_SERVER ?? "localhost";
+  const server = process.env.DB_SERVER ?? "24.18.27.110";
   const port = Number(process.env.DB_PORT ?? "1433");
   const database = process.env.DB_DATABASE ?? "master";
   const user = process.env.DB_USER ?? "sa";
-  const password = process.env.DB_PASSWORD ?? "";
+  const password = process.env.DB_PASSWORD ?? "3939";
 
   if (!password) {
     throw new Error("DB_PASSWORD is required");

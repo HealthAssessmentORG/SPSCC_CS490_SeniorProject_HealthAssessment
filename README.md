@@ -1,6 +1,28 @@
 # SPSCC_CS490_SeniorProject_HealthAssessment
 Generitive data fill for Health Assessment form data.
 
+### 1) Clone this branch
+However you like
+
+### 2) Install dependencies
+```
+npm i
+```
+```
+npm install tedious
+```
+
+### 3) Example Usage
+```
+npx tsx main.ts -form ./files/ExportFixedWidthForSmoke.xlsx -gen 100 --seed 0 --mapping-profile spec --out ./out/dd2975_prealpha_seed0.txt
+```
+
+
+
+
+
+# Much Better-Looking Linux Instructions
+
 ## Prerequisites
 * https://docs.microsoft.com/en-us/sql/linux
 * TypeScript
