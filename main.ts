@@ -30,6 +30,23 @@ import { importSpecToDb } from "./features/spec_import/spec_import_part_02_upser
 import { persistValidationErrors } from "./features/validate/validate_part_02_persist_errors";
 import { validateRecord } from "./features/validate/validate_part_01_rules_engine";
 
+/**
+ * Configuration options for the data generation process.
+ * 
+ * @remarks
+ * This type defines the parameters used to control the generation of fixed-width
+ * output files from Excel forms, including record generation, seeding, and schema application.
+ * 
+ * @property form - Optional path to the source Excel (.xlsx) file
+ * @property gen - Number of records to generate
+ * @property seed - Random number generator seed for reproducible output
+ * @property specName - Name of the specification to use
+ * @property specVersion - Version identifier of the specification
+ * @property mappingProfile - Profile that defines how fields are mapped
+ * @property applySchema - Whether to apply schema validation to the output
+ * @property out - Path for the generated fixed-width output file
+ * @property help - Flag to display help information
+ */
 type Options = {
   form?: string; // path to XLSX
   gen: number; // record count
@@ -42,6 +59,26 @@ type Options = {
   help: boolean;
 };
 
+/**
+ * Displays usage information for the DD2975 form generation tool and exits the process.
+ * 
+ * Prints command-line usage instructions including:
+ * - Required arguments for form template and generation count
+ * - Optional parameters for seed, mapping profile, schema application, and output path
+ * - Required environment variables for database connection
+ * 
+ * @param exitCode - The exit code to use when terminating the process. Defaults to 0 (success).
+ * @returns Never returns as it always exits the process
+ * 
+ * @example
+ * ```typescript
+ * // Display usage and exit with success code
+ * usage();
+ * 
+ * // Display usage and exit with error code
+ * usage(1);
+ * ```
+ */
 function usage(exitCode = 0): never {
   const msg = `
 Usage:
@@ -54,6 +91,32 @@ Required env:
   process.exit(exitCode);
 }
 
+/**
+ * Parses command-line arguments into an Options object.
+ * 
+ * @param argv - Array of command-line argument strings to parse
+ * @returns An Options object with parsed values or defaults
+ * 
+ * @throws {Error} When an unknown argument is provided
+ * @throws {Error} When --mapping-profile receives an invalid value (must be "spec" or "prealpha")
+ * 
+ * @remarks
+ * Supported arguments:
+ * - `-h`, `--help`: Display help information
+ * - `-form`, `--form <path>`: Specify form file path
+ * - `-gen`, `--gen <number>`: Set generation number (default: 0)
+ * - `--seed <number>`: Set random seed (default: 12345)
+ * - `--spec-name <string>`: Set specification name (default: "DD2975_like")
+ * - `--spec-version <string>`: Set specification version (default: "xlsx_import")
+ * - `--mapping-profile <spec|prealpha>`: Set mapping profile (default: "spec")
+ * - `--apply-schema`: Enable schema application (default: false)
+ * - `--out <path>`: Set output file path (default: "./out/export.txt")
+ * 
+ * @example
+ * ```typescript
+ * const options = parseArgs(["--gen", "5", "--seed", "42", "--out", "./output.txt"]);
+ * ```
+ */
 function parseArgs(argv: string[]): Options {
   const opts: Options = {
     gen: 0,
@@ -89,6 +152,34 @@ function parseArgs(argv: string[]): Options {
   return opts;
 }
 
+/**
+ * Main entry point for the Health Assessment export generation tool.
+ * 
+ * This function orchestrates the complete workflow for generating fixed-width export files
+ * from health assessment data:
+ * 
+ * 1. Parses command-line arguments and validates required options (form file, generation count)
+ * 2. Optionally applies database schema from SQL files
+ * 3. Imports the export specification from an Excel file into the database
+ * 4. Builds or retrieves mapping sets for the specified profile
+ * 5. Generates synthetic test data (deployers, assessments, responses, provider reviews)
+ * 6. Compiles an export writer plan based on export fields and mapping rules
+ * 7. Streams generated records to a fixed-width output file
+ * 8. Validates each record against the specification rules
+ * 9. Persists export metadata and validation errors to the database
+ * 10. Prints a summary report including run details, error histogram, and mapping statistics
+ * 
+ * @throws {Error} If required arguments are missing or invalid
+ * @throws {Error} If the specified form file does not exist
+ * @throws {Error} If database operations fail
+ * 
+ * @remarks
+ * The function uses seeded random number generation for reproducible test data.
+ * All database operations are performed within a connection pool that is properly
+ * closed in the finally block.
+ * 
+ * @returns {Promise<void>} Resolves when the export generation and validation is complete
+ */
 async function main() {
   let opts: Options;
   try {
