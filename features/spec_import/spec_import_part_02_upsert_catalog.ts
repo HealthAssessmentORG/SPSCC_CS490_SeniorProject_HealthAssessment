@@ -3,12 +3,35 @@ import { ExportSpecModel, ExportFieldRow } from "./spec_import_part_01_read_xlsx
 import { randomUUID } from "node:crypto";
 import { classifyValuesSpec } from "./spec_values_part_01_utils";
 
+/**
+ * Represents a guess for a domain with its type and specification details.
+ * @typedef {Object} DomainGuess
+ * @property {string} domain_type - The type of the domain being guessed.
+ * @property {string} raw_spec - The raw specification or definition of the domain.
+ * @property {Array<{code: string; meaning: string}>} [enum_pairs] - Optional array of code-meaning pairs for enumerated domains.
+ */
 type DomainGuess = {
   domain_type: string;
   raw_spec: string;
   enum_pairs?: Array<{ code: string; meaning: string }>;
 };
 
+/**
+ * Guesses the domain type and specification for an export field based on its values.
+ * 
+ * @param f - The export field row containing the field name and raw values specification
+ * @returns A domain guess object containing the determined domain type, raw specification,
+ *          and optional enum pairs if the domain is an enumeration type
+ * 
+ * @remarks
+ * The function classifies the field values and maps them to domain types in the following order:
+ * - TEXT: Plain text fields
+ * - DATE_YYYYMMDD: Dates in YYYYMMDD format
+ * - DODID10: Department of Defense ID format
+ * - ENUM_YN: Yes/No enumeration
+ * - ENUM: General enumeration with multiple values
+ * - SPEC_RAW: Default fallback for unclassified specifications
+ */
 function guessDomain(f: ExportFieldRow): DomainGuess {
   const spec = classifyValuesSpec(f.field_name, f.values_spec_raw);
 
@@ -39,6 +62,17 @@ function guessDomain(f: ExportFieldRow): DomainGuess {
   return { domain_type: "SPEC_RAW", raw_spec: spec.raw };
 }
 
+/**
+ * Upserts an export specification into the database.
+ * 
+ * If a specification with the same name and version already exists, updates its row length.
+ * Otherwise, creates a new specification with a generated UUID.
+ * 
+ * @param pool - The database connection pool
+ * @param spec - The export specification model containing spec_name, spec_version, and row_length
+ * @returns A promise that resolves to the export_spec_id (either existing or newly created)
+ * @throws Will throw an error if the database operation fails
+ */
 export async function upsertExportSpec(pool: DbPool, spec: ExportSpecModel): Promise<string> {
   const found = await execSql(
     pool,
@@ -88,6 +122,17 @@ export async function upsertExportSpec(pool: DbPool, spec: ExportSpecModel): Pro
   return id;
 }
 
+/**
+ * Upserts a domain into the VALUE_DOMAIN table.
+ * 
+ * Attempts to find an existing domain matching the specified type and raw specification.
+ * If found, returns the existing domain ID. If not found, creates a new domain with a
+ * generated UUID and returns the newly created ID.
+ * 
+ * @param pool - The database connection pool
+ * @param d - The domain guess object containing domain_type and raw_spec
+ * @returns A promise that resolves to the domain_id as a string
+ */
 async function upsertDomain(pool: DbPool, d: DomainGuess): Promise<string> {
   const found = await execSql(
     pool,
@@ -121,6 +166,18 @@ async function upsertDomain(pool: DbPool, d: DomainGuess): Promise<string> {
   return id;
 }
 
+/**
+ * Upserts enum values for a specified domain into the database.
+ * 
+ * Iterates through an array of code-meaning pairs and inserts each pair
+ * into the DOMAIN_ENUM_VALUE table if a record with the same domain_id
+ * and code does not already exist.
+ * 
+ * @param pool - The database connection pool
+ * @param domainId - The unique identifier of the domain
+ * @param pairs - An array of objects containing code and meaning properties to upsert
+ * @returns A promise that resolves when all enum values have been processed
+ */
 async function upsertEnumValues(
   pool: DbPool,
   domainId: string,
@@ -146,6 +203,26 @@ async function upsertEnumValues(
   }
 }
 
+/**
+ * Replaces all export fields for a given export specification.
+ * 
+ * This function performs a complete replacement of export fields by:
+ * 1. Deleting all mapping rules associated with the export spec (via mapping sets)
+ * 2. Deleting any remaining mapping rules linked to export fields (redundant safety check)
+ * 3. Deleting all existing export fields for the spec
+ * 4. Inserting new export fields with their associated domains and enum values
+ * 
+ * @remarks
+ * The deletion order is critical due to the FK_MAPPING_RULE_FIELD foreign key constraint
+ * being set to NO ACTION. This prevents SQL Server from automatically cascading deletes,
+ * so dependent MAPPING_RULE records must be explicitly deleted before EXPORT_FIELD records.
+ * 
+ * @param pool - The database connection pool
+ * @param exportSpecId - The UUID of the export specification to update
+ * @param fields - Array of export field definitions to insert
+ * @returns A promise that resolves when the operation completes
+ * @throws {Error} If any database operation fails
+ */
 export async function replaceExportFields(pool: DbPool, exportSpecId: string, fields: ExportFieldRow[]) {
   // IMPORTANT:
   // FK_MAPPING_RULE_FIELD is NO ACTION (to avoid multiple cascade paths).
@@ -217,6 +294,12 @@ export async function replaceExportFields(pool: DbPool, exportSpecId: string, fi
   }
 }
 
+/**
+ * Imports a specification to the database by upserting the export spec and replacing its fields.
+ * @param pool - The database connection pool
+ * @param spec - The specification model to import
+ * @returns A promise that resolves to the ID of the upserted export specification
+ */
 export async function importSpecToDb(pool: DbPool, spec: ExportSpecModel): Promise<string> {
   const exportSpecId = await upsertExportSpec(pool, spec);
   await replaceExportFields(pool, exportSpecId, spec.fields);

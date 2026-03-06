@@ -1,5 +1,16 @@
 import { WriterFieldPlan } from "../mapping/mapping_compile_part_02_build_writer_plan";
 
+/**
+ * Represents a validation error for a record in a data export.
+ * 
+ * @typedef {Object} ValidationErrorRow
+ * @property {number} record_ordinal - The ordinal position of the record that failed validation (1-based index).
+ * @property {string} export_field_name - The name of the field in the export that caused the validation error.
+ * @property {string} error_code - The unique code identifying the type of validation error.
+ * @property {string | null} expected - The expected value for the field, or null if not applicable.
+ * @property {string | null} actual - The actual value found in the field, or null if not applicable.
+ * @property {string} message - A human-readable description of the validation error.
+ */
 export type ValidationErrorRow = {
   record_ordinal: number;
   export_field_name: string;
@@ -9,10 +20,26 @@ export type ValidationErrorRow = {
   message: string;
 };
 
-function isBlank(v: string) {
+/**
+ * Checks if a string is blank (empty or contains only whitespace).
+ * @param v - The string to check
+ * @returns `true` if the string is blank, `false` otherwise
+ */
+function isBlank(v: string | null | undefined) {
+  if (v == null) {
+    console.warn("isBlank received null or undefined; this should not happen in a well-formed export");
+    return true;
+  }
   return v.trim().length === 0;
 }
 
+/**
+ * Validates a record against a field plan, checking for length mismatches and domain type violations.
+ * @param recordOrdinal - The ordinal position of the record being validated
+ * @param plan - Array of field definitions specifying expected lengths and domain types
+ * @param values - Map of field names to their string values
+ * @returns Array of validation errors found, empty if record is valid
+ */
 export function validateRecord(
   recordOrdinal: number,
   plan: WriterFieldPlan[],
