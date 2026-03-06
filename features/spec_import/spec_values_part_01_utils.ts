@@ -80,8 +80,9 @@ export function parseEnumPairs(raw: string): EnumPair[] | undefined {
     const eq = p.indexOf("=");
     if (eq < 1) continue;
 
-    const code = p.slice(0, eq).trim().replace(/^"+|"+$/g, "");
-    const meaning = p.slice(eq + 1).trim().replace(/^"+|"+$/g, "");
+    const code = p.slice(0, eq).trim().replaceAll(/^"+|"+$/g, "");
+    const meaning = p.slice(eq + 1).trim().replaceAll(/^"+|"+$/g, "");
+    
     if (code) pairs.push({ code, meaning });
   }
 
