@@ -39,8 +39,23 @@ test.describe("mapping rule parsing", () => {
     expect(parsePadRule("pad:left:0")).toEqual({ kind: "left_zero" });
   });
 
-  test("throws on unknown inputs", () => {
+  test("throws on malformed COL source without TABLE.column", () => {
+    expect(() => parseSourceExpression("COL:ASSESSMENT")).toThrow();
+  });
+
+  test("throws on malformed RESP source when segments are incomplete", () => {
+    expect(() => parseSourceExpression("RESP:DEM")).toThrow();
+  });
+
+  test("throws on malformed RESP source when segments are too many", () => {
+    expect(() => parseSourceExpression("RESP:DEM:LNAME:EXTRA")).toThrow();
+  });
+
+  test("throws on unknown source input", () => {
     expect(() => parseSourceExpression("WAT:???")).toThrow();
+  });
+
+  test("throws on unknown transform op", () => {
     expect(() => parseTransformPipeline("trim|wut")).toThrow();
   });
 });

@@ -57,4 +57,20 @@ test.describe("validateRecord", () => {
     expect(bad).toHaveLength(1);
     expect(bad[0]!.error_code).toBe("BAD_DATE");
   });
+
+  test("prioritizes LEN_MISMATCH over domain checks when value length is wrong", () => {
+    const plan: WriterFieldPlan[] = [
+      {
+        field_name: "DODID",
+        start_pos: 1,
+        length: 10,
+        domain_type: "DODID10",
+        getValue: () => "", // unused
+      },
+    ];
+
+    const bad = validateRecord(1, plan, new Map([["DODID", "ABC"]]));
+    expect(bad).toHaveLength(1);
+    expect(bad[0]!.error_code).toBe("LEN_MISMATCH");
+  });
 });
