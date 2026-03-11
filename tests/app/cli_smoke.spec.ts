@@ -3,7 +3,7 @@ import path from "node:path";
 import { runCli } from "../_helpers/runCli";
 
 test.describe("CLI smoke", () => {
-  const validFormPath = path.resolve(process.cwd(), "files", "ExportFixedWidthForDD2975.xlsx");
+  const validFormPath = path.resolve(process.cwd(), "files", "ExportFixedWidthForSmoke.xlsx");
 
   test("--help prints usage without touching DB", async () => {
     const r = await runCli(["--help"], { cwd: process.cwd() });

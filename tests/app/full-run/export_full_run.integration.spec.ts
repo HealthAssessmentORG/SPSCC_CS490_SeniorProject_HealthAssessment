@@ -73,7 +73,7 @@ test.describe("full pipeline export (DB)", () => {
   });
 
   test("legacy prealpha profile preserves PRE/DD2795 form metadata", async ({}, testInfo) => {
-    const ddXlsx = path.resolve(process.cwd(), "files", "ExportFixedWidthForDD2975.xlsx");
+    const ddXlsx = path.resolve(process.cwd(), "files", "ExportFixedWidthForSmoke.xlsx");
     expect(fs.existsSync(ddXlsx)).toBeTruthy();
 
     const spec = readExportSpecXlsx(ddXlsx, "DD2975_like", "integration_legacy");
