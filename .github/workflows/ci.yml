@@ -62,6 +62,15 @@ jobs:
               ALTER ROLE db_datareader ADD MEMBER [cs490_app];
               ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
             "
+            
+      - name: Run Playwright tests (e2e)
+        env:
+          DB_SERVER: localhost
+          DB_PORT: "1433"
+          DB_DATABASE: CS490_SeniorProject
+          DB_USER: cs490_app
+          DB_PASSWORD: password
+        run: npm run test:e2e
 
       - name: Run pipeline smoke
         env:
