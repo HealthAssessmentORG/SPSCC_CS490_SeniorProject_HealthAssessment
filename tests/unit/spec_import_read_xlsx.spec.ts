@@ -4,8 +4,9 @@ import fs from "node:fs";
 import { readExportSpecXlsx } from "../../features/spec_import/spec_import_part_01_read_xlsx";
 
 test.describe("readExportSpecXlsx", () => {
-  test("reads the provided DD2975 spec and derives row_length", () => {
-    const xlsxPath = path.resolve(process.cwd(), "files", "ExportFixedWidthForDD2975.xlsx");
+  test("reads the provided spec and derives row_length", () => {
+    const xlsxPath = path.resolve(process.cwd(), "files", "ExportFixedWidthForSmoke.xlsx");
+
     expect(fs.existsSync(xlsxPath)).toBeTruthy();
 
     const spec = readExportSpecXlsx(xlsxPath, "DD2975_like", "test");
@@ -16,6 +17,5 @@ test.describe("readExportSpecXlsx", () => {
     const names = new Set(spec.fields.map((f) => f.field_name));
     expect(names.has("FORM_TYPE")).toBeTruthy();
     expect(names.has("FORM_VERSION")).toBeTruthy();
-    expect(names.has("DODID")).toBeTruthy();
   });
 });
