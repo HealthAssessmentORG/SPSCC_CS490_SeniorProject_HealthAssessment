@@ -1,6 +1,27 @@
 # SPSCC_CS490_SeniorProject_HealthAssessment
 Generitive data fill for Health Assessment form data.
 
+## Steps for Windows
+
+### 1.) Install Node.js
+https://nodejs.org/en/download/current
+
+### 2.) Open Terminal in Project Folder and run:
+```bash
+npm i
+```
+```bash
+npm install tedious
+```
+### 3.) Open .venv with Server Address
+```bash
+.venv\Scripts\activate
+```
+### 4.) Run program
+```bash
+npx tsx main.ts -form ./files/ExportFixedWidthForSmoke.xlsx -gen 100 --seed 0 --mapping-profile spec --out ./out/dd2975_prealpha_seed0.txt
+```
+---
 ## Prerequisites
 * https://docs.microsoft.com/en-us/sql/linux
 * TypeScript

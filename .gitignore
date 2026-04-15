@@ -5,4 +5,8 @@ files/ProjectGoals.docx
 files/ProposedMileStones.docx
 playwright-report/
 test-results/
+<<<<<<< HEAD
 .vscode/
+=======
+/.vscode
+>>>>>>> 13d172b08d11ee5cdceeff6cf2f5ef90a6ab0377
