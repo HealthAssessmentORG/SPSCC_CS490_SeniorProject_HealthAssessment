@@ -5,13 +5,95 @@ import sql from "mssql";
  * @typedef {sql.ConnectionPool} DbPool
  */
 export type DbPool = sql.ConnectionPool;
+export type DbRequestContext = DbPool | sql.Transaction;
+export type DbConnectionTarget = "alpha1" | "export";
 
 /**
  * Database connection pool instance.
  * Stores a singleton instance of the database pool, or null if not yet initialized.
  * @type {DbPool | null}
  */
-let _pool: DbPool | null = null;
+const poolCache = new Map<DbConnectionTarget, DbPool>();
+
+function parseBooleanEnv(name: string, raw: string | undefined, fallback: boolean): boolean {
+  if (raw == null || raw.trim() === "") return fallback;
+
+  const normalized = raw.trim().toLowerCase();
+  if (["1", "true", "yes", "y", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "n", "off"].includes(normalized)) return false;
+
+  throw new Error(`Invalid boolean for ${name}: ${raw}`);
+}
+
+function parseNumberEnv(name: string, raw: string | undefined, fallback: number): number {
+  if (raw == null || raw.trim() === "") return fallback;
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid number for ${name}: ${raw}`);
+  }
+
+  return parsed;
+}
+
+function firstEnvValue(names: string[]): string | undefined {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value != null && value.trim() !== "") return value;
+  }
+  return undefined;
+}
+
+function requireEnvValue(names: string[], label: string): string {
+  const value = firstEnvValue(names);
+  if (!value) {
+    throw new Error(`${label} is required (${names.join(" or ")})`);
+  }
+  return value;
+}
+
+function envNamesForTarget(target: DbConnectionTarget) {
+  if (target === "export") {
+    return {
+      server: ["EXPORT_DB_SERVER"],
+      port: ["EXPORT_DB_PORT"],
+      database: ["EXPORT_DB_DATABASE"],
+      user: ["EXPORT_DB_USER"],
+      password: ["EXPORT_DB_PASSWORD"],
+      encrypt: ["EXPORT_DB_ENCRYPT"],
+      trustServerCertificate: ["EXPORT_DB_TRUST_SERVER_CERTIFICATE"],
+      requestTimeout: ["EXPORT_DB_REQUEST_TIMEOUT_MS"]
+    };
+  }
+
+  return {
+    server: ["DB_SERVER"],
+    port: ["DB_PORT"],
+    database: ["DB_DATABASE"],
+    user: ["DB_USER"],
+    password: ["DB_PASSWORD"],
+    encrypt: ["DB_ENCRYPT"],
+    trustServerCertificate: ["DB_TRUST_SERVER_CERTIFICATE"],
+    requestTimeout: ["DB_REQUEST_TIMEOUT_MS"]
+  };
+}
+
+export function getDbLogContext(cfg: sql.config) {
+  const options = cfg.options ?? {};
+
+  return {
+    server: cfg.server,
+    port: cfg.port ?? null,
+    database: cfg.database,
+    user: cfg.user,
+    encrypt: options.encrypt ?? false,
+    trustServerCertificate: options.trustServerCertificate ?? false,
+    requestTimeout: cfg.requestTimeout ?? null,
+    authMode: cfg.user ? "sql_login" : "unknown",
+    hasPassword: Boolean(cfg.password),
+    pwdLen: typeof cfg.password === "string" ? cfg.password.length : 0
+  };
+}
 
 /**
  * Retrieves database configuration from environment variables.
@@ -32,24 +114,20 @@ let _pool: DbPool | null = null;
  * The configuration is set for local development with encryption disabled, which should be
  * changed when deploying across a network.
  */
-export function getDbConfigFromEnv(): sql.config {
-  const server = process.env.DB_SERVER ?? "localhost";
-  const port = Number(process.env.DB_PORT ?? "1433");
-  const database = process.env.DB_DATABASE ?? "master";
-  const user = process.env.DB_USER ?? "sa";
-  const password = process.env.DB_PASSWORD ?? "";
-
-  if (!password) {
-    throw new Error("DB_PASSWORD is required");
-  }
-
-  console.log("[db] connect", {
-    server, port, database, user,
-    encrypt: false,
-    trustServerCertificate: true,
-    pwdLen: password.length
-  });
-
+export function getDbConfigFromEnv(target: DbConnectionTarget = "alpha1"): sql.config {
+  const names = envNamesForTarget(target);
+  const server = requireEnvValue(names.server, `${target} DB server`);
+  const database = requireEnvValue(names.database, `${target} DB database`);
+  const user = requireEnvValue(names.user, `${target} DB user`);
+  const password = requireEnvValue(names.password, `${target} DB password`);
+  const port = parseNumberEnv(names.port[0], firstEnvValue(names.port), 1433);
+  const encrypt = parseBooleanEnv(names.encrypt[0], firstEnvValue(names.encrypt), false);
+  const trustServerCertificate = parseBooleanEnv(
+    names.trustServerCertificate[0],
+    firstEnvValue(names.trustServerCertificate),
+    true
+  );
+  const requestTimeout = parseNumberEnv(names.requestTimeout[0], firstEnvValue(names.requestTimeout), 0);
 
   return {
     server,
@@ -57,9 +135,10 @@ export function getDbConfigFromEnv(): sql.config {
     database,
     user,
     password,
+    requestTimeout,
     options: {
-      encrypt: false, // local Linux SQL Server commonly uses no TLS (needs to be changed if used accross the net)
-      trustServerCertificate: true
+      encrypt,
+      trustServerCertificate
     },
     pool: {
       max: 10,
@@ -79,11 +158,16 @@ export function getDbConfigFromEnv(): sql.config {
  * @returns {Promise<DbPool>} A promise that resolves to the database connection pool
  * @throws {Error} May throw an error if the database connection fails
  */
-export async function getPool(): Promise<DbPool> {
-  if (_pool) return _pool;
-  const cfg = getDbConfigFromEnv();
-  _pool = await new sql.ConnectionPool(cfg).connect();
-  return _pool;
+export async function getPool(target: DbConnectionTarget = "alpha1"): Promise<DbPool> {
+  const cached = poolCache.get(target);
+  if (cached) return cached;
+
+  const cfg = getDbConfigFromEnv(target);
+  console.error(`[db:${target}] connect`, getDbLogContext(cfg));
+
+  const pool = await new sql.ConnectionPool(cfg).connect();
+  poolCache.set(target, pool);
+  return pool;
 }
 
 /**
@@ -94,10 +178,18 @@ export async function getPool(): Promise<DbPool> {
  *
  * @returns A promise that resolves when the pool has been closed (if present).
  */
-export async function closePool(): Promise<void> {
-  if (_pool) {
-    await _pool.close();
-    _pool = null;
+export async function closePool(target?: DbConnectionTarget): Promise<void> {
+  if (target) {
+    const pool = poolCache.get(target);
+    if (!pool) return;
+    await pool.close();
+    poolCache.delete(target);
+    return;
+  }
+
+  for (const [key, pool] of poolCache.entries()) {
+    await pool.close();
+    poolCache.delete(key);
   }
 }
 
@@ -119,7 +211,7 @@ export async function closePool(): Promise<void> {
  * ```
  */
 export async function execSql(
-  pool: DbPool,
+  pool: DbRequestContext,
   text: string,
   params?: Record<string, { type: any; value: any }>
 ) {

@@ -57,29 +57,67 @@ ALTER ROLE db_datawriter  ADD MEMBER [cs490_app];
 "
 ```
 
-#### 4) Configure Environment Variables
-Set these before running the program (per terminal session), or put them in your shell profile.
+#### 4) Configure Export Environment Variables
+Set these before running the preserved export workflow in `main_export.ts`.
 ```bash
-export DB_SERVER=localhost
-export DB_PORT=1433
-export DB_DATABASE=CS490_SeniorProject
-export DB_USER=cs490_app
-export DB_PASSWORD='password'
+export EXPORT_DB_SERVER=localhost
+export EXPORT_DB_PORT=1433
+export EXPORT_DB_DATABASE=CS490_SeniorProject
+export EXPORT_DB_USER=cs490_app
+export EXPORT_DB_PASSWORD='password'
 ```
 Verify connection as the app user:
 ```bash
-sqlcmd -No -S "localhost,1433" -U "$DB_USER" -P "$DB_PASSWORD" -d master \
+sqlcmd -No -S "localhost,1433" -U "$EXPORT_DB_USER" -P "$EXPORT_DB_PASSWORD" -d master \
   -Q "SELECT SUSER_SNAME() AS whoami, @@SERVERNAME AS servername;"
 ```
 
-## Running the App
+#### 5) Configure Alpha1 Environment
+Set these before using the default alpha1 CLI in `main.ts`:
+```bash
+export DB_SERVER=24.18.27.110
+export DB_PORT=1433
+export DB_DATABASE=DD2975_PreDHA
+export DB_USER=sa
+export DB_PASSWORD='password'
+export DB_ENCRYPT=false
+export DB_TRUST_SERVER_CERTIFICATE=true
+export DB_REQUEST_TIMEOUT_MS=0
+```
+
+## Running Alpha1
+
+The default CLI now targets the current 3-table alpha1 database (`ASSESSMENT`, `FIELD`, `RESPONSE`).
+
+### Check DB connectivity
+
+```bash
+node --import tsx main.ts check-db
+node --import tsx main.ts check-db --json
+```
+
+### Load dynamic fields
+
+```bash
+node --import tsx main.ts fields
+node --import tsx main.ts fields --json
+```
+
+### Generate assessment previews or inserts
+
+```bash
+node --import tsx main.ts generate -gen 1 --seed 123 --dry-run --json
+node --import tsx main.ts generate -gen 1 --seed 123 --json
+```
+
+## Running the Export Workflow
 
 ### Run once (first time / fresh database)
 
 This applies the schema in `./sql/00_schema.sql` then runs generation & export.
 
 ```bash
-npx tsx main.ts \
+npx tsx main_export.ts \
   -form ./files/ExportFixedWidthForDD2975.xlsx \
   -gen 100 \
   --seed 0 \
@@ -91,7 +129,7 @@ npx tsx main.ts \
 ### Normal run (schema already exists)
 
 ```bash
-npx tsx main.ts \
+npx tsx main_export.ts \
   -form ./files/ExportFixedWidthForDD2975.xlsx \
   -gen 100 \
   --seed 0 \
@@ -104,7 +142,7 @@ npx tsx main.ts \
 ### Legacy compatibility run
 
 ```bash
-npx tsx main.ts \
+npx tsx main_export.ts \
   -form ./files/ExportFixedWidthForDD2975.xlsx \
   -gen 100 \
   --seed 0 \

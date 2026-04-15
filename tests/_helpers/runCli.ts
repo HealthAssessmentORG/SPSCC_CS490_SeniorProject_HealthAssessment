@@ -6,17 +6,19 @@ export type RunResult = {
   stderr: string;
 };
 
-/**
- * Runs the TS CLI (`main.ts`) using the repo-local `tsx`.
- *
- * Requirements:
- * - `npm install` must have been run
- * - This helper uses `npx --no-install` so it will NOT download packages.
- */
-export async function runCli(
+type RunOptions = {
+  cwd?: string;
+  env?: Record<string, string | undefined>;
+  entry?: string;
+};
+
+async function runTsEntry(
+  entry: string,
   args: string[],
-  opts?: { cwd?: string; env?: Record<string, string | undefined> }
+  opts?: RunOptions
 ): Promise<RunResult> {
+  const resolvedEntry = entry;
+
   const npx = process.platform === "win32" ? "npx.cmd" : "npx";
   const nodeBin = process.execPath;
 
@@ -40,7 +42,7 @@ export async function runCli(
 
   async function runNodeWithImportTsx(): Promise<RunResult> {
     return await new Promise<RunResult>((resolve, reject) => {
-      const child = spawn(nodeBin, ["--import", "tsx", "main.ts", ...args], {
+      const child = spawn(nodeBin, ["--import", "tsx", resolvedEntry, ...args], {
         cwd: opts?.cwd ?? process.cwd(),
         env: { ...process.env, ...(opts?.env ?? {}) },
         stdio: ["ignore", "pipe", "pipe"],
@@ -70,7 +72,7 @@ export async function runCli(
   }
 
   // Fallback to npx if direct import is unavailable.
-  const r1 = await runNpx(["--no-install", "tsx", "main.ts", ...args]);
+  const r1 = await runNpx(["--no-install", "tsx", resolvedEntry, ...args]);
   const looksLikeNoInstallUnsupported =
     r1.code !== 0 &&
     /no-install/i.test(r1.stderr) &&
@@ -78,7 +80,7 @@ export async function runCli(
 
   if (looksLikeNoInstallUnsupported) {
     // Fallback for older npm versions.
-    const r2 = await runNpx(["tsx", "main.ts", ...args]);
+    const r2 = await runNpx(["tsx", resolvedEntry, ...args]);
     if (r2.code !== 0 && isTsxIpcDenied(r2.stderr)) {
       return await runNodeWithImportTsx();
     }
@@ -90,4 +92,18 @@ export async function runCli(
   }
 
   return r1;
+}
+
+/**
+ * Runs the alpha1 CLI (`main.ts`) using the repo-local `tsx`.
+ */
+export async function runCli(args: string[], opts?: RunOptions): Promise<RunResult> {
+  return await runTsEntry(opts?.entry ?? "main.ts", args, opts);
+}
+
+/**
+ * Runs the preserved export CLI (`main_export.ts`) using the repo-local `tsx`.
+ */
+export async function runExportCli(args: string[], opts?: Omit<RunOptions, "entry">): Promise<RunResult> {
+  return await runTsEntry("main_export.ts", args, opts);
 }

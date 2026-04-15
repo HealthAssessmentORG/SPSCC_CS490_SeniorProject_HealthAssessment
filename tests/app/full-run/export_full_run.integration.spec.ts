@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
-import { runCli } from "../../_helpers/runCli";
+import { runExportCli } from "../../_helpers/runCli";
 import { readExportSpecXlsx } from "../../../features/spec_import/spec_import_part_01_read_xlsx";
 
-// Opt-in: this test requires a running SQL Server that matches your .env.
+// Opt-in: this test requires a running SQL Server that matches your EXPORT_DB_* env vars.
 // Run with:
 //   RUN_DB_E2E=1 npm test
 const shouldRun = process.env.RUN_DB_E2E === "1";
@@ -20,7 +20,7 @@ test.describe("full pipeline export (DB)", () => {
     const spec = readExportSpecXlsx(smokeXlsx, "smoke_like", "integration_smoke");
     const outPath = testInfo.outputPath("smoke_export.txt");
 
-    const r = await runCli(
+    const r = await runExportCli(
       [
         "--apply-schema",
         "--mapping-profile",
@@ -84,7 +84,7 @@ test.describe("full pipeline export (DB)", () => {
     const spec = readExportSpecXlsx(ddXlsx, "DD2975_like", "integration_legacy");
     const outPath = testInfo.outputPath("legacy_prealpha_export.txt");
 
-    const r = await runCli(
+    const r = await runExportCli(
       [
         "--mapping-profile",
         "prealpha",
