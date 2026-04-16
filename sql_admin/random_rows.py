@@ -14,6 +14,7 @@ DEFAULT_CONN_STRING = os.getenv(
 	"SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;",
 )
 DEFAULT_SEED = 39
+DEFAULT_REPEAT = int(os.getenv("RANDOM_ROWS_REPEAT", "100"))
 MAX_RESPONSE_LENGTH = 255
 
 YES_NO = ["Yes", "No"]
@@ -30,6 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
 	parser.add_argument("--conn-string", default=DEFAULT_CONN_STRING, help="SQL Server connection string")
 	parser.add_argument("--assessments", type=int, default=1, help="Number of assessment records to create")
 	parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Seed for deterministic faker output")
+	parser.add_argument(
+		"--repeat",
+		type=int,
+		default=DEFAULT_REPEAT,
+		help="Number of times to repeat the full generation pass",
+	)
 	return parser
 
 
@@ -169,6 +176,8 @@ def main() -> None:
 	args = build_parser().parse_args()
 	if args.assessments < 1:
 		raise ValueError("--assessments must be at least 1")
+	if args.repeat < 1:
+		raise ValueError("--repeat must be at least 1")
 
 	fake = Faker()
 	Faker.seed(args.seed)
@@ -186,17 +195,24 @@ def main() -> None:
 			)
 
 		total_rows = 0
-		for assessment_index in range(1, args.assessments + 1):
-			assessment_id = insert_assessment(cursor)
-			for field_id, field_code, field_name in fields:
-				response = normalize_response(
-					create_fake_value(fake, field_code, field_name, assessment_index, args.seed)
-				)
-				insert_response(cursor, assessment_id, field_id, response)
-				total_rows += 1
+		total_assessments = 0
+		for repeat_index in range(1, args.repeat + 1):
+			for assessment_index in range(1, args.assessments + 1):
+				global_assessment_index = ((repeat_index - 1) * args.assessments) + assessment_index
+				assessment_id = insert_assessment(cursor)
+				total_assessments += 1
+				for field_id, field_code, field_name in fields:
+					response = normalize_response(
+						create_fake_value(fake, field_code, field_name, global_assessment_index, args.seed)
+					)
+					insert_response(cursor, assessment_id, field_id, response)
+					total_rows += 1
 
 		connection.commit()
-		print(f"Inserted {args.assessments} assessment row(s) and {total_rows} response row(s).")
+		print(
+			f"Inserted {total_assessments} assessment row(s) and {total_rows} response row(s) "
+			f"(assessments={args.assessments}, repeat={args.repeat})."
+		)
 	except Exception:
 		connection.rollback()
 		raise
