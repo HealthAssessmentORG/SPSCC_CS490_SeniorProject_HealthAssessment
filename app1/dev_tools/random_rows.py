@@ -1,65 +1,133 @@
-from faker import Faker
+from __future__ import annotations
+
+import os
 import random
-import datetime
+
+from faker import Faker
 import mssql_python
 
-# connect to db
-connString = "SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;"
-connection = mssql_python.connect(connString)
-cursor = connection.cursor()
+CONN_STRING = os.getenv(
+    "MSSQL_CONN_STRING",
+    "SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;",
+)
+ASSESSMENT_COUNT = int(os.getenv("RANDOM_ROWS_ASSESSMENTS", "100"))
+SEED = int(os.getenv("RANDOM_ROWS_SEED", "39"))
+MAX_RESPONSE_LENGTH = 255
 
-# TODO: Make arrays for columns to be inserted
-lname = []
-fname = []
-mi = []
-dodid = []
-d_event = []
-dob = []
-sex = []
-form_service = []
-service_other = []
-form_component = []
-grade = []
-grade_other = []
-unit_name = []
-unit_loc = []
-phone = []
-cell = []
-dsn = []
-email = []
 
-# TODO: Add random data to database
-fake = Faker()
-Faker.seed(39)
+def normalize(value: str) -> str:
+    return " ".join(str(value).split())[:MAX_RESPONSE_LENGTH]
 
-for _ in range(100):
-    lname.append("'" + str(fake.unique.last_name()) + "'")
-    fname.append("'" + str(fake.unique.first_name()) + "'")
-    mi.append("'" + str(random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")) + "'")
-    dodid.append("'" + str(fake.unique.bothify(text="0000000###")) + "'")
-    d_event.append("'" + str(fake.date_between(start_date="-2y", end_date="today").strftime("%Y%m%d")) + "'")
-    dob.append("'" + str(fake.date_of_birth(minimum_age=18, maximum_age=65).strftime("%Y%m%d")) + "'")
-    sex.append("'" + str(random.choice(["M", "F", "X"])) + "'")
-    form_service.append("'" + str(random.choice(["A", "C", "D", "F", "M", "N", "P", "X"])) + "'")
-    service_other.append("null")
-    form_component.append("'" + str(random.choice(["A", "N", "R", "X"])) + "'")
-    grade.append("'" + str(random.choice(['E01','E02','E03','E04','E05','E06','E07','E08','E09','O01','O02','O03','O04','O05','O06','O07','O08','O09','O10','W01','W02','W03','W04','W05','ZZZ'])) + "'")
-    grade_other.append("null")
-    unit_name.append("null")
-    unit_loc.append("null")
-    phone.append("'" + str(fake.unique.bothify(text="##########")) + "'")
-    cell.append("'" + str(fake.unique.bothify(text="##########")) + "'")
-    dsn.append("null")
-    email.append("'" + str(fake.unique.email()) + "'")
 
-# TODO insert data
-for _ in range(100):
-    person = [str(lname.pop()), str(fname.pop()), str(mi.pop()), str(dodid.pop()), str(d_event.pop()), str(dob.pop()), str(sex.pop()), str(form_service.pop()), str(service_other.pop()), str(form_component.pop()), str(grade.pop()), str(grade_other.pop()), str(unit_name.pop()), str(unit_loc.pop()), str(phone.pop()), str(cell.pop()), str(dsn.pop()), str(email.pop())]
+def make_response(fake: Faker, rng: random.Random, field_name: str) -> str:
+    name = field_name.lower()
 
-    person_statement = ", ".join(person)
+    if "last name" in name:
+        return fake.last_name()
+    if "first name" in name:
+        return fake.first_name()
+    if "middle initial" in name:
+        return fake.random_uppercase_letter()
+    if "email" in name:
+        return fake.email().lower()
+    if "phone" in name or "dsn" in name:
+        return fake.numerify(text="##########")
+    if "date" in name:
+        return fake.date_between(start_date="-5y", end_date="today").strftime("%Y%m%d")
+    if "gender" in name or "sex" in name:
+        return rng.choice(["M", "F", "X"])
+    if "service branch" in name:
+        return rng.choice(["A", "C", "D", "F", "M", "N", "P", "X"])
+    if "component" in name:
+        return rng.choice(["A", "N", "R", "X"])
+    if "grade" in name:
+        return rng.choice(["E04", "E05", "E06", "O02", "W02"])
+    if "country" in name:
+        return fake.country()
+    if "address" in name:
+        return normalize(fake.address())
+    if "yes" in name or "no" in name or "indicated" in name:
+        return rng.choice(["Yes", "No"])
 
-    insert_query = "INSERT INTO dd2795_pre_response (lname, fname, mi, dodid, d_event, dob, sex, form_service, service_other, form_component, grade, grade_other, unit_name, unit_loc, phone, cell, dsn, email) VALUES (" + person_statement + ");"
+    return normalize(fake.sentence(nb_words=8))
 
-    cursor.execute(insert_query)
-connection.commit()
-cursor.close()
+
+def load_fields(cursor) -> list[tuple[int, str]]:
+    cursor.execute(
+        """
+        SELECT field_id, field_name
+        FROM dbo.FIELD
+        ORDER BY field_id;
+        """
+    )
+    rows = cursor.fetchall()
+    return [(int(row[0]), str(row[1])) for row in rows]
+
+
+def insert_assessment(cursor) -> int:
+    cursor.execute(
+        """
+        INSERT INTO dbo.ASSESSMENT
+        OUTPUT INSERTED.assessment_id
+        DEFAULT VALUES;
+        """
+    )
+    row = cursor.fetchone()
+    if not row:
+        raise RuntimeError("Failed to create assessment row.")
+    return int(row[0])
+
+
+def insert_response(cursor, assessment_id: int, field_id: int, response: str) -> None:
+    cursor.execute(
+        """
+        INSERT INTO dbo.RESPONSE (assessment_id, field_id, response)
+        VALUES (%(assessment_id)s, %(field_id)s, %(response)s);
+        """,
+        {
+            "assessment_id": assessment_id,
+            "field_id": field_id,
+            "response": response,
+        },
+    )
+
+
+def main() -> None:
+    if ASSESSMENT_COUNT < 1:
+        raise ValueError("RANDOM_ROWS_ASSESSMENTS must be at least 1")
+
+    fake = Faker()
+    Faker.seed(SEED)
+    fake.seed_instance(SEED)
+
+    connection = mssql_python.connect(CONN_STRING)
+    cursor = connection.cursor()
+
+    try:
+        fields = load_fields(cursor)
+        if not fields:
+            raise RuntimeError("FIELD table is empty. Populate FIELD before running this script.")
+
+        inserted_responses = 0
+        for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
+            assessment_id = insert_assessment(cursor)
+            for field_id, field_name in fields:
+                rng = random.Random(f"{SEED}|{assessment_idx}|{field_id}")
+                value = normalize(make_response(fake, rng, field_name))
+                insert_response(cursor, assessment_id, field_id, value)
+                inserted_responses += 1
+
+        connection.commit()
+        print(
+            f"Inserted {ASSESSMENT_COUNT} assessment row(s) and {inserted_responses} response row(s)."
+        )
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()
+
+
+if __name__ == "__main__":
+    main()

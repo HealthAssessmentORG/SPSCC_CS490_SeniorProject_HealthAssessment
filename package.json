@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "ui:demo": "node --experimental-strip-types app1/dev_tools/main.ts",
+    "ui:demo:title": "node --experimental-strip-types app1/dev_tools/main.ts --title \"Ink Demo\""
+  },
+  "dependencies": {
+    "ink": "^7.0.0",
+    "react": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "tsx": "^4.21.0"
+  }
+}
