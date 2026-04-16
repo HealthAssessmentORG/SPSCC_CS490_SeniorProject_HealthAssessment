@@ -4,7 +4,7 @@ import datetime
 import mssql_python
 
 # connect to db
-connString = "SERVER=24.18.27.110;DATABASE=master;UID=sa;PWD=3939;Encrypt=no;Trusted_Connection=yes;"
+connString = "SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;"
 connection = mssql_python.connect(connString)
 cursor = connection.cursor()
 
