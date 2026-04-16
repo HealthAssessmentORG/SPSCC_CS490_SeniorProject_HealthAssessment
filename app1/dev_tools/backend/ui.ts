@@ -22,7 +22,7 @@ function MenuUi(props: ExampleUiModel) {
 		}
 
 		const timer = setInterval(() => {
-			setSpinnerIndex((current) => (current + 1) % 4);
+			setSpinnerIndex((current: number) => (current + 1) % 4);
 		}, 120);
 
 		return () => clearInterval(timer);
