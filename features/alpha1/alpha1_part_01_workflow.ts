@@ -1,5 +1,10 @@
 import { DbPool, execSql, sql } from "../../db/db_connect";
 import { Rng } from "../generator/generator_part_01_rng";
+import {
+  formatDateYyyymmdd,
+  seededRngFromParts,
+  truncateValue
+} from "../shared/deterministic_utils";
 
 export type Alpha1FieldRow = {
   field_id: number;
@@ -33,35 +38,26 @@ export type Alpha1CheckDbResult = {
   field_count: number;
 };
 
+export type Alpha1CommandOptions =
+  | { command: "check-db" }
+  | { command: "fields" }
+  | { command: "generate"; gen: number; seed: number; dryRun: boolean };
+
+export type Alpha1CommandResult =
+  | { command: "check-db"; result: Alpha1CheckDbResult }
+  | { command: "fields"; fields: Alpha1FieldRow[] }
+  | { command: "generate"; dryRun: true; result: Alpha1AssessmentPreview[] }
+  | { command: "generate"; dryRun: false; result: Alpha1InsertedAssessment[] };
+
 const REQUIRED_TABLES = ["ASSESSMENT", "FIELD", "RESPONSE"] as const;
 const DATE_ANCHOR_UTC = Date.UTC(2025, 0, 1);
-
-function hashString32(input: string): number {
-  let h = 2166136261 >>> 0;
-
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-
-  return h >>> 0;
-}
-
-function seededFieldRng(seed: number, assessmentIndex: number, field: Alpha1FieldRow): Rng {
-  const hash = hashString32(`${seed}|${assessmentIndex}|${field.field_code}|${field.field_name}`);
-  return new Rng(hash || 1);
-}
 
 function normalizeKey(value: string): string {
   return value.replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
 
 function normalizePhrase(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[’']/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
+  return value.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function getFieldPhraseContext(field: Alpha1FieldRow) {
@@ -89,10 +85,6 @@ function getFieldPhraseContext(field: Alpha1FieldRow) {
   return { hasCode, hasPhrase, hasWord };
 }
 
-function yyyymmdd(date: Date): string {
-  return date.toISOString().slice(0, 10).replaceAll("-", "");
-}
-
 function buildDate(offsetDays: number): Date {
   const date = new Date(DATE_ANCHOR_UTC);
   date.setUTCDate(date.getUTCDate() - offsetDays);
@@ -113,12 +105,12 @@ function fallbackAlphaNum(rng: Rng, field: Alpha1FieldRow): string {
   return (prefix + suffix).slice(0, width);
 }
 
-export function truncateResponse(value: string, maxLength = 255): string {
-  return value.length <= maxLength ? value : value.slice(0, maxLength);
+function truncateResponse(value: string, maxLength = 255): string {
+  return truncateValue(value, maxLength);
 }
 
-export function generateAlpha1Response(field: Alpha1FieldRow, seed: number, assessmentIndex: number): string {
-  const rng = seededFieldRng(seed, assessmentIndex, field);
+function generateAlpha1Response(field: Alpha1FieldRow, seed: number, assessmentIndex: number): string {
+  const rng = seededRngFromParts(seed, assessmentIndex, field.field_code, field.field_name);
   const ctx = getFieldPhraseContext(field);
 
   if (ctx.hasCode("LNAME", "LASTNAME") || ctx.hasPhrase("last name", "surname")) {
@@ -170,11 +162,11 @@ export function generateAlpha1Response(field: Alpha1FieldRow, seed: number, asse
     const date = new Date(DATE_ANCHOR_UTC);
     date.setUTCFullYear(date.getUTCFullYear() - years);
     date.setUTCDate(date.getUTCDate() - rng.int(0, 3650));
-    return truncateResponse(yyyymmdd(date));
+    return truncateResponse(formatDateYyyymmdd(date));
   }
 
   if (ctx.hasPhrase("todays date", "date completed") || ctx.hasWord("today", "todays", "date")) {
-    return truncateResponse(yyyymmdd(buildDate(rng.int(0, 365))));
+    return truncateResponse(formatDateYyyymmdd(buildDate(rng.int(0, 365))));
   }
 
   return truncateResponse(fallbackAlphaNum(rng, field));
@@ -202,7 +194,7 @@ export function buildAlpha1PreviewBatch(
   }));
 }
 
-export async function checkAlpha1Database(pool: DbPool): Promise<Alpha1CheckDbResult> {
+async function checkAlpha1Database(pool: DbPool): Promise<Alpha1CheckDbResult> {
   const databaseResult = await execSql(pool, "SELECT DB_NAME() AS database_name");
   const database = String(databaseResult.recordset[0]?.database_name ?? "");
   const tablesResult = await execSql(
@@ -242,7 +234,7 @@ export async function checkAlpha1Database(pool: DbPool): Promise<Alpha1CheckDbRe
   };
 }
 
-export async function loadAlpha1Fields(pool: DbPool): Promise<Alpha1FieldRow[]> {
+async function loadAlpha1Fields(pool: DbPool): Promise<Alpha1FieldRow[]> {
   const result = await execSql(
     pool,
     `
@@ -317,21 +309,21 @@ async function insertSingleAssessment(
   }
 }
 
-export async function generateAlpha1Assessments(
+async function generateAlpha1Assessments(
   pool: DbPool,
   fields: Alpha1FieldRow[],
   count: number,
   seed: number,
   dryRun: true
 ): Promise<Alpha1AssessmentPreview[]>;
-export async function generateAlpha1Assessments(
+async function generateAlpha1Assessments(
   pool: DbPool,
   fields: Alpha1FieldRow[],
   count: number,
   seed: number,
   dryRun: false
 ): Promise<Alpha1InsertedAssessment[]>;
-export async function generateAlpha1Assessments(
+async function generateAlpha1Assessments(
   pool: DbPool,
   fields: Alpha1FieldRow[],
   count: number,
@@ -347,4 +339,38 @@ export async function generateAlpha1Assessments(
   }
 
   return inserted;
+}
+
+export async function runAlpha1Command(
+  pool: DbPool,
+  options: Alpha1CommandOptions
+): Promise<Alpha1CommandResult> {
+  if (options.command === "check-db") {
+    return {
+      command: "check-db",
+      result: await checkAlpha1Database(pool)
+    };
+  }
+
+  if (options.command === "fields") {
+    return {
+      command: "fields",
+      fields: await loadAlpha1Fields(pool)
+    };
+  }
+
+  const fields = await loadAlpha1Fields(pool);
+  if (options.dryRun) {
+    return {
+      command: "generate",
+      dryRun: true,
+      result: await generateAlpha1Assessments(pool, fields, options.gen, options.seed, true)
+    };
+  }
+
+  return {
+    command: "generate",
+    dryRun: false,
+    result: await generateAlpha1Assessments(pool, fields, options.gen, options.seed, false)
+  };
 }

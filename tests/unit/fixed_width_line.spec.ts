@@ -6,6 +6,47 @@ import type {
 } from "../../features/mapping/mapping_compile_part_02_build_writer_plan";
 
 test.describe("buildFixedWidthLine", () => {
+  test("places multiple non-overlapping fields into an exact row", () => {
+    const plan: WriterFieldPlan[] = [
+      {
+        field_name: "FORM_TYPE",
+        start_pos: 1,
+        length: 3,
+        domain_type: null,
+        getValue: () => "CAM",
+      },
+      {
+        field_name: "ID",
+        start_pos: 5,
+        length: 4,
+        domain_type: null,
+        getValue: () => "1234",
+      },
+      {
+        field_name: "OK",
+        start_pos: 10,
+        length: 1,
+        domain_type: null,
+        getValue: () => "Y",
+      },
+    ];
+
+    const ctx: RecordContext = {
+      assessment: {},
+      deployer: {},
+      provider_review: {},
+      responses: new Map(),
+    };
+
+    const { line, fieldValues } = buildFixedWidthLine(12, plan, ctx);
+    expect(line).toBe("CAM 1234 Y  ");
+    expect([...fieldValues.entries()]).toEqual([
+      ["FORM_TYPE", "CAM"],
+      ["ID", "1234"],
+      ["OK", "Y"],
+    ]);
+  });
+
   test("places fields into the right positions (1-indexed)", () => {
     const plan: WriterFieldPlan[] = [
       {

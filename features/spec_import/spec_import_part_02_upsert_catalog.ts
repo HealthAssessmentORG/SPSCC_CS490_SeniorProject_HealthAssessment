@@ -73,7 +73,7 @@ function guessDomain(f: ExportFieldRow): DomainGuess {
  * @returns A promise that resolves to the export_spec_id (either existing or newly created)
  * @throws Will throw an error if the database operation fails
  */
-export async function upsertExportSpec(pool: DbPool, spec: ExportSpecModel): Promise<string> {
+async function upsertExportSpec(pool: DbPool, spec: ExportSpecModel): Promise<string> {
   const found = await execSql(
     pool,
     `
@@ -223,7 +223,7 @@ async function upsertEnumValues(
  * @returns A promise that resolves when the operation completes
  * @throws {Error} If any database operation fails
  */
-export async function replaceExportFields(pool: DbPool, exportSpecId: string, fields: ExportFieldRow[]) {
+async function replaceExportFields(pool: DbPool, exportSpecId: string, fields: ExportFieldRow[]) {
   // IMPORTANT:
   // FK_MAPPING_RULE_FIELD is NO ACTION (to avoid multiple cascade paths).
   // Therefore we must delete dependent MAPPING_RULE rows before deleting EXPORT_FIELD rows.

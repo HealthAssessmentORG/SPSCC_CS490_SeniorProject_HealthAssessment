@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { DbPool, execSql, sql } from "../../db/db_connect";
-import { Rng } from "../generator/generator_part_01_rng";
+import { seededRngFromParts } from "../shared/deterministic_utils";
 import { classifyValuesSpec, extractLiteralConstant } from "../spec_import/spec_values_part_01_utils";
 
 /**
@@ -263,35 +263,6 @@ const SPEC_COLUMN_RULES: Record<string, string> = {
 };
 
 /**
- * Computes a 32-bit FNV-1a hash of the input string.
- * 
- * This implementation uses the Fowler-Noll-Vo hash function (FNV-1a variant)
- * to generate a deterministic unsigned 32-bit integer hash from a string.
- * 
- * @param s - The string to hash
- * @returns An unsigned 32-bit integer hash value
- * 
- * @remarks
- * The function uses `charCodeAt()` for performance with BMP characters.
- * For strings containing surrogate pairs or non-BMP characters,
- * consider using `codePointAt()` for proper Unicode handling.
- * 
- * @example
- * ```typescript
- * const hash = hashString32("hello");
- * console.log(hash); // 1335831723
- * ```
- */
-function hashString32(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/**
  * Generates a placeholder default value for a given export field based on its characteristics.
  * 
  * @param r - The export field seed row containing field metadata including name, length, and value specification
@@ -316,7 +287,7 @@ function placeholderDefaultForField(r: ExportFieldSeedRow): string {
   if (analysis.kind === "dodid10") return "0000000000";
   if (r.field_name.trim().toUpperCase().includes("EMAIL")) return "unknown@example.mil";
 
-  const rng = new Rng(hashString32(`${r.field_name}|${analysis.raw}`) || 1);
+  const rng = seededRngFromParts(r.field_name, analysis.raw);
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const n = Math.max(1, Math.min(r.field_length, 12));
   let out = "";

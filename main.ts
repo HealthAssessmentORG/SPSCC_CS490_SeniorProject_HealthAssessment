@@ -4,9 +4,10 @@ import fs from "node:fs";
 
 import { closePool, getPool } from "./db/db_connect";
 import {
-  checkAlpha1Database,
-  generateAlpha1Assessments,
-  loadAlpha1Fields
+  runAlpha1Command,
+  type Alpha1CommandOptions,
+  type Alpha1CommandResult,
+  type Alpha1FieldRow
 } from "./features/alpha1/alpha1_part_01_workflow";
 
 type InspectArgs = {
@@ -101,7 +102,7 @@ function printJson(value: unknown) {
   fs.writeSync(1, JSON.stringify(value, null, 2) + "\n");
 }
 
-function printFields(fields: Awaited<ReturnType<typeof loadAlpha1Fields>>) {
+function printFields(fields: Alpha1FieldRow[]) {
   if (fields.length === 0) {
     console.log("No FIELD rows found.");
     return;
@@ -109,6 +110,55 @@ function printFields(fields: Awaited<ReturnType<typeof loadAlpha1Fields>>) {
 
   for (const field of fields) {
     console.log(`${field.field_id}\t${field.field_code}\t${field.field_name}`);
+  }
+}
+
+function toAlpha1CommandOptions(args: ParsedArgs): Alpha1CommandOptions {
+  if (args.command === "generate") {
+    return {
+      command: "generate",
+      gen: args.gen,
+      seed: args.seed,
+      dryRun: args.dryRun
+    };
+  }
+
+  return { command: args.command };
+}
+
+function printAlpha1CommandResult(args: ParsedArgs, commandResult: Alpha1CommandResult) {
+  if (commandResult.command === "check-db") {
+    const result = commandResult.result;
+    if (args.json) {
+      printJson(result);
+      return;
+    }
+
+    console.log(`DB OK: ${result.database}`);
+    console.log(`Tables: ${Object.entries(result.tables).filter(([, ok]) => ok).map(([name]) => name).join(", ")}`);
+    console.log(`FIELD rows: ${result.field_count}`);
+    return;
+  }
+
+  if (commandResult.command === "fields") {
+    if (args.json) printJson(commandResult.fields);
+    else printFields(commandResult.fields);
+    return;
+  }
+
+  if (args.json) {
+    printJson(commandResult.result);
+    return;
+  }
+
+  if (commandResult.dryRun) {
+    console.log(`Generated ${commandResult.result.length} assessment preview(s).`);
+    return;
+  }
+
+  console.log(`Inserted ${commandResult.result.length} assessment(s).`);
+  for (const row of commandResult.result) {
+    console.log(`assessment_id=${row.assessment_id} responses=${row.response_count}`);
   }
 }
 
@@ -131,49 +181,8 @@ async function main() {
 
   try {
     const pool = await getPool("alpha1");
-
-    if (args.command === "check-db") {
-      const result = await checkAlpha1Database(pool);
-      if (args.json) printJson(result);
-      else {
-        console.log(`DB OK: ${result.database}`);
-        console.log(`Tables: ${Object.entries(result.tables).filter(([, ok]) => ok).map(([name]) => name).join(", ")}`);
-        console.log(`FIELD rows: ${result.field_count}`);
-      }
-      return;
-    }
-
-    const fields = await loadAlpha1Fields(pool);
-
-    if (args.command === "fields") {
-      if (args.json) printJson(fields);
-      else printFields(fields);
-      return;
-    }
-
-    const generateArgs = args as GenerateArgs;
-
-    if (generateArgs.dryRun) {
-      const result = await generateAlpha1Assessments(pool, fields, generateArgs.gen, generateArgs.seed, true);
-      if (generateArgs.json) {
-        printJson(result);
-        return;
-      }
-
-      console.log(`Generated ${result.length} assessment preview(s).`);
-      return;
-    }
-
-    const result = await generateAlpha1Assessments(pool, fields, generateArgs.gen, generateArgs.seed, false);
-    if (generateArgs.json) {
-      printJson(result);
-      return;
-    }
-
-    console.log(`Inserted ${result.length} assessment(s).`);
-    for (const row of result) {
-      console.log(`assessment_id=${row.assessment_id} responses=${row.response_count}`);
-    }
+    const result = await runAlpha1Command(pool, toAlpha1CommandOptions(args));
+    printAlpha1CommandResult(args, result);
   } catch (error) {
     const message = (error as Error).message;
     if (args.json) {

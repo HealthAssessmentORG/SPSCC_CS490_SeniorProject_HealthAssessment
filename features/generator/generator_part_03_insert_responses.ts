@@ -1,9 +1,15 @@
-import { randomUUID } from "node:crypto";
-
-import { DbPool, execSql, sql } from "../../db/db_connect";
+import { type DbPool } from "../../db/db_connect";
 import { classifyValuesSpec, inferNumericTemplateWidth } from "../spec_import/spec_values_part_01_utils";
 import { Rng } from "./generator_part_01_rng";
 import { AssessmentRow } from "./generator_part_02_insert_assessments";
+import {
+  insertProviderReview as insertProviderReviewRow,
+  insertResponse as insertResponseRow
+} from "./generator_part_04_repository";
+import {
+  formatDateYyyymmdd,
+  seededRngFromParts
+} from "../shared/deterministic_utils";
 
 /**
  * Data used to seed a single response for the generator.
@@ -15,7 +21,7 @@ import { AssessmentRow } from "./generator_part_02_insert_assessments";
  * @property value_raw - The original/raw string value captured for this field.
  * @property value_norm - Optional normalized/standardized form of value_raw (e.g., trimmed, parsed, or reformatted).
  */
-type ResponseSeed = {
+export type ResponseSeed = {
   question_code: string;
   field_name: string;
   value_raw: string;
@@ -23,6 +29,19 @@ type ResponseSeed = {
 };
 
 export type ResponseGenerationProfile = "prealpha" | "spec";
+
+export type ProviderReviewSeed = {
+  provider_name: string;
+  certify_date: string;
+  provider_title: string;
+  provider_signature: string;
+};
+
+export type GeneratedAssessmentResponses = {
+  assessment_id: string;
+  responses: ResponseSeed[];
+  providerReview: ProviderReviewSeed;
+};
 
 /**
  * Specification for a single response field used when seeding/generating responses.
@@ -60,56 +79,6 @@ export type InsertResponsesOptions = {
   seed: number;
   spec_response_fields?: SpecResponseSeedField[];
 };
-
-/**
- * Convert an ISO date string to a compact "yyyymmdd" format by removing hyphens.
- *
- * @param dateIso - An ISO-formatted date string (typically "YYYY-MM-DD").
- * @returns The date string in "YYYYMMDD" form.
- * @remarks This function removes all '-' characters from the input and does not validate the date or its format.
- */
-function yyyymmdd(dateIso: string): string {
-  return dateIso.replaceAll("-", "");
-}
-
-/**
- * Computes a 32-bit FNV-1a hash of the given string.
- *
- * The implementation processes UTF-16 code units (uses String#charCodeAt),
- * so surrogate pairs (astral plane characters) are treated as two separate
- * code units rather than a single Unicode code point.
- *
- * @param s - The input string to hash.
- * @returns An unsigned 32-bit integer representing the FNV-1a hash of the input.
- */
-function hashString32(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/**
- * Creates a seeded random number generator for a specific field in a survey response.
- * 
- * This function generates a deterministic RNG by hashing a combination of the seed,
- * record ordinal, question code, and field name. This ensures that the same inputs
- * will always produce the same random sequence, which is useful for reproducible
- * data generation.
- * 
- * @param seed - The base seed value for random number generation
- * @param recordOrdinal - The ordinal number of the record being generated
- * @param questionCode - The unique code identifying the survey question
- * @param fieldName - The name of the field within the question
- * @returns A seeded random number generator (Rng) instance initialized with a hash
- *          of the input parameters, or 1 if the hash returns a falsy value
- */
-function seededFieldRng(seed: number, recordOrdinal: number, questionCode: string, fieldName: string): Rng {
-  const h = hashString32(`${seed}|${recordOrdinal}|${questionCode}|${fieldName}`);
-  return new Rng(h || 1);
-}
 
 /**
  * Generates a random alphanumeric string of uppercase letters and digits.
@@ -193,7 +162,7 @@ export function generateSpecResponseValue(
   seed: number,
   recordOrdinal: number
 ): string {
-  const rng = seededFieldRng(seed, recordOrdinal, field.question_code, field.field_name);
+  const rng = seededRngFromParts(seed, recordOrdinal, field.question_code, field.field_name);
   const name = field.field_name.trim().toUpperCase();
 
   if (name === "LNAME") return `LAST${rng.digits(6)}`;
@@ -210,9 +179,9 @@ export function generateSpecResponseValue(
 
   if (field.domain_type === "DATE_YYYYMMDD" || spec.kind === "date_yyyymmdd") {
     if (name.includes("DOB")) {
-      return yyyymmdd(dateOfBirthFromEvent(eventDateIso, rng));
+      return formatDateYyyymmdd(dateOfBirthFromEvent(eventDateIso, rng));
     }
-    return yyyymmdd(dateFromEvent(eventDateIso, rng));
+    return formatDateYyyymmdd(dateFromEvent(eventDateIso, rng));
   }
 
   if (field.domain_type === "DODID10" || spec.kind === "dodid10") {
@@ -280,7 +249,7 @@ function buildPrealphaResponses(a: AssessmentRow, rng: Rng): ResponseSeed[] {
     { question_code: "DEM", field_name: "LNAME", value_raw: last },
     { question_code: "DEM", field_name: "FNAME", value_raw: first },
     { question_code: "DEM", field_name: "MI", value_raw: mi },
-    { question_code: "DEM", field_name: "DOB", value_raw: yyyymmdd(dobIso) },
+    { question_code: "DEM", field_name: "DOB", value_raw: formatDateYyyymmdd(dobIso) },
     { question_code: "DEM", field_name: "SEX", value_raw: sex },
     { question_code: "DEM", field_name: "FORM_SERVICE", value_raw: svc },
     { question_code: "DEM", field_name: "FORM_COMPONENT", value_raw: comp },
@@ -307,7 +276,7 @@ function buildPrealphaResponses(a: AssessmentRow, rng: Rng): ResponseSeed[] {
  * @param recordOrdinal - Record index/ordinal used to vary deterministic generated values.
  * @returns Array of `ResponseSeed` entries containing `question_code`, `field_name`, `value_raw`, and `value_norm`.
  */
-function buildSpecResponses(
+export function buildSpecResponses(
   a: AssessmentRow,
   specFields: SpecResponseSeedField[],
   seed: number,
@@ -336,50 +305,22 @@ function buildSpecResponses(
   return out;
 }
 
-/**
- * Inserts response records into the database for a given assessment.
- * @param pool - The database connection pool
- * @param assessmentId - The unique identifier of the assessment
- * @param responses - Array of response objects to be inserted
- * @returns A promise that resolves when all responses have been inserted
- */
-async function insertResponses(pool: DbPool, assessmentId: string, responses: ResponseSeed[]) {
-  for (const r of responses) {
-    await execSql(pool, `
-      INSERT INTO dbo.RESPONSE (response_id, assessment_id, question_code, field_name, value_raw, value_norm)
-      VALUES (@id, @aid, @q, @f, @raw, @norm)
-    `, {
-      id: { type: sql.UniqueIdentifier, value: randomUUID() },
-      aid: { type: sql.UniqueIdentifier, value: assessmentId },
-      q: { type: sql.NVarChar(50), value: r.question_code },
-      f: { type: sql.NVarChar(100), value: r.field_name },
-      raw: { type: sql.NVarChar(4000), value: r.value_raw },
-      norm: { type: sql.NVarChar(4000), value: r.value_norm ?? r.value_raw }
-    });
-  }
+function buildProviderReviewSeed(a: AssessmentRow, rng: Rng): ProviderReviewSeed {
+  return {
+    provider_name: `Dr ${rng.digits(6)}`,
+    certify_date: a.event_date,
+    provider_title: String(rng.int(1, 8)),
+    provider_signature: rng.pick(["Y", "N"])
+  };
 }
 
-/**
- * Inserts generated response records and a corresponding provider review for each assessment.
- *
- * For every assessment in the provided list, this function:
- * - Builds response payloads using either the `"spec"` profile (`buildSpecResponses`) or prealpha profile (`buildPrealphaResponses`).
- * - Persists those responses via `insertResponses`.
- * - Generates provider review metadata (`provider_name`, `certify_date`, `provider_title`, `provider_signature`) using the RNG and assessment data.
- * - Inserts a row into `dbo.PROVIDER_REVIEW`.
- *
- * @param pool - Database connection pool used for all insert operations.
- * @param rng - Random generator used to create synthetic provider review fields (and prealpha responses).
- * @param assessments - Ordered assessment rows to process; order determines the 1-based `ordinal` passed to spec response generation.
- * @param opts - Response insertion options, including profile selection and optional spec response field configuration.
- * @returns A promise that resolves when all responses and provider reviews have been inserted.
- */
-export async function insertResponsesAndProviderReviews(
-  pool: DbPool,
+export function buildResponseAndProviderReviewSeeds(
   rng: Rng,
   assessments: AssessmentRow[],
   opts: InsertResponsesOptions
-) {
+): GeneratedAssessmentResponses[] {
+  const out: GeneratedAssessmentResponses[] = [];
+
   for (let i = 0; i < assessments.length; i++) {
     const a = assessments[i];
     const ordinal = i + 1;
@@ -389,22 +330,39 @@ export async function insertResponsesAndProviderReviews(
         ? buildSpecResponses(a, opts.spec_response_fields ?? [], opts.seed, ordinal)
         : buildPrealphaResponses(a, rng);
 
-    await insertResponses(pool, a.assessment_id, responses);
-
-    const provider_name = `Dr ${rng.digits(6)}`;
-    const certify_date = a.event_date;
-    const provider_title = String(rng.int(1, 8));
-    const provider_signature = rng.pick(["Y", "N"]);
-
-    await execSql(pool, `
-      INSERT INTO dbo.PROVIDER_REVIEW (assessment_id, provider_name, certify_date, provider_title, provider_signature)
-      VALUES (@aid, @pn, @cd, @pt, @ps)
-    `, {
-      aid: { type: sql.UniqueIdentifier, value: a.assessment_id },
-      pn: { type: sql.NVarChar(200), value: provider_name },
-      cd: { type: sql.Date, value: certify_date },
-      pt: { type: sql.NVarChar(50), value: provider_title },
-      ps: { type: sql.NVarChar(200), value: provider_signature }
+    out.push({
+      assessment_id: a.assessment_id,
+      responses,
+      providerReview: buildProviderReviewSeed(a, rng)
     });
+  }
+
+  return out;
+}
+
+/**
+ * Inserts response records into the database for a given assessment.
+ * @param pool - The database connection pool
+ * @param assessmentId - The unique identifier of the assessment
+ * @param responses - Array of response objects to be inserted
+ * @returns A promise that resolves when all responses have been inserted
+ */
+async function insertResponses(pool: DbPool, assessmentId: string, responses: ResponseSeed[]) {
+  for (const r of responses) {
+    await insertResponseRow(pool, assessmentId, r);
+  }
+}
+
+async function insertProviderReview(pool: DbPool, assessmentId: string, providerReview: ProviderReviewSeed) {
+  await insertProviderReviewRow(pool, assessmentId, providerReview);
+}
+
+export async function insertGeneratedResponsesAndProviderReviews(
+  pool: DbPool,
+  generated: readonly GeneratedAssessmentResponses[]
+) {
+  for (const assessment of generated) {
+    await insertResponses(pool, assessment.assessment_id, assessment.responses);
+    await insertProviderReview(pool, assessment.assessment_id, assessment.providerReview);
   }
 }

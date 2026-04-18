@@ -17,6 +17,65 @@ function mkRule(p: Partial<ParsedRule> & { export_field_id: string }): ParsedRul
 }
 
 test.describe("writer plan getValue", () => {
+  test("unmapped fields resolve to fixed-width blanks", () => {
+    const fields: ExportField[] = [
+      {
+        export_field_id: "F0",
+        field_name: "UNMAPPED",
+        start_pos: 1,
+        end_pos: 6,
+        field_length: 6,
+        domain_type: null,
+      },
+    ];
+
+    const plan = buildWriterPlan(fields, new Map());
+    const ctx: RecordContext = {
+      assessment: {},
+      deployer: {},
+      provider_review: {},
+      responses: new Map(),
+    };
+
+    expect(plan[0]!.getValue(ctx)).toBe("      ");
+  });
+
+  test("missing RESP source falls back to default value and padding", () => {
+    const fields: ExportField[] = [
+      {
+        export_field_id: "F0",
+        field_name: "MISSING_RESPONSE",
+        start_pos: 1,
+        end_pos: 10,
+        field_length: 10,
+        domain_type: null,
+      },
+    ];
+
+    const rules = new Map<string, ParsedRule>([
+      [
+        "F0",
+        mkRule({
+          export_field_id: "F0",
+          source: { kind: "resp", question_code: "CAM", field_name: "MISSING_RESPONSE" },
+          transforms: [{ kind: "trim" }],
+          pad: { kind: "right_space" },
+          default_value: "DEFAULT",
+        }),
+      ],
+    ]);
+
+    const plan = buildWriterPlan(fields, rules);
+    const ctx: RecordContext = {
+      assessment: {},
+      deployer: {},
+      provider_review: {},
+      responses: new Map(),
+    };
+
+    expect(plan[0]!.getValue(ctx)).toBe("DEFAULT   ");
+  });
+
   test("COL sources + date transform + right padding", () => {
     const fields: ExportField[] = [
       {

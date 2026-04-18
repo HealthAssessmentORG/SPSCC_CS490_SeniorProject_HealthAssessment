@@ -1,23 +1,27 @@
-import { DbPool, execSql, sql } from "../../db/db_connect";
+import { type DbPool } from "../../db/db_connect";
 import { Rng } from "./generator_part_01_rng";
+import {
+  insertAssessment,
+  insertRun,
+  updateRunStatus,
+  upsertDeployerByDodId
+} from "./generator_part_04_repository";
 
-import { randomUUID } from "node:crypto";
-
-export type RunRow = { run_id: string };
 export type DeployerRow = { deployer_id: string; dod_id: string };
 export type AssessmentRow = { assessment_id: string; deployer_id: string; event_date: string };
 export type AssessmentFormObserved = { form_type_observed: string; form_version_observed: string };
+export type AssessmentSeed = AssessmentFormObserved & { deployer_id: string; event_date: string };
 
 const deployerIdCache = new Map<string, string>();
 
 /**
  * Retrieves or creates a deployer ID associated with a given DoD ID.
- * 
+ *
  * This function first checks an in-memory cache for the deployer ID. If not found,
  * it performs a MERGE operation on the DEPLOYER table to either retrieve an existing
  * deployer_id or insert a new record with a generated UUID. The operation is
  * concurrency-safe using HOLDLOCK.
- * 
+ *
  * @param pool - The database connection pool used to execute the SQL query
  * @param dodid - The Department of Defense ID (10 characters) to look up or associate with a deployer
  * @returns A promise that resolves to the deployer_id (as a string) associated with the given DoD ID
@@ -32,29 +36,7 @@ async function getOrCreateDeployerId(pool: DbPool, dodid: string): Promise<strin
   const cached = deployerIdCache.get(key);
   if (cached) return cached;
 
-  // MERGE is concurrency-safe and returns the deployer_id whether it was inserted or already existed.
-  const newId = randomUUID();
-
-  const res = await execSql(
-    pool,
-    `
-    MERGE dbo.DEPLOYER WITH (HOLDLOCK) AS t
-    USING (SELECT @dodid AS dod_id) AS s
-      ON t.dod_id = s.dod_id
-    WHEN MATCHED THEN
-      UPDATE SET dod_id = t.dod_id  -- no-op, but allows OUTPUT
-    WHEN NOT MATCHED THEN
-      INSERT (deployer_id, dod_id)
-      VALUES (@newId, @dodid)
-    OUTPUT inserted.deployer_id AS deployer_id;
-    `,
-    {
-      dodid: { type: sql.Char(10), value: key },
-      newId: { type: sql.UniqueIdentifier, value: newId }
-    }
-  );
-
-  const deployerId = String(res.recordset[0].deployer_id);
+  const deployerId = await upsertDeployerByDodId(pool, key);
   deployerIdCache.set(key, deployerId);
   return deployerId;
 }
@@ -68,94 +50,83 @@ async function getOrCreateDeployerId(pool: DbPool, dodid: string): Promise<strin
  * @returns A promise that resolves to the unique identifier of the created run.
  */
 async function createRun(pool: DbPool, runName: string, seed: number, target: number): Promise<string> {
-  const run_id = randomUUID();
-  await execSql(pool, `
-    INSERT INTO dbo.[RUN] (run_id, run_name, seed, target_record_count, status)
-    VALUES (@id, @name, @seed, @target, N'running')
-  `, {
-    id: { type: sql.UniqueIdentifier, value: run_id },
-    name: { type: sql.NVarChar(200), value: runName },
-    seed: { type: sql.Int, value: seed },
-    target: { type: sql.Int, value: target }
-  });
-  return run_id;
+  return insertRun(pool, runName, seed, target);
 }
 
-/**
- * Creates an array of unique deployers with generated DOD identifiers.
- * 
- * @param pool - The database connection pool used to query or create deployer records
- * @param rng - The random number generator used to generate unique DOD identifiers
- * @param count - The number of unique deployers to create
- * @returns A promise that resolves to an array of deployer rows containing deployer IDs and DOD IDs
- */
-async function createDeployers(pool: DbPool, rng: Rng, count: number): Promise<DeployerRow[]> {
-  const deployers: DeployerRow[] = [];
+export function buildDeployerDodIds(rng: Rng, count: number): string[] {
+  const dodIds: string[] = [];
   const used = new Set<string>();
 
-  while (deployers.length < count) {
+  while (dodIds.length < count) {
     const dod = rng.digits(10);
     if (used.has(dod)) continue;
     used.add(dod);
+    dodIds.push(dod);
+  }
 
+  return dodIds;
+}
+
+async function insertDeployers(pool: DbPool, dodIds: readonly string[]): Promise<DeployerRow[]> {
+  const deployers: DeployerRow[] = [];
+
+  for (const dod of dodIds) {
     const deployer_id = await getOrCreateDeployerId(pool, dod);
-
     deployers.push({ deployer_id, dod_id: dod });
   }
 
   return deployers;
 }
 
-/**
- * Creates assessment records in the database.
- * @param pool - The database connection pool
- * @param run_id - The run identifier
- * @param rng - Random number generator instance
- * @param deployers - Array of deployer rows to associate with assessments
- * @param count - Number of assessments to create
- * @param formObserved - Assessment form observation details (form type and version)
- * @returns Promise resolving to an array of created assessment rows
- */
-async function createAssessments(
-  pool: DbPool,
-  run_id: string,
+function buildAssessmentEventBaseTimes(count: number): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) out.push(Date.now());
+  return out;
+}
+
+export function buildAssessmentSeeds(
   rng: Rng,
   deployers: DeployerRow[],
   count: number,
   formObserved: AssessmentFormObserved = {
     form_type_observed: "PRE",
     form_version_observed: "DD2795_202006"
-  }
-): Promise<AssessmentRow[]> {
-  const out: AssessmentRow[] = [];
+  },
+  eventBaseTimesMs: readonly number[] = buildAssessmentEventBaseTimes(count)
+): AssessmentSeed[] {
+  const out: AssessmentSeed[] = [];
   const form_type_observed = formObserved.form_type_observed;
   const form_version_observed = formObserved.form_version_observed;
 
   for (let i = 0; i < count; i++) {
-    const assessment_id = randomUUID();
     const dep = deployers[i % deployers.length];
 
     // random date within last 365 days
     const daysAgo = rng.int(0, 364);
-    const event = new Date(Date.now() - daysAgo * 24 * 3600 * 1000);
+    const event = new Date((eventBaseTimesMs[i] ?? Date.now()) - daysAgo * 24 * 3600 * 1000);
     const event_date = event.toISOString().slice(0, 10);
 
-    await execSql(pool, `
-      INSERT INTO dbo.ASSESSMENT (
-        assessment_id, run_id, deployer_id,
-        form_type_observed, form_version_observed, event_date
-      )
-      VALUES (@id, @rid, @did, @ft, @fv, @ed)
-    `, {
-      id: { type: sql.UniqueIdentifier, value: assessment_id },
-      rid: { type: sql.UniqueIdentifier, value: run_id },
-      did: { type: sql.UniqueIdentifier, value: dep.deployer_id },
-      ft: { type: sql.NVarChar(20), value: form_type_observed },
-      fv: { type: sql.NVarChar(50), value: form_version_observed },
-      ed: { type: sql.Date, value: event_date }
+    out.push({
+      deployer_id: dep.deployer_id,
+      event_date,
+      form_type_observed,
+      form_version_observed
     });
+  }
 
-    out.push({ assessment_id, deployer_id: dep.deployer_id, event_date });
+  return out;
+}
+
+async function insertAssessments(
+  pool: DbPool,
+  run_id: string,
+  assessmentSeeds: readonly AssessmentSeed[]
+): Promise<AssessmentRow[]> {
+  const out: AssessmentRow[] = [];
+
+  for (const a of assessmentSeeds) {
+    const assessment_id = await insertAssessment(pool, run_id, a);
+    out.push({ assessment_id, deployer_id: a.deployer_id, event_date: a.event_date });
   }
 
   return out;
@@ -169,14 +140,12 @@ async function createAssessments(
  * @returns A promise that resolves when the update is complete
  */
 async function finishRun(pool: DbPool, run_id: string, status: string) {
-  await execSql(pool, `
-    UPDATE dbo.[RUN]
-    SET status = @st, finished_at = SYSUTCDATETIME()
-    WHERE run_id = @id
-  `, {
-    st: { type: sql.NVarChar(30), value: status },
-    id: { type: sql.UniqueIdentifier, value: run_id }
-  });
+  await updateRunStatus(pool, run_id, status);
 }
 
-export { getOrCreateDeployerId, createRun, createDeployers, createAssessments, finishRun };
+export {
+  createRun,
+  insertDeployers,
+  insertAssessments,
+  finishRun
+};

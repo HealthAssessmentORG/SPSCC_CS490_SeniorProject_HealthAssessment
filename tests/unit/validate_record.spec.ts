@@ -3,6 +3,36 @@ import { validateRecord } from "../../features/validate/validate_part_01_rules_e
 import type { WriterFieldPlan } from "../../features/mapping/mapping_compile_part_02_build_writer_plan";
 
 test.describe("validateRecord", () => {
+  test("allows blank padded domain values when length is correct", () => {
+    const plan: WriterFieldPlan[] = [
+      {
+        field_name: "DODID",
+        start_pos: 1,
+        length: 10,
+        domain_type: "DODID10",
+        getValue: () => "", // unused
+      },
+      {
+        field_name: "DATE",
+        start_pos: 11,
+        length: 8,
+        domain_type: "DATE_YYYYMMDD",
+        getValue: () => "", // unused
+      },
+    ];
+
+    const errs = validateRecord(
+      1,
+      plan,
+      new Map([
+        ["DODID", " ".repeat(10)],
+        ["DATE", " ".repeat(8)],
+      ])
+    );
+
+    expect(errs).toHaveLength(0);
+  });
+
   test("flags length mismatches", () => {
     const plan: WriterFieldPlan[] = [
       {

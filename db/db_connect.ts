@@ -5,7 +5,17 @@ import sql from "mssql";
  * @typedef {sql.ConnectionPool} DbPool
  */
 export type DbPool = sql.ConnectionPool;
+/**
+ * Represents the context for a database request, which can be either a connection pool or an active transaction.
+ * @typedef {DbPool | sql.Transaction} DbRequestContext
+ * @typedef {"alpha1" | "export"} DbConnectionTarget - Enum for database connection targets
+ */
 export type DbRequestContext = DbPool | sql.Transaction;
+/**
+ * Defines the possible targets for database connections, allowing for multiple configurations (e.g., "alpha1" and "export").
+ * This type can be extended in the future to support additional targets as needed.
+ * @typedef {"alpha1" | "export"} DbConnectionTarget
+ */
 export type DbConnectionTarget = "alpha1" | "export";
 
 /**
@@ -22,7 +32,7 @@ function parseBooleanEnv(name: string, raw: string | undefined, fallback: boolea
   if (["1", "true", "yes", "y", "on"].includes(normalized)) return true;
   if (["0", "false", "no", "n", "off"].includes(normalized)) return false;
 
-  throw new Error(`Invalid boolean for ${name}: ${raw}`);
+  throw new TypeError(`Invalid boolean for ${name}: ${raw}`);
 }
 
 function parseNumberEnv(name: string, raw: string | undefined, fallback: number): number {
@@ -30,7 +40,7 @@ function parseNumberEnv(name: string, raw: string | undefined, fallback: number)
 
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) {
-    throw new Error(`Invalid number for ${name}: ${raw}`);
+    throw new TypeError(`Invalid number for ${name}: ${raw}`);
   }
 
   return parsed;
