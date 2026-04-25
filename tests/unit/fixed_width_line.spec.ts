@@ -101,4 +101,27 @@ test.describe("buildFixedWidthLine", () => {
     // -> H E L Z Z _
     expect(line).toBe("HELZZ ");
   });
+
+  test("ignores characters beyond row length but preserves full field value", () => {
+    const plan: WriterFieldPlan[] = [
+      {
+        field_name: "TAIL",
+        start_pos: 4,
+        length: 5,
+        domain_type: null,
+        getValue: () => "ABCDE",
+      },
+    ];
+
+    const ctx: RecordContext = {
+      assessment: {},
+      deployer: {},
+      provider_review: {},
+      responses: new Map(),
+    };
+
+    const { line, fieldValues } = buildFixedWidthLine(6, plan, ctx);
+    expect(line).toBe("   ABC");
+    expect(fieldValues.get("TAIL")).toBe("ABCDE");
+  });
 });

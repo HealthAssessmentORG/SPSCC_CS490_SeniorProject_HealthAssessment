@@ -46,8 +46,16 @@ test.describe("validateRecord", () => {
 
     const values = new Map<string, string>([["X", "AB"]]);
     const errs = validateRecord(1, plan, values);
-    expect(errs).toHaveLength(1);
-    expect(errs[0]!.error_code).toBe("LEN_MISMATCH");
+    expect(errs).toEqual([
+      {
+        record_ordinal: 1,
+        export_field_name: "X",
+        error_code: "LEN_MISMATCH",
+        expected: "5",
+        actual: "2",
+        message: "Expected padded value length 5, got 2",
+      },
+    ]);
   });
 
   test("validates DODID10", () => {
@@ -65,8 +73,16 @@ test.describe("validateRecord", () => {
     expect(good).toHaveLength(0);
 
     const bad = validateRecord(1, plan, new Map([["DODID", "ABCDEF1234"]]));
-    expect(bad).toHaveLength(1);
-    expect(bad[0]!.error_code).toBe("BAD_DODID10");
+    expect(bad).toEqual([
+      {
+        record_ordinal: 1,
+        export_field_name: "DODID",
+        error_code: "BAD_DODID10",
+        expected: "10 digits",
+        actual: "ABCDEF1234",
+        message: "DoD ID must be 10 digits",
+      },
+    ]);
   });
 
   test("validates DATE_YYYYMMDD", () => {
@@ -84,8 +100,16 @@ test.describe("validateRecord", () => {
     expect(good).toHaveLength(0);
 
     const bad = validateRecord(1, plan, new Map([["DATE", "2026AB14"]]));
-    expect(bad).toHaveLength(1);
-    expect(bad[0]!.error_code).toBe("BAD_DATE");
+    expect(bad).toEqual([
+      {
+        record_ordinal: 1,
+        export_field_name: "DATE",
+        error_code: "BAD_DATE",
+        expected: "YYYYMMDD",
+        actual: "2026AB14",
+        message: "Date must be YYYYMMDD",
+      },
+    ]);
   });
 
   test("prioritizes LEN_MISMATCH over domain checks when value length is wrong", () => {
@@ -100,7 +124,15 @@ test.describe("validateRecord", () => {
     ];
 
     const bad = validateRecord(1, plan, new Map([["DODID", "ABC"]]));
-    expect(bad).toHaveLength(1);
-    expect(bad[0]!.error_code).toBe("LEN_MISMATCH");
+    expect(bad).toEqual([
+      {
+        record_ordinal: 1,
+        export_field_name: "DODID",
+        error_code: "LEN_MISMATCH",
+        expected: "10",
+        actual: "3",
+        message: "Expected padded value length 10, got 3",
+      },
+    ]);
   });
 });

@@ -42,8 +42,14 @@ test.describe("full pipeline export (DB)", () => {
     );
 
     expect(r.code).toBe(0);
+    expect(r.stdout).toContain("Run:");
+    expect(r.stdout).toContain("Mapping source counts:");
+    expect(r.stdout).toContain("Mapping rules:");
+    expect(r.stdout).toContain(`Wrote: ${outPath}`);
+    expect(r.stdout).toContain("Validation errors:");
 
     const text = await fs.promises.readFile(outPath, "utf8");
+    expect(text.endsWith("\n")).toBeTruthy();
     const lines = text.trimEnd().split(/\r?\n/);
 
     expect(lines).toHaveLength(5);
@@ -105,10 +111,19 @@ test.describe("full pipeline export (DB)", () => {
     );
 
     expect(r.code).toBe(0);
+    expect(r.stdout).toContain("Run:");
+    expect(r.stdout).toContain("Mapping source counts:");
+    expect(r.stdout).toContain("Mapping rules:");
+    expect(r.stdout).toContain(`Wrote: ${outPath}`);
+    expect(r.stdout).toContain("Validation errors:");
 
     const text = await fs.promises.readFile(outPath, "utf8");
+    expect(text.endsWith("\n")).toBeTruthy();
     const lines = text.trimEnd().split(/\r?\n/);
     expect(lines).toHaveLength(3);
+    for (const line of lines) {
+      expect(line).toHaveLength(spec.row_length);
+    }
 
     const first = lines[0]!;
     const formType = spec.fields.find((x) => x.field_name === "FORM_TYPE");

@@ -107,3 +107,10 @@ export async function runCli(args: string[], opts?: RunOptions): Promise<RunResu
 export async function runExportCli(args: string[], opts?: Omit<RunOptions, "entry">): Promise<RunResult> {
   return await runTsEntry("main_export.ts", args, opts);
 }
+
+/**
+ * Runs the Application 2 CLI skeleton using the repo-local `tsx`.
+ */
+export async function runApplication2Cli(args: string[], opts?: Omit<RunOptions, "entry">): Promise<RunResult> {
+  return await runTsEntry("Application/02/main.ts", args, opts);
+}

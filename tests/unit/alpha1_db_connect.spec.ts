@@ -118,6 +118,36 @@ test.describe("alpha1/export db config", () => {
     );
   });
 
+  test("export rejects invalid numeric env values", () => {
+    withEnv(
+      {
+        EXPORT_DB_SERVER: "localhost",
+        EXPORT_DB_PORT: "not-a-number",
+        EXPORT_DB_DATABASE: "CS490_SeniorProject",
+        EXPORT_DB_USER: "cs490_app",
+        EXPORT_DB_PASSWORD: "password"
+      },
+      () => {
+        expect(() => getDbConfigFromEnv("export")).toThrow("Invalid number for EXPORT_DB_PORT: not-a-number");
+      }
+    );
+  });
+
+  test("export rejects invalid boolean env values", () => {
+    withEnv(
+      {
+        EXPORT_DB_SERVER: "localhost",
+        EXPORT_DB_DATABASE: "CS490_SeniorProject",
+        EXPORT_DB_USER: "cs490_app",
+        EXPORT_DB_PASSWORD: "password",
+        EXPORT_DB_ENCRYPT: "sometimes"
+      },
+      () => {
+        expect(() => getDbConfigFromEnv("export")).toThrow("Invalid boolean for EXPORT_DB_ENCRYPT: sometimes");
+      }
+    );
+  });
+
   test("builds a redacted log context", () => {
     withEnv(
       {

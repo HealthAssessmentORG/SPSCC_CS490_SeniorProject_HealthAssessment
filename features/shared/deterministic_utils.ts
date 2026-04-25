@@ -12,8 +12,8 @@ export function hashString32(input: string): number {
 }
 
 export function seededRngFromParts(...parts: Array<string | number>): Rng {
-  const seed = hashString32(parts.map(String).join("|")) || 1;
-  return new Rng(seed);
+  // const seed = hashString32(parts.map(String).join("|")) || 1;
+  return new Rng(hashString32(parts.map(String).join("|")) || 1);
 }
 
 export function formatDateYyyymmdd(value: Date | string): string {

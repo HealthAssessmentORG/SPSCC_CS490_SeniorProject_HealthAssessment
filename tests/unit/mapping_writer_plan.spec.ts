@@ -112,6 +112,59 @@ test.describe("writer plan getValue", () => {
     expect(v).toBe("20260214");
   });
 
+  test("COL sources read ASSESSMENT and DEPLOYER values", () => {
+    const fields: ExportField[] = [
+      {
+        export_field_id: "F_ASSESSMENT_DATE",
+        field_name: "EVENT_DATE",
+        start_pos: 1,
+        end_pos: 8,
+        field_length: 8,
+        domain_type: "DATE_YYYYMMDD",
+      },
+      {
+        export_field_id: "F_DEPLOYER_ID",
+        field_name: "DODID",
+        start_pos: 9,
+        end_pos: 18,
+        field_length: 10,
+        domain_type: "DODID10",
+      },
+    ];
+
+    const rules = new Map<string, ParsedRule>([
+      [
+        "F_ASSESSMENT_DATE",
+        mkRule({
+          export_field_id: "F_ASSESSMENT_DATE",
+          source: { kind: "col", table: "ASSESSMENT", column: "event_date" },
+          transforms: [{ kind: "date_yyyymmdd" }],
+          pad: { kind: "right_space" },
+        }),
+      ],
+      [
+        "F_DEPLOYER_ID",
+        mkRule({
+          export_field_id: "F_DEPLOYER_ID",
+          source: { kind: "col", table: "DEPLOYER", column: "dod_id" },
+          transforms: [{ kind: "trim" }],
+          pad: { kind: "right_space" },
+        }),
+      ],
+    ]);
+
+    const plan = buildWriterPlan(fields, rules);
+    const ctx: RecordContext = {
+      assessment: { event_date: "2026-02-14T00:00:00.000Z" },
+      deployer: { dod_id: "1234567890" },
+      provider_review: {},
+      responses: new Map(),
+    };
+
+    expect(plan[0]!.getValue(ctx)).toBe("20260214");
+    expect(plan[1]!.getValue(ctx)).toBe("1234567890");
+  });
+
   test("RESP sources + trim/lower + right padding", () => {
     const fields: ExportField[] = [
       {
@@ -146,6 +199,41 @@ test.describe("writer plan getValue", () => {
 
     const v = plan[0]!.getValue(ctx);
     expect(v).toBe("test@example.com".padEnd(20, " "));
+  });
+
+  test("overlong mapped values are truncated to field length", () => {
+    const fields: ExportField[] = [
+      {
+        export_field_id: "F_LONG",
+        field_name: "LONG_VALUE",
+        start_pos: 1,
+        end_pos: 5,
+        field_length: 5,
+        domain_type: null,
+      },
+    ];
+
+    const rules = new Map<string, ParsedRule>([
+      [
+        "F_LONG",
+        mkRule({
+          export_field_id: "F_LONG",
+          source: { kind: "resp", question_code: "DEM", field_name: "LONG_VALUE" },
+          transforms: [{ kind: "trim" }],
+          pad: { kind: "right_space" },
+        }),
+      ],
+    ]);
+
+    const plan = buildWriterPlan(fields, rules);
+    const ctx: RecordContext = {
+      assessment: {},
+      deployer: {},
+      provider_review: {},
+      responses: new Map([["DEM:LONG_VALUE", " ABCDEFGHI "]]),
+    };
+
+    expect(plan[0]!.getValue(ctx)).toBe("ABCDE");
   });
 
   test("left-zero padding", () => {

@@ -2,6 +2,17 @@ import { test, expect } from "@playwright/test";
 import path from "node:path";
 import { runExportCli } from "../_helpers/runCli";
 
+const clearedExportDbEnv = {
+  EXPORT_DB_SERVER: "",
+  EXPORT_DB_PORT: "",
+  EXPORT_DB_DATABASE: "",
+  EXPORT_DB_USER: "",
+  EXPORT_DB_PASSWORD: "",
+  EXPORT_DB_ENCRYPT: "",
+  EXPORT_DB_TRUST_SERVER_CERTIFICATE: "",
+  EXPORT_DB_REQUEST_TIMEOUT_MS: ""
+};
+
 test.describe("CLI smoke", () => {
   const validFormPath = path.resolve(process.cwd(), "files", "ExportFixedWidthForSmoke.xlsx");
 
@@ -54,5 +65,16 @@ test.describe("CLI smoke", () => {
     const r = await runExportCli(["-form", fakePath, "-gen", "1"], { cwd: process.cwd() });
     expect(r.code).toBe(1);
     expect(r.stdout + r.stderr).toContain("File not found");
+  });
+
+  test("valid input reports missing export DB env before network connection", async () => {
+    const r = await runExportCli(["-form", validFormPath, "-gen", "1"], {
+      cwd: process.cwd(),
+      env: clearedExportDbEnv
+    });
+
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("export DB server is required");
+    expect(r.stderr).toContain("EXPORT_DB_SERVER");
   });
 });
