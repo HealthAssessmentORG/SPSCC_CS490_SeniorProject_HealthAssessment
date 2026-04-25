@@ -23,7 +23,7 @@ async function run(): Promise<void> {
 	const title = parseTitle(process.argv.slice(2));
 
 	// Edit this if the Python script moves to a different location.
-	const scriptPath = resolve(process.cwd(), "app1", "dev_tools", "random_rows.py");
+	const scriptPath = resolve(process.cwd(), "Application", "01", "random_rows.py");
 
 	// Edit this if your Python executable differs.
 	const pythonCommand = resolve(process.cwd(), ".venv", "Scripts", "python.exe");

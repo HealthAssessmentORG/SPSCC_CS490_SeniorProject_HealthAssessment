@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "ui:demo": "node --experimental-strip-types app1/dev_tools/main.ts",
-    "ui:demo:title": "node --experimental-strip-types app1/dev_tools/main.ts --title \"Ink Demo\""
+    "ui:demo": "node --experimental-strip-types Application/01/main.ts",
+    "ui:demo:title": "node --experimental-strip-types Application/01/main.ts --title \"Ink Demo\""
   },
   "dependencies": {
     "ink": "^7.0.0",
