@@ -131,11 +131,11 @@ jobs:
             IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
             IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
               CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
-`);
+            `);
             const result = await pool.request().query(`
             SELECT name FROM sys.databases WHERE name = 'CS490_SeniorProject';
             SELECT name FROM sys.server_principals WHERE name = N'cs490_app';
-`);
+            `);
             console.log(JSON.stringify(result.recordsets, null, 2));
             await pool.close();
           EOF
@@ -161,11 +161,11 @@ jobs:
             ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
             ALTER ROLE db_datareader ADD MEMBER [cs490_app];
             ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
-`);
+            `);
             const result = await pool.request().query(`
             SELECT name FROM sys.database_principals WHERE name = N'cs490_app';
             SELECT role_principal_id, member_principal_id FROM sys.database_role_members;
-`);
+            `);
             console.log(JSON.stringify(result.recordsets, null, 2));
             await pool.close();
           EOF
@@ -304,12 +304,12 @@ jobs:
             FROM INFORMATION_SCHEMA.TABLES
             WHERE TABLE_SCHEMA = 'dbo'
               AND TABLE_NAME IN (${requiredTables.map((name) => `'${name}'`).join(", ")})
-`);
+            `);
             const seedResult = await pool.request().query(`
             SELECT COUNT(*) AS run_count FROM dbo.[RUN] WHERE run_name = N'prealpha_100';
             SELECT COUNT(*) AS export_spec_count FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20';
             SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1;
-`);
+            `);
             await pool.close();
 
             const foundTables = tablesResult.recordset.map((row) => row.TABLE_NAME).sort();
@@ -374,7 +374,7 @@ jobs:
             FROM dbo.MAPPING_SET
             WHERE mapping_name = N'prealpha_20' AND mapping_version = 1
             ORDER BY mapping_set_id;
-`);
+            `);
             await pool.close();
 
             const ids = {
