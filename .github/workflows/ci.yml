@@ -86,23 +86,23 @@ jobs:
           for attempt in $(seq 1 30); do
             echo "attempt=$attempt" | tee -a out/ci/application_02/05_sql_readiness.log
             if node --input-type=module <<'EOF' 2>&1 | tee -a out/ci/application_02/05_sql_readiness.log
-import sql from "mssql";
+            import sql from "mssql";
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: "master",
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true },
-  connectionTimeout: 5000,
-  requestTimeout: 5000
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: "master",
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true },
+              connectionTimeout: 5000,
+              requestTimeout: 5000
+            };
 
-const pool = await sql.connect(cfg);
-const result = await pool.request().query("SELECT 1 AS ready");
-console.log(JSON.stringify(result.recordset[0]));
-await pool.close();
+            const pool = await sql.connect(cfg);
+            const result = await pool.request().query("SELECT 1 AS ready");
+            console.log(JSON.stringify(result.recordset[0]));
+            await pool.close();
 EOF
             then
               exit 0
@@ -115,303 +115,303 @@ EOF
         run: |
           set -euo pipefail
           node --input-type=module <<'EOF' 2>&1 | tee out/ci/application_02/10_master_provision.log
-import sql from "mssql";
+            import sql from "mssql";
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: "master",
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true }
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: "master",
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true }
+            };
 
-const pool = await sql.connect(cfg);
-await pool.request().batch(`
+            const pool = await sql.connect(cfg);
+            await pool.request().batch(`
 IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
   CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
 `);
-const result = await pool.request().query(`
+            const result = await pool.request().query(`
 SELECT name FROM sys.databases WHERE name = 'CS490_SeniorProject';
 SELECT name FROM sys.server_principals WHERE name = N'cs490_app';
 `);
-console.log(JSON.stringify(result.recordsets, null, 2));
-await pool.close();
+            console.log(JSON.stringify(result.recordsets, null, 2));
+            await pool.close();
 EOF
       - name: Provision Application 2 database user and roles
         run: |
           set -euo pipefail
           node --input-type=module <<'EOF' 2>&1 | tee out/ci/application_02/11_database_user_provision.log
-import sql from "mssql";
+            import sql from "mssql";
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: process.env.CI_SQL_DATABASE,
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true }
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: process.env.CI_SQL_DATABASE,
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true }
+            };
 
-const pool = await sql.connect(cfg);
-await pool.request().batch(`
+            const pool = await sql.connect(cfg);
+            await pool.request().batch(`
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
   CREATE USER [cs490_app] FOR LOGIN [cs490_app];
 ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
 ALTER ROLE db_datareader ADD MEMBER [cs490_app];
 ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
 `);
-const result = await pool.request().query(`
+            const result = await pool.request().query(`
 SELECT name FROM sys.database_principals WHERE name = N'cs490_app';
 SELECT role_principal_id, member_principal_id FROM sys.database_role_members;
 `);
-console.log(JSON.stringify(result.recordsets, null, 2));
-await pool.close();
+            console.log(JSON.stringify(result.recordsets, null, 2));
+            await pool.close();
 EOF
       - name: Apply Application 2 schema
         run: |
           set -euo pipefail
           node --input-type=module <<'EOF' 2>&1 | tee out/ci/application_02/30_apply_schema.log
-import fs from "node:fs";
-import sql from "mssql";
+            import fs from "node:fs";
+            import sql from "mssql";
 
-function splitSqlBatches(text) {
-  return text
-    .replace(/\r\n/g, "\n")
-    .split(/^\s*GO\s*$/gim)
-    .map((batch) => batch.trim())
-    .filter(Boolean);
-}
+            function splitSqlBatches(text) {
+              return text
+                .replace(/\r\n/g, "\n")
+                .split(/^\s*GO\s*$/gim)
+                .map((batch) => batch.trim())
+                .filter(Boolean);
+            }
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: process.env.CI_SQL_DATABASE,
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true }
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: process.env.CI_SQL_DATABASE,
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true }
+            };
 
-const batches = splitSqlBatches(fs.readFileSync("sql/00_schema.sql", "utf8"));
-const pool = await sql.connect(cfg);
-console.log(JSON.stringify({ script: "sql/00_schema.sql", batch_count: batches.length }));
-for (let index = 0; index < batches.length; index++) {
-  console.log(`batch ${index + 1}/${batches.length}`);
-  await pool.request().batch(batches[index]);
-}
-await pool.close();
+            const batches = splitSqlBatches(fs.readFileSync("sql/00_schema.sql", "utf8"));
+            const pool = await sql.connect(cfg);
+            console.log(JSON.stringify({ script: "sql/00_schema.sql", batch_count: batches.length }));
+            for (let index = 0; index < batches.length; index++) {
+              console.log(`batch ${index + 1}/${batches.length}`);
+              await pool.request().batch(batches[index]);
+            }
+            await pool.close();
 EOF
       - name: Apply Application 2 seed data
         run: |
           set -euo pipefail
           node --input-type=module <<'EOF' 2>&1 | tee out/ci/application_02/31_apply_seed.log
-import fs from "node:fs";
-import sql from "mssql";
+            import fs from "node:fs";
+            import sql from "mssql";
 
-function splitSqlBatches(text) {
-  return text
-    .replace(/\r\n/g, "\n")
-    .split(/^\s*GO\s*$/gim)
-    .map((batch) => batch.trim())
-    .filter(Boolean);
-}
+            function splitSqlBatches(text) {
+              return text
+                .replace(/\r\n/g, "\n")
+                .split(/^\s*GO\s*$/gim)
+                .map((batch) => batch.trim())
+                .filter(Boolean);
+            }
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: process.env.CI_SQL_DATABASE,
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true }
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: process.env.CI_SQL_DATABASE,
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true }
+            };
 
-const batches = splitSqlBatches(fs.readFileSync("sql_seed/01_seed_prealpha_20fields_100.sql", "utf8"));
-const pool = await sql.connect(cfg);
-console.log(JSON.stringify({ script: "sql_seed/01_seed_prealpha_20fields_100.sql", batch_count: batches.length }));
-for (let index = 0; index < batches.length; index++) {
-  console.log(`batch ${index + 1}/${batches.length}`);
-  await pool.request().batch(batches[index]);
-}
-await pool.close();
+            const batches = splitSqlBatches(fs.readFileSync("sql_seed/01_seed_prealpha_20fields_100.sql", "utf8"));
+            const pool = await sql.connect(cfg);
+            console.log(JSON.stringify({ script: "sql_seed/01_seed_prealpha_20fields_100.sql", batch_count: batches.length }));
+            for (let index = 0; index < batches.length; index++) {
+              console.log(`batch ${index + 1}/${batches.length}`);
+              await pool.request().batch(batches[index]);
+            }
+            await pool.close();
 EOF
       - name: Run Application 2 seed smoke checks
         run: |
           set -euo pipefail
           node --input-type=module <<'EOF' 2>&1 | tee out/ci/application_02/32_smoke_checks.log
-import fs from "node:fs";
-import sql from "mssql";
+            import fs from "node:fs";
+            import sql from "mssql";
 
-function splitSqlBatches(text) {
-  return text
-    .replace(/\r\n/g, "\n")
-    .split(/^\s*GO\s*$/gim)
-    .map((batch) => batch.trim())
-    .filter(Boolean);
-}
+            function splitSqlBatches(text) {
+              return text
+                .replace(/\r\n/g, "\n")
+                .split(/^\s*GO\s*$/gim)
+                .map((batch) => batch.trim())
+                .filter(Boolean);
+            }
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: process.env.CI_SQL_DATABASE,
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true }
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: process.env.CI_SQL_DATABASE,
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true }
+            };
 
-const batches = splitSqlBatches(fs.readFileSync("sql_seed/02_smoke_checks.sql", "utf8"));
-const pool = await sql.connect(cfg);
-console.log(JSON.stringify({ script: "sql_seed/02_smoke_checks.sql", batch_count: batches.length }));
-for (let index = 0; index < batches.length; index++) {
-  const result = await pool.request().query(batches[index]);
-  console.log(JSON.stringify({ batch: index + 1, recordsets: result.recordsets }, null, 2));
-}
-await pool.close();
+            const batches = splitSqlBatches(fs.readFileSync("sql_seed/02_smoke_checks.sql", "utf8"));
+            const pool = await sql.connect(cfg);
+            console.log(JSON.stringify({ script: "sql_seed/02_smoke_checks.sql", batch_count: batches.length }));
+            for (let index = 0; index < batches.length; index++) {
+              const result = await pool.request().query(batches[index]);
+              console.log(JSON.stringify({ batch: index + 1, recordsets: result.recordsets }, null, 2));
+            }
+            await pool.close();
 EOF
       - name: Verify Application 2 schema and seed state
         run: |
           set -euo pipefail
           node --input-type=module <<'EOF' 2>&1 | tee out/ci/application_02/50_post_provision_verification.log
-import fs from "node:fs";
-import sql from "mssql";
+            import fs from "node:fs";
+            import sql from "mssql";
 
-const requiredTables = [
-  "RUN",
-  "ASSESSMENT",
-  "DEPLOYER",
-  "RESPONSE",
-  "PROVIDER_REVIEW",
-  "EXPORT_SPEC",
-  "EXPORT_FIELD",
-  "MAPPING_SET",
-  "MAPPING_RULE",
-  "EXPORT_FILE",
-  "VALIDATION_ERROR"
-];
+            const requiredTables = [
+              "RUN",
+              "ASSESSMENT",
+              "DEPLOYER",
+              "RESPONSE",
+              "PROVIDER_REVIEW",
+              "EXPORT_SPEC",
+              "EXPORT_FIELD",
+              "MAPPING_SET",
+              "MAPPING_RULE",
+              "EXPORT_FILE",
+              "VALIDATION_ERROR"
+            ];
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: process.env.CI_SQL_DATABASE,
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true }
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: process.env.CI_SQL_DATABASE,
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true }
+            };
 
-const pool = await sql.connect(cfg);
-const tablesResult = await pool.request().query(`
-  SELECT TABLE_NAME
-  FROM INFORMATION_SCHEMA.TABLES
-  WHERE TABLE_SCHEMA = 'dbo'
-    AND TABLE_NAME IN (${requiredTables.map((name) => `'${name}'`).join(", ")})
+            const pool = await sql.connect(cfg);
+            const tablesResult = await pool.request().query(`
+SELECT TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = 'dbo'
+  AND TABLE_NAME IN (${requiredTables.map((name) => `'${name}'`).join(", ")})
 `);
-const seedResult = await pool.request().query(`
-  SELECT COUNT(*) AS run_count FROM dbo.[RUN] WHERE run_name = N'prealpha_100';
-  SELECT COUNT(*) AS export_spec_count FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20';
-  SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1;
+            const seedResult = await pool.request().query(`
+SELECT COUNT(*) AS run_count FROM dbo.[RUN] WHERE run_name = N'prealpha_100';
+SELECT COUNT(*) AS export_spec_count FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20';
+SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1;
 `);
-await pool.close();
+            await pool.close();
 
-const foundTables = tablesResult.recordset.map((row) => row.TABLE_NAME).sort();
-const missingTables = requiredTables.filter((name) => !foundTables.includes(name));
-const verification = {
-  found_tables: foundTables,
-  missing_tables: missingTables,
-  run_count: Number(seedResult.recordsets[0][0].run_count),
-  export_spec_count: Number(seedResult.recordsets[1][0].export_spec_count),
-  mapping_set_count: Number(seedResult.recordsets[2][0].mapping_set_count)
-};
+            const foundTables = tablesResult.recordset.map((row) => row.TABLE_NAME).sort();
+            const missingTables = requiredTables.filter((name) => !foundTables.includes(name));
+            const verification = {
+              found_tables: foundTables,
+              missing_tables: missingTables,
+              run_count: Number(seedResult.recordsets[0][0].run_count),
+              export_spec_count: Number(seedResult.recordsets[1][0].export_spec_count),
+              mapping_set_count: Number(seedResult.recordsets[2][0].mapping_set_count)
+            };
 
-fs.writeFileSync(
-  "out/ci/application_02/50_post_provision_verification.json",
-  JSON.stringify(verification, null, 2) + "\n"
-);
-console.log(JSON.stringify(verification, null, 2));
+            fs.writeFileSync(
+              "out/ci/application_02/50_post_provision_verification.json",
+              JSON.stringify(verification, null, 2) + "\n"
+            );
+            console.log(JSON.stringify(verification, null, 2));
 
-if (verification.missing_tables.length > 0) {
-  throw new Error(`Missing required tables: ${verification.missing_tables.join(", ")}`);
-}
-if (verification.run_count < 1 || verification.export_spec_count < 1 || verification.mapping_set_count < 1) {
-  throw new Error("Seed verification failed for RUN, EXPORT_SPEC, or MAPPING_SET.");
-}
+            if (verification.missing_tables.length > 0) {
+              throw new Error(`Missing required tables: ${verification.missing_tables.join(", ")}`);
+            }
+            if (verification.run_count < 1 || verification.export_spec_count < 1 || verification.mapping_set_count < 1) {
+              throw new Error("Seed verification failed for RUN, EXPORT_SPEC, or MAPPING_SET.");
+            }
 EOF
       - name: Export Application 2 E2E IDs
         run: |
           set -euo pipefail
           node --input-type=module <<'EOF' 2>&1 | tee out/ci/application_02/60_e2e_id_export.log
-import fs from "node:fs";
-import sql from "mssql";
+            import fs from "node:fs";
+            import sql from "mssql";
 
-const cfg = {
-  server: process.env.CI_SQL_SERVER,
-  port: Number(process.env.CI_SQL_PORT),
-  database: process.env.CI_SQL_DATABASE,
-  user: process.env.CI_SQL_SA_USER,
-  password: process.env.CI_SQL_SA_PASSWORD,
-  options: { encrypt: false, trustServerCertificate: true }
-};
+            const cfg = {
+              server: process.env.CI_SQL_SERVER,
+              port: Number(process.env.CI_SQL_PORT),
+              database: process.env.CI_SQL_DATABASE,
+              user: process.env.CI_SQL_SA_USER,
+              password: process.env.CI_SQL_SA_PASSWORD,
+              options: { encrypt: false, trustServerCertificate: true }
+            };
 
-const pool = await sql.connect(cfg);
-const result = await pool.request().query(`
-  SELECT TOP (1)
-    CONVERT(varchar(36), run_id) AS run_id,
-    run_name
-  FROM dbo.[RUN]
-  WHERE run_name = N'prealpha_100'
-  ORDER BY run_id;
+            const pool = await sql.connect(cfg);
+            const result = await pool.request().query(`
+SELECT TOP (1)
+  CONVERT(varchar(36), run_id) AS run_id,
+  run_name
+FROM dbo.[RUN]
+WHERE run_name = N'prealpha_100'
+ORDER BY run_id;
 
-  SELECT TOP (1)
-    CONVERT(varchar(36), export_spec_id) AS export_spec_id,
-    spec_version
-  FROM dbo.EXPORT_SPEC
-  WHERE spec_version = N'prealpha_20'
-  ORDER BY export_spec_id;
+SELECT TOP (1)
+  CONVERT(varchar(36), export_spec_id) AS export_spec_id,
+  spec_version
+FROM dbo.EXPORT_SPEC
+WHERE spec_version = N'prealpha_20'
+ORDER BY export_spec_id;
 
-  SELECT TOP (1)
-    CONVERT(varchar(36), mapping_set_id) AS mapping_set_id,
-    mapping_name,
-    mapping_version
-  FROM dbo.MAPPING_SET
-  WHERE mapping_name = N'prealpha_20' AND mapping_version = 1
-  ORDER BY mapping_set_id;
+SELECT TOP (1)
+  CONVERT(varchar(36), mapping_set_id) AS mapping_set_id,
+  mapping_name,
+  mapping_version
+FROM dbo.MAPPING_SET
+WHERE mapping_name = N'prealpha_20' AND mapping_version = 1
+ORDER BY mapping_set_id;
 `);
-await pool.close();
+            await pool.close();
 
-const ids = {
-  APP2_E2E_RUN_ID: result.recordsets[0][0]?.run_id ?? "",
-  APP2_E2E_EXPORT_SPEC_ID: result.recordsets[1][0]?.export_spec_id ?? "",
-  APP2_E2E_MAPPING_SET_ID: result.recordsets[2][0]?.mapping_set_id ?? "",
-  run_name: result.recordsets[0][0]?.run_name ?? "",
-  spec_version: result.recordsets[1][0]?.spec_version ?? "",
-  mapping_name: result.recordsets[2][0]?.mapping_name ?? "",
-  mapping_version: Number(result.recordsets[2][0]?.mapping_version ?? 0)
-};
+            const ids = {
+              APP2_E2E_RUN_ID: result.recordsets[0][0]?.run_id ?? "",
+              APP2_E2E_EXPORT_SPEC_ID: result.recordsets[1][0]?.export_spec_id ?? "",
+              APP2_E2E_MAPPING_SET_ID: result.recordsets[2][0]?.mapping_set_id ?? "",
+              run_name: result.recordsets[0][0]?.run_name ?? "",
+              spec_version: result.recordsets[1][0]?.spec_version ?? "",
+              mapping_name: result.recordsets[2][0]?.mapping_name ?? "",
+              mapping_version: Number(result.recordsets[2][0]?.mapping_version ?? 0)
+            };
 
-if (!ids.APP2_E2E_RUN_ID || !ids.APP2_E2E_EXPORT_SPEC_ID || !ids.APP2_E2E_MAPPING_SET_ID) {
-  throw new Error("Failed to resolve one or more APP2_E2E_* IDs.");
-}
-if (ids.run_name !== "prealpha_100" || ids.spec_version !== "prealpha_20" || ids.mapping_name !== "prealpha_20" || ids.mapping_version !== 1) {
-  throw new Error("Resolved APP2_E2E_* IDs did not match the expected seed metadata.");
-}
+            if (!ids.APP2_E2E_RUN_ID || !ids.APP2_E2E_EXPORT_SPEC_ID || !ids.APP2_E2E_MAPPING_SET_ID) {
+              throw new Error("Failed to resolve one or more APP2_E2E_* IDs.");
+            }
+            if (ids.run_name !== "prealpha_100" || ids.spec_version !== "prealpha_20" || ids.mapping_name !== "prealpha_20" || ids.mapping_version !== 1) {
+              throw new Error("Resolved APP2_E2E_* IDs did not match the expected seed metadata.");
+            }
 
-fs.writeFileSync("out/ci/application_02/e2e_ids.json", JSON.stringify(ids, null, 2) + "\n");
-fs.writeFileSync(
-  "out/ci/application_02/e2e_ids.txt",
-  [
-    `APP2_E2E_RUN_ID=${ids.APP2_E2E_RUN_ID}`,
-    `APP2_E2E_EXPORT_SPEC_ID=${ids.APP2_E2E_EXPORT_SPEC_ID}`,
-    `APP2_E2E_MAPPING_SET_ID=${ids.APP2_E2E_MAPPING_SET_ID}`
-  ].join("\n") + "\n"
-);
-fs.appendFileSync(
-  process.env.GITHUB_ENV,
-  [
-    `APP2_E2E_RUN_ID=${ids.APP2_E2E_RUN_ID}`,
-    `APP2_E2E_EXPORT_SPEC_ID=${ids.APP2_E2E_EXPORT_SPEC_ID}`,
-    `APP2_E2E_MAPPING_SET_ID=${ids.APP2_E2E_MAPPING_SET_ID}`
-  ].join("\n") + "\n"
-);
-console.log(JSON.stringify(ids, null, 2));
+            fs.writeFileSync("out/ci/application_02/e2e_ids.json", JSON.stringify(ids, null, 2) + "\n");
+            fs.writeFileSync(
+              "out/ci/application_02/e2e_ids.txt",
+              [
+                `APP2_E2E_RUN_ID=${ids.APP2_E2E_RUN_ID}`,
+                `APP2_E2E_EXPORT_SPEC_ID=${ids.APP2_E2E_EXPORT_SPEC_ID}`,
+                `APP2_E2E_MAPPING_SET_ID=${ids.APP2_E2E_MAPPING_SET_ID}`
+              ].join("\n") + "\n"
+            );
+            fs.appendFileSync(
+              process.env.GITHUB_ENV,
+              [
+                `APP2_E2E_RUN_ID=${ids.APP2_E2E_RUN_ID}`,
+                `APP2_E2E_EXPORT_SPEC_ID=${ids.APP2_E2E_EXPORT_SPEC_ID}`,
+                `APP2_E2E_MAPPING_SET_ID=${ids.APP2_E2E_MAPPING_SET_ID}`
+              ].join("\n") + "\n"
+            );
+            console.log(JSON.stringify(ids, null, 2));
 EOF
       - name: Run Application 2 DB integration suites
         env:
