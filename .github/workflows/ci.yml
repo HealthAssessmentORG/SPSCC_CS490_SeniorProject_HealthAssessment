@@ -127,15 +127,17 @@ jobs:
             };
 
             const pool = await sql.connect(cfg);
-            await pool.request().batch(`
-            IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
-            IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
-              CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
-            `);
-            const result = await pool.request().query(`
-            SELECT name FROM sys.databases WHERE name = 'CS490_SeniorProject';
-            SELECT name FROM sys.server_principals WHERE name = N'cs490_app';
-            `);
+            const masterProvisionSql = [
+              "IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];",
+              "IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')",
+              "  CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;"
+            ].join("\n");
+            const verificationSql = [
+              "SELECT name FROM sys.databases WHERE name = 'CS490_SeniorProject';",
+              "SELECT name FROM sys.server_principals WHERE name = N'cs490_app';"
+            ].join("\n");
+            await pool.request().batch(masterProvisionSql);
+            const result = await pool.request().query(verificationSql);
             console.log(JSON.stringify(result.recordsets, null, 2));
             await pool.close();
           EOF
@@ -155,17 +157,19 @@ jobs:
             };
 
             const pool = await sql.connect(cfg);
-            await pool.request().batch(`
-            IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
-              CREATE USER [cs490_app] FOR LOGIN [cs490_app];
-            ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
-            ALTER ROLE db_datareader ADD MEMBER [cs490_app];
-            ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
-            `);
-            const result = await pool.request().query(`
-            SELECT name FROM sys.database_principals WHERE name = N'cs490_app';
-            SELECT role_principal_id, member_principal_id FROM sys.database_role_members;
-            `);
+            const userProvisionSql = [
+              "IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')",
+              "  CREATE USER [cs490_app] FOR LOGIN [cs490_app];",
+              "ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];",
+              "ALTER ROLE db_datareader ADD MEMBER [cs490_app];",
+              "ALTER ROLE db_datawriter ADD MEMBER [cs490_app];"
+            ].join("\n");
+            const verificationSql = [
+              "SELECT name FROM sys.database_principals WHERE name = N'cs490_app';",
+              "SELECT role_principal_id, member_principal_id FROM sys.database_role_members;"
+            ].join("\n");
+            await pool.request().batch(userProvisionSql);
+            const result = await pool.request().query(verificationSql);
             console.log(JSON.stringify(result.recordsets, null, 2));
             await pool.close();
           EOF
@@ -197,7 +201,7 @@ jobs:
             const pool = await sql.connect(cfg);
             console.log(JSON.stringify({ script: "sql/00_schema.sql", batch_count: batches.length }));
             for (let index = 0; index < batches.length; index++) {
-              console.log(`batch ${index + 1}/${batches.length}`);
+              console.log("batch " + (index + 1) + "/" + batches.length);
               await pool.request().batch(batches[index]);
             }
             await pool.close();
@@ -230,7 +234,7 @@ jobs:
             const pool = await sql.connect(cfg);
             console.log(JSON.stringify({ script: "sql_seed/01_seed_prealpha_20fields_100.sql", batch_count: batches.length }));
             for (let index = 0; index < batches.length; index++) {
-              console.log(`batch ${index + 1}/${batches.length}`);
+              console.log("batch " + (index + 1) + "/" + batches.length);
               await pool.request().batch(batches[index]);
             }
             await pool.close();
@@ -299,17 +303,20 @@ jobs:
             };
 
             const pool = await sql.connect(cfg);
-            const tablesResult = await pool.request().query(`
-            SELECT TABLE_NAME
-            FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = 'dbo'
-              AND TABLE_NAME IN (${requiredTables.map((name) => `'${name}'`).join(", ")})
-            `);
-            const seedResult = await pool.request().query(`
-            SELECT COUNT(*) AS run_count FROM dbo.[RUN] WHERE run_name = N'prealpha_100';
-            SELECT COUNT(*) AS export_spec_count FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20';
-            SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1;
-            `);
+            const tableFilter = requiredTables.map((name) => "'" + name + "'").join(", ");
+            const tablesSql = [
+              "SELECT TABLE_NAME",
+              "FROM INFORMATION_SCHEMA.TABLES",
+              "WHERE TABLE_SCHEMA = 'dbo'",
+              "  AND TABLE_NAME IN (" + tableFilter + ")"
+            ].join("\n");
+            const seedSql = [
+              "SELECT COUNT(*) AS run_count FROM dbo.[RUN] WHERE run_name = N'prealpha_100';",
+              "SELECT COUNT(*) AS export_spec_count FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20';",
+              "SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1;"
+            ].join("\n");
+            const tablesResult = await pool.request().query(tablesSql);
+            const seedResult = await pool.request().query(seedSql);
             await pool.close();
 
             const foundTables = tablesResult.recordset.map((row) => row.TABLE_NAME).sort();
@@ -329,7 +336,7 @@ jobs:
             console.log(JSON.stringify(verification, null, 2));
 
             if (verification.missing_tables.length > 0) {
-              throw new Error(`Missing required tables: ${verification.missing_tables.join(", ")}`);
+              throw new Error("Missing required tables: " + verification.missing_tables.join(", "));
             }
             if (verification.run_count < 1 || verification.export_spec_count < 1 || verification.mapping_set_count < 1) {
               throw new Error("Seed verification failed for RUN, EXPORT_SPEC, or MAPPING_SET.");
@@ -352,29 +359,30 @@ jobs:
             };
 
             const pool = await sql.connect(cfg);
-            const result = await pool.request().query(`
-            SELECT TOP (1)
-              CONVERT(varchar(36), run_id) AS run_id,
-              run_name
-            FROM dbo.[RUN]
-            WHERE run_name = N'prealpha_100'
-            ORDER BY run_id;
-
-            SELECT TOP (1)
-              CONVERT(varchar(36), export_spec_id) AS export_spec_id,
-              spec_version
-            FROM dbo.EXPORT_SPEC
-            WHERE spec_version = N'prealpha_20'
-            ORDER BY export_spec_id;
-
-            SELECT TOP (1)
-              CONVERT(varchar(36), mapping_set_id) AS mapping_set_id,
-              mapping_name,
-              mapping_version
-            FROM dbo.MAPPING_SET
-            WHERE mapping_name = N'prealpha_20' AND mapping_version = 1
-            ORDER BY mapping_set_id;
-            `);
+            const exportIdsSql = [
+              "SELECT TOP (1)",
+              "  CONVERT(varchar(36), run_id) AS run_id,",
+              "  run_name",
+              "FROM dbo.[RUN]",
+              "WHERE run_name = N'prealpha_100'",
+              "ORDER BY run_id;",
+              "",
+              "SELECT TOP (1)",
+              "  CONVERT(varchar(36), export_spec_id) AS export_spec_id,",
+              "  spec_version",
+              "FROM dbo.EXPORT_SPEC",
+              "WHERE spec_version = N'prealpha_20'",
+              "ORDER BY export_spec_id;",
+              "",
+              "SELECT TOP (1)",
+              "  CONVERT(varchar(36), mapping_set_id) AS mapping_set_id,",
+              "  mapping_name,",
+              "  mapping_version",
+              "FROM dbo.MAPPING_SET",
+              "WHERE mapping_name = N'prealpha_20' AND mapping_version = 1",
+              "ORDER BY mapping_set_id;"
+            ].join("\n");
+            const result = await pool.request().query(exportIdsSql);
             await pool.close();
 
             const ids = {
@@ -398,17 +406,17 @@ jobs:
             fs.writeFileSync(
               "out/ci/application_02/e2e_ids.txt",
               [
-                `APP2_E2E_RUN_ID=${ids.APP2_E2E_RUN_ID}`,
-                `APP2_E2E_EXPORT_SPEC_ID=${ids.APP2_E2E_EXPORT_SPEC_ID}`,
-                `APP2_E2E_MAPPING_SET_ID=${ids.APP2_E2E_MAPPING_SET_ID}`
+                "APP2_E2E_RUN_ID=" + ids.APP2_E2E_RUN_ID,
+                "APP2_E2E_EXPORT_SPEC_ID=" + ids.APP2_E2E_EXPORT_SPEC_ID,
+                "APP2_E2E_MAPPING_SET_ID=" + ids.APP2_E2E_MAPPING_SET_ID
               ].join("\n") + "\n"
             );
             fs.appendFileSync(
               process.env.GITHUB_ENV,
               [
-                `APP2_E2E_RUN_ID=${ids.APP2_E2E_RUN_ID}`,
-                `APP2_E2E_EXPORT_SPEC_ID=${ids.APP2_E2E_EXPORT_SPEC_ID}`,
-                `APP2_E2E_MAPPING_SET_ID=${ids.APP2_E2E_MAPPING_SET_ID}`
+                "APP2_E2E_RUN_ID=" + ids.APP2_E2E_RUN_ID,
+                "APP2_E2E_EXPORT_SPEC_ID=" + ids.APP2_E2E_EXPORT_SPEC_ID,
+                "APP2_E2E_MAPPING_SET_ID=" + ids.APP2_E2E_MAPPING_SET_ID
               ].join("\n") + "\n"
             );
             console.log(JSON.stringify(ids, null, 2));
