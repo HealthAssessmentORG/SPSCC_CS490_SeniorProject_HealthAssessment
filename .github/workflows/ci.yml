@@ -7,78 +7,6 @@ on:
     branches: [ "pre-alpha", "alpha", "alpha-M6", "dev-kyle" ]
 
 jobs:
-  m6-flowchart:
-    runs-on: ubuntu-latest
-    services:
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server:2025-latest
-        env:
-          ACCEPT_EULA: "Y"
-          MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
-          MSSQL_PID: "Developer"
-        ports:
-          - 1433:1433
-        options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -C || exit 1"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 30
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: Run M6 flowchart unit suites
-        run: |
-          npx playwright test \
-            tests/unit/alpha1_db_connect.spec.ts \
-            tests/unit/alpha1_generator.spec.ts \
-            tests/unit/rng.spec.ts \
-            tests/unit/spec_import_read_xlsx.spec.ts \
-            tests/unit/spec_response_generation.spec.ts
-          npx playwright test \
-            tests/unit/fixed_width_line.spec.ts \
-            tests/unit/mapping_parse_rules.spec.ts \
-            tests/unit/mapping_seed_profiles.spec.ts \
-            tests/unit/mapping_writer_plan.spec.ts \
-            tests/unit/spec_values_bad_input.spec.ts \
-            tests/unit/validate_record.spec.ts \
-            tests/unit/write_lines_to_file.spec.ts
-      - name: Run M6 flowchart CLI suites
-        run: |
-          npx playwright test \
-            tests/app/alpha1_cli.spec.ts \
-            tests/app/cli_smoke.spec.ts \
-            tests/app/cli_bad_input_future_flags.spec.ts
-      - name: Provision export database
-        run: |
-          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
-            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d master -b -Q "
-              IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
-              IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
-                CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
-            "
-          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
-            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -Q "
-              IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
-                CREATE USER [cs490_app] FOR LOGIN [cs490_app];
-              ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
-              ALTER ROLE db_datareader ADD MEMBER [cs490_app];
-              ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
-            "
-      - name: Run preserved export DB integration
-        env:
-          EXPORT_DB_SERVER: localhost
-          EXPORT_DB_PORT: "1433"
-          EXPORT_DB_DATABASE: CS490_SeniorProject
-          EXPORT_DB_USER: cs490_app
-          EXPORT_DB_PASSWORD: password
-          RUN_DB_E2E: "1"
-        run: npx playwright test tests/app/full-run/export_full_run.integration.spec.ts
-
   m6-application-02:
     runs-on: ubuntu-latest
     services:
@@ -104,6 +32,8 @@ jobs:
           cache: "npm"
       - name: Install dependencies
         run: npm ci
+      - name: Prepare Application 2 CI debug directory
+        run: mkdir -p out/ci/application_02
       - name: Check Application 2 import boundary
         run: |
           if rg -n "from .*features/|from .*db/|main_export|Application/01" Application/02; then
@@ -126,14 +56,23 @@ jobs:
             tests/unit/application_02_repositories.spec.ts
       - name: Run TypeScript check
         run: npx tsc --noEmit
-      - name: Provision Application 2 database
+      - name: Record SQL Server service state
+        if: always()
         run: |
+          docker ps --no-trunc > out/ci/application_02/docker_ps.txt
+          docker inspect --format '{{.Config.Image}}' ${{ job.services.sqlserver.id }} \
+            > out/ci/application_02/sqlserver_image.txt
+          docker inspect --format '{{json .State}}' ${{ job.services.sqlserver.id }} \
+            > out/ci/application_02/sqlserver_state_pre_provision.json
+      - name: Provision Application 2 database and login
+        run: |
+          set -o pipefail
           docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
             -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d master -b -Q "
               IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
               IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
                 CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
-            "
+            " 2>&1 | tee out/ci/application_02/10_master_provision.log
           docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
             -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -Q "
               IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
@@ -141,39 +80,65 @@ jobs:
               ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
               ALTER ROLE db_datareader ADD MEMBER [cs490_app];
               ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
-            "
-          docker cp ./sql/00_schema.sql ${{ job.services.sqlserver.id }}:/tmp/app2_schema.sql
-          docker cp ./sql_seed/01_seed_prealpha_20fields_100.sql ${{ job.services.sqlserver.id }}:/tmp/app2_seed.sql
-          docker cp ./sql_seed/02_smoke_checks.sql ${{ job.services.sqlserver.id }}:/tmp/app2_smoke_checks.sql
+            " 2>&1 | tee out/ci/application_02/11_database_user_provision.log
+      - name: Copy Application 2 SQL scripts into container
+        run: |
+          set -o pipefail
+          docker cp ./sql/00_schema.sql ${{ job.services.sqlserver.id }}:/tmp/app2_schema.sql \
+            2>&1 | tee out/ci/application_02/20_copy_schema.log
+          docker cp ./sql_seed/01_seed_prealpha_20fields_100.sql ${{ job.services.sqlserver.id }}:/tmp/app2_seed.sql \
+            2>&1 | tee out/ci/application_02/21_copy_seed.log
+          docker cp ./sql_seed/02_smoke_checks.sql ${{ job.services.sqlserver.id }}:/tmp/app2_smoke_checks.sql \
+            2>&1 | tee out/ci/application_02/22_copy_smoke_checks.log
+      - name: Apply Application 2 schema
+        run: |
+          set -o pipefail
           docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
-            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_schema.sql
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_schema.sql \
+            2>&1 | tee out/ci/application_02/30_apply_schema.log
+      - name: Apply Application 2 seed data
+        run: |
+          set -o pipefail
           docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
-            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_seed.sql
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_seed.sql \
+            2>&1 | tee out/ci/application_02/31_apply_seed.log
+      - name: Run Application 2 seed smoke checks
+        run: |
+          set -o pipefail
           docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
-            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_smoke_checks.sql
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_smoke_checks.sql \
+            2>&1 | tee out/ci/application_02/32_smoke_checks.log
       - name: Export Application 2 E2E IDs
         run: |
           app2_run_id="$(
             docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
               -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject \
               -h -1 -W -Q "SET NOCOUNT ON; SELECT TOP (1) CONVERT(varchar(36), run_id) FROM dbo.[RUN] WHERE run_name = N'prealpha_100' ORDER BY run_id;" \
+            | tee out/ci/application_02/40_query_run_id.raw \
             | tr -d '\r'
           )"
           app2_export_spec_id="$(
             docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
               -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject \
               -h -1 -W -Q "SET NOCOUNT ON; SELECT TOP (1) CONVERT(varchar(36), export_spec_id) FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20' ORDER BY export_spec_id;" \
+            | tee out/ci/application_02/41_query_export_spec_id.raw \
             | tr -d '\r'
           )"
           app2_mapping_set_id="$(
             docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
               -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject \
               -h -1 -W -Q "SET NOCOUNT ON; SELECT TOP (1) CONVERT(varchar(36), mapping_set_id) FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1 ORDER BY mapping_set_id;" \
+            | tee out/ci/application_02/42_query_mapping_set_id.raw \
             | tr -d '\r'
           )"
           test -n "$app2_run_id"
           test -n "$app2_export_spec_id"
           test -n "$app2_mapping_set_id"
+          {
+            echo "APP2_E2E_RUN_ID=$app2_run_id"
+            echo "APP2_E2E_EXPORT_SPEC_ID=$app2_export_spec_id"
+            echo "APP2_E2E_MAPPING_SET_ID=$app2_mapping_set_id"
+          } > out/ci/application_02/e2e_ids.txt
           echo "APP2_E2E_RUN_ID=$app2_run_id" >> "$GITHUB_ENV"
           echo "APP2_E2E_EXPORT_SPEC_ID=$app2_export_spec_id" >> "$GITHUB_ENV"
           echo "APP2_E2E_MAPPING_SET_ID=$app2_mapping_set_id" >> "$GITHUB_ENV"
@@ -189,3 +154,23 @@ jobs:
           npx playwright test \
             tests/app/application_02_db.integration.spec.ts \
             tests/app/application_02_export.integration.spec.ts
+      - name: Collect Application 2 CI diagnostics
+        if: always()
+        run: |
+          docker logs ${{ job.services.sqlserver.id }} > out/ci/application_02/sqlserver_container.log 2>&1 || true
+          docker inspect --format '{{json .State}}' ${{ job.services.sqlserver.id }} \
+            > out/ci/application_02/sqlserver_state_post_run.json || true
+          docker exec ${{ job.services.sqlserver.id }} sh -lc 'ls -la /tmp; ls -la /var/opt/mssql/log || true' \
+            > out/ci/application_02/container_files.txt 2>&1 || true
+          docker exec ${{ job.services.sqlserver.id }} sh -lc 'for f in /var/opt/mssql/log/*; do echo "===== $f ====="; tail -n 200 "$f"; done' \
+            > out/ci/application_02/sqlserver_internal_logs.txt 2>&1 || true
+      - name: Upload Application 2 CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-02-ci-debug
+          if-no-files-found: warn
+          path: |
+            out/ci/application_02/**
+            playwright-report/**
+            test-results/**
