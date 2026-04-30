@@ -103,4 +103,23 @@ test.describe("Application 2 writeLinesToFile", () => {
 
     await expect(fs.promises.readFile(outPath, "utf8")).resolves.toBe("first\nsecond\nthird\n");
   });
+
+  test("calls onLineWritten once per completed line with one-based counts", async ({}, testInfo) => {
+    async function* gen() {
+      yield "alpha";
+      yield "beta";
+      yield "gamma";
+    }
+
+    const counts: number[] = [];
+    const outPath = testInfo.outputPath("out_with_progress.txt");
+    await writeLinesToFile(outPath, gen(), {
+      onLineWritten: async (writtenCount) => {
+        counts.push(writtenCount);
+      }
+    });
+
+    expect(counts).toEqual([1, 2, 3]);
+    await expect(fs.promises.readFile(outPath, "utf8")).resolves.toBe("alpha\nbeta\ngamma\n");
+  });
 });

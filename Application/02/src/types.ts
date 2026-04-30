@@ -15,6 +15,41 @@ export type Application2ExportResult = {
   validation_error_count: number;
 };
 
+export type Application2ExportEventConnectStart = {
+  type: "connect_start";
+};
+
+export type Application2ExportEventConnectOk = {
+  type: "connect_ok";
+};
+
+export type Application2ExportEventRecordProgress = {
+  type: "record_progress";
+  current: number;
+  total: number;
+};
+
+export type Application2ExportEventComplete = {
+  type: "complete";
+} & Application2ExportResult;
+
+export type Application2ExportEventError = {
+  type: "error";
+  ok: false;
+  error: string;
+};
+
+export type Application2ExportEvent =
+  | Application2ExportEventConnectStart
+  | Application2ExportEventConnectOk
+  | Application2ExportEventRecordProgress
+  | Application2ExportEventComplete
+  | Application2ExportEventError;
+
+export type Application2ExportProgressHandler = (
+  event: Application2ExportEventRecordProgress
+) => void | Promise<void>;
+
 export type Application2DatabaseStatus = {
   database: string;
   tables: Record<string, boolean>;

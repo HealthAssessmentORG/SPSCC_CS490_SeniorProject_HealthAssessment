@@ -2,25 +2,84 @@ name: CI
 
 on:
   push:
-    branches: [ "pre-alpha", "alpha" ]
+    branches: [ "pre-alpha", "alpha", "alpha-M6", "dev-kyle" ]
   pull_request:
-    branches: [ "pre-alpha", "alpha" ]
+    branches: [ "pre-alpha", "alpha", "alpha-M6", "dev-kyle" ]
 
 jobs:
-  unit:
+  m6-flowchart:
     runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2025-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+          MSSQL_PID: "Developer"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -C || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm run typecheck --if-present
-      - run: npm test --if-present
+      - name: Install dependencies
+        run: npm ci
+      - name: Run M6 flowchart unit suites
+        run: |
+          npx playwright test \
+            tests/unit/alpha1_db_connect.spec.ts \
+            tests/unit/alpha1_generator.spec.ts \
+            tests/unit/rng.spec.ts \
+            tests/unit/spec_import_read_xlsx.spec.ts \
+            tests/unit/spec_response_generation.spec.ts
+          npx playwright test \
+            tests/unit/fixed_width_line.spec.ts \
+            tests/unit/mapping_parse_rules.spec.ts \
+            tests/unit/mapping_seed_profiles.spec.ts \
+            tests/unit/mapping_writer_plan.spec.ts \
+            tests/unit/spec_values_bad_input.spec.ts \
+            tests/unit/validate_record.spec.ts \
+            tests/unit/write_lines_to_file.spec.ts
+      - name: Run M6 flowchart CLI suites
+        run: |
+          npx playwright test \
+            tests/app/alpha1_cli.spec.ts \
+            tests/app/cli_smoke.spec.ts \
+            tests/app/cli_bad_input_future_flags.spec.ts
+      - name: Provision export database
+        run: |
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d master -b -Q "
+              IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
+              IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
+                CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
+            "
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -Q "
+              IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
+                CREATE USER [cs490_app] FOR LOGIN [cs490_app];
+              ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
+              ALTER ROLE db_datareader ADD MEMBER [cs490_app];
+              ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
+            "
+      - name: Run preserved export DB integration
+        env:
+          EXPORT_DB_SERVER: localhost
+          EXPORT_DB_PORT: "1433"
+          EXPORT_DB_DATABASE: CS490_SeniorProject
+          EXPORT_DB_USER: cs490_app
+          EXPORT_DB_PASSWORD: password
+          RUN_DB_E2E: "1"
+        run: npx playwright test tests/app/full-run/export_full_run.integration.spec.ts
 
-  integration-smoke:
+  m6-application-02:
     runs-on: ubuntu-latest
     services:
       sqlserver:
@@ -43,10 +102,31 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-      - run: npm ci
-
-      # Create DB + app login/user inside the container (using sqlcmd inside the container)
-      - name: Provision DB + app user
+      - name: Install dependencies
+        run: npm ci
+      - name: Check Application 2 import boundary
+        run: |
+          if rg -n "from .*features/|from .*db/|main_export|Application/01" Application/02; then
+            echo "Forbidden Application 2 import boundary violation found."
+            exit 1
+          fi
+      - name: Run Application 2 CLI and API suites
+        run: |
+          npx playwright test tests/app/application_02_cli.spec.ts
+          npx playwright test tests/app/application_02_api_status.spec.ts tests/app/application_02_api_summary.spec.ts
+      - name: Run Application 2 unit suites
+        run: |
+          npx playwright test \
+            tests/unit/application_02_db_connect.spec.ts \
+            tests/unit/application_02_export_workflow.spec.ts \
+            tests/unit/application_02_fixed_width_line.spec.ts
+          npx playwright test \
+            tests/unit/application_02_mapping_writer_plan.spec.ts \
+            tests/unit/application_02_validate_record.spec.ts \
+            tests/unit/application_02_repositories.spec.ts
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+      - name: Provision Application 2 database
         run: |
           docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
             -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d master -b -Q "
@@ -62,42 +142,50 @@ jobs:
               ALTER ROLE db_datareader ADD MEMBER [cs490_app];
               ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
             "
-            
-      - name: Run Playwright tests (e2e)
-        env:
-          DB_SERVER: localhost
-          DB_PORT: "1433"
-          DB_DATABASE: CS490_SeniorProject
-          DB_USER: cs490_app
-          DB_PASSWORD: password
-        run: npm run test:e2e
-
-      - name: Run pipeline smoke
-        env:
-          DB_SERVER: localhost
-          DB_PORT: "1433"
-          DB_DATABASE: CS490_SeniorProject
-          DB_USER: cs490_app
-          DB_PASSWORD: password
+          docker cp ./sql/00_schema.sql ${{ job.services.sqlserver.id }}:/tmp/app2_schema.sql
+          docker cp ./sql_seed/01_seed_prealpha_20fields_100.sql ${{ job.services.sqlserver.id }}:/tmp/app2_seed.sql
+          docker cp ./sql_seed/02_smoke_checks.sql ${{ job.services.sqlserver.id }}:/tmp/app2_smoke_checks.sql
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_schema.sql
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_seed.sql
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+            -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject -b -i /tmp/app2_smoke_checks.sql
+      - name: Export Application 2 E2E IDs
         run: |
-          mkdir -p out
-          npx tsx main.ts \
-            -form ./files/ExportFixedWidthForSmoke.xlsx \
-            -gen 25 \
-            --seed 0 \
-            --apply-schema \
-            --out ./out/ci_smoke.txt
-
-      - name: Assert output not all spaces
+          app2_run_id="$(
+            docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject \
+              -h -1 -W -Q "SET NOCOUNT ON; SELECT TOP (1) CONVERT(varchar(36), run_id) FROM dbo.[RUN] WHERE run_name = N'prealpha_100' ORDER BY run_id;" \
+            | tr -d '\r'
+          )"
+          app2_export_spec_id="$(
+            docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject \
+              -h -1 -W -Q "SET NOCOUNT ON; SELECT TOP (1) CONVERT(varchar(36), export_spec_id) FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20' ORDER BY export_spec_id;" \
+            | tr -d '\r'
+          )"
+          app2_mapping_set_id="$(
+            docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost -U sa -P 'YourStrong!Passw0rd' -C -d CS490_SeniorProject \
+              -h -1 -W -Q "SET NOCOUNT ON; SELECT TOP (1) CONVERT(varchar(36), mapping_set_id) FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1 ORDER BY mapping_set_id;" \
+            | tr -d '\r'
+          )"
+          test -n "$app2_run_id"
+          test -n "$app2_export_spec_id"
+          test -n "$app2_mapping_set_id"
+          echo "APP2_E2E_RUN_ID=$app2_run_id" >> "$GITHUB_ENV"
+          echo "APP2_E2E_EXPORT_SPEC_ID=$app2_export_spec_id" >> "$GITHUB_ENV"
+          echo "APP2_E2E_MAPPING_SET_ID=$app2_mapping_set_id" >> "$GITHUB_ENV"
+      - name: Run Application 2 DB integration suites
+        env:
+          APP2_DB_SERVER: localhost
+          APP2_DB_PORT: "1433"
+          APP2_DB_DATABASE: CS490_SeniorProject
+          APP2_DB_USER: cs490_app
+          APP2_DB_PASSWORD: password
+          RUN_APP2_DB_E2E: "1"
         run: |
-          test -f ./out/ci_smoke.txt
-          test "$(wc -l < ./out/ci_smoke.txt)" -eq 25
-          # must contain at least one non-space char somewhere
-          grep -qP '\S' ./out/ci_smoke.txt
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ci-output
-          path: |
-            out/*.txt
+          npx playwright test \
+            tests/app/application_02_db.integration.spec.ts \
+            tests/app/application_02_export.integration.spec.ts

@@ -41,17 +41,29 @@ const validExportArgs = [
   "./out/application_02_export.txt"
 ];
 
-test.describe("Application 2 CLI skeleton", () => {
+function parseNdjson(text: string) {
+  const trimmed = text.trimEnd();
+  expect(trimmed).not.toBe("");
+  const lines = trimmed.split(/\r?\n/);
+  return {
+    lines,
+    events: lines.map((line) => JSON.parse(line))
+  };
+}
+
+test.describe("Application 2 CLI", () => {
   test("--help prints usage and reserved export command", async () => {
     const r = await runApplication2Cli(["--help"], { cwd: process.cwd(), env: clearedDbEnv });
 
     expect(r.code).toBe(0);
+    expect(r.stderr).toBe("");
     expect(r.stdout).toContain("Application/02/main.ts export");
     expect(r.stdout).toContain("--run-id <uuid>");
     expect(r.stdout).toContain("--export-spec-id <uuid>");
     expect(r.stdout).toContain("--mapping-set-id <uuid>");
     expect(r.stdout).toContain("--out <path>");
     expect(r.stdout).toContain("Export flow is available");
+    expect(r.stdout).toContain("Database status and summary APIs are not implemented yet.");
   });
 
   test("unknown command fails fast", async () => {
@@ -88,9 +100,13 @@ test.describe("Application 2 CLI skeleton", () => {
     const r = await runApplication2Cli(validExportArgs, { cwd: process.cwd(), env: clearedDbEnv });
 
     expect(r.code).toBe(1);
+    expect(r.stdout).toBe("");
+    expect(r.stderr).toContain("Connecting to Application 2 database...");
+    expect(r.stderr).toContain("Application 2 database connection failed.");
     expect(r.stderr).toContain("application2 DB server is required");
     expect(r.stderr).toContain("APP2_DB_SERVER");
     expect(r.stderr).not.toContain("EXPORT_DB_SERVER");
+    expect(r.stderr).not.toContain("{");
   });
 
   test("valid export command supports json error shape for DB config failures", async () => {
@@ -100,9 +116,31 @@ test.describe("Application 2 CLI skeleton", () => {
     });
 
     expect(r.code).toBe(1);
-    expect(JSON.parse(r.stderr)).toEqual({
-      ok: false,
-      error: "application2 DB server is required (APP2_DB_SERVER)"
+    expect(r.stderr).toBe("");
+    expect(r.stdout.endsWith("\n")).toBeTruthy();
+
+    const { lines, events } = parseNdjson(r.stdout);
+    expect(lines).toEqual([
+      '{"type":"connect_start"}',
+      '{"type":"error","ok":false,"error":"application2 DB server is required (APP2_DB_SERVER)"}'
+    ]);
+    expect(events).toEqual([
+      { type: "connect_start" },
+      {
+        type: "error",
+        ok: false,
+        error: "application2 DB server is required (APP2_DB_SERVER)"
+      }
+    ]);
+  });
+
+  test("valid export command does not emit record_progress before the connection succeeds", async () => {
+    const r = await runApplication2Cli([...validExportArgs, "--json"], {
+      cwd: process.cwd(),
+      env: clearedDbEnv
     });
+
+    const { events } = parseNdjson(r.stdout);
+    expect(events.some((event: { type: string }) => event.type === "record_progress")).toBe(false);
   });
 });

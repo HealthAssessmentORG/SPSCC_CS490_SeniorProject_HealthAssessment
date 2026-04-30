@@ -12,11 +12,20 @@ import {
 import { loadAssessmentIdsForRun, updateRunStatus } from "../repositories/run_repository";
 import { persistValidationErrors } from "../repositories/validation_repository";
 import { validateRecord, type Application2ValidationErrorRow } from "../validate/rules_engine";
-import type { Application2ExportOptions, Application2ExportResult } from "../types";
+import type {
+  Application2ExportOptions,
+  Application2ExportProgressHandler,
+  Application2ExportResult
+} from "../types";
+
+type Application2ExportWorkflowHooks = {
+  onRecordWritten?: Application2ExportProgressHandler;
+};
 
 export async function runApplication2ExportWorkflow(
   pool: DbPool,
-  options: Application2ExportOptions
+  options: Application2ExportOptions,
+  hooks: Application2ExportWorkflowHooks = {}
 ): Promise<Application2ExportResult> {
   const assessmentIds = await loadAssessmentIdsForRun(pool, options.runId);
   const specLayout = await loadExportSpecLayout(pool, options.exportSpecId);
@@ -46,7 +55,16 @@ export async function runApplication2ExportWorkflow(
     }
   }
 
-  await writeLinesToFile(options.out, lineGen());
+  await writeLinesToFile(options.out, lineGen(), {
+    onLineWritten: async (writtenCount) => {
+      if (!hooks.onRecordWritten) return;
+      await hooks.onRecordWritten({
+        type: "record_progress",
+        current: writtenCount,
+        total: assessmentIds.length
+      });
+    }
+  });
   await persistValidationErrors(pool, exportFileId, validationErrors);
   await updateRunStatus(pool, options.runId, validationErrors.length ? "finished_with_errors" : "finished");
 

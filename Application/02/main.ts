@@ -2,7 +2,12 @@ import fs from "node:fs";
 
 import { closeApplication2Pool, getApplication2Pool } from "./src/db_connect";
 import { runApplication2ExportWorkflow } from "./src/workflow/export_workflow";
-import type { Application2ExportOptions } from "./src/types";
+import type {
+  Application2ExportEvent,
+  Application2ExportOptions,
+  Application2ExportProgressHandler,
+  Application2ExportResult
+} from "./src/types";
 
 type ParsedArgs =
   | { command: "help" }
@@ -86,8 +91,31 @@ function parseArgs(argv: string[]): ParsedArgs {
   };
 }
 
-function printJson(value: unknown) {
-  fs.writeSync(1, JSON.stringify(value, null, 2) + "\n");
+function printNdjsonEvent(event: Application2ExportEvent) {
+  fs.writeSync(1, JSON.stringify(event) + "\n");
+}
+
+function printStderrLine(message: string) {
+  fs.writeSync(2, message + "\n");
+}
+
+function completeEvent(result: Application2ExportResult): Application2ExportEvent {
+  return {
+    type: "complete",
+    ...result
+  };
+}
+
+function recordProgressEvent(current: number, total: number): Application2ExportEvent {
+  return {
+    type: "record_progress",
+    current,
+    total
+  };
+}
+
+function printHumanRecordProgress(current: number, total: number) {
+  printStderrLine(`Application 2 export progress: ${current}/${total} records written.`);
 }
 
 async function main() {
@@ -102,10 +130,30 @@ async function main() {
 
   if (args.command === "help") usage(0);
 
+  let poolOpened = false;
+
   try {
+    if (args.json) {
+      printNdjsonEvent({ type: "connect_start" });
+    } else {
+      printStderrLine("Connecting to Application 2 database...");
+    }
     const pool = await getApplication2Pool();
-    const result = await runApplication2ExportWorkflow(pool, args);
-    if (args.json) printJson(result);
+    poolOpened = true;
+    if (args.json) {
+      printNdjsonEvent({ type: "connect_ok" });
+    } else {
+      printStderrLine("Application 2 database connection established.");
+    }
+    const onRecordWritten: Application2ExportProgressHandler = async ({ current, total }) => {
+      if (args.json) {
+        printNdjsonEvent(recordProgressEvent(current, total));
+      } else {
+        printHumanRecordProgress(current, total);
+      }
+    };
+    const result = await runApplication2ExportWorkflow(pool, args, { onRecordWritten });
+    if (args.json) printNdjsonEvent(completeEvent(result));
     else {
       fs.writeSync(1, `Output path: ${result.out_path}\n`);
       fs.writeSync(1, `Record count: ${result.record_count}\n`);
@@ -115,8 +163,15 @@ async function main() {
   } catch (error) {
     const message = (error as Error).message;
     if (args.json) {
-      fs.writeSync(2, JSON.stringify({ ok: false, error: message }, null, 2) + "\n");
+      printNdjsonEvent({
+        type: "error",
+        ok: false,
+        error: message
+      });
     } else {
+      if (!poolOpened) {
+        printStderrLine("Application 2 database connection failed.");
+      }
       fs.writeSync(2, message + "\n");
     }
     process.exitCode = 1;

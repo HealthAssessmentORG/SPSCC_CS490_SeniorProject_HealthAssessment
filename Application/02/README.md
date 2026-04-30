@@ -24,6 +24,43 @@ The export command pulls existing database records, transforms them with an exis
 node --import tsx Application/02/main.ts export --run-id <uuid> --export-spec-id <uuid> --mapping-set-id <uuid> --out <path> [--json]
 ```
 
+When an export run attempts to connect, the CLI writes connection lifecycle messages to stderr:
+
+```text
+Connecting to Application 2 database...
+Application 2 database connection established.
+```
+
+If the database connection cannot be opened, stderr includes:
+
+```text
+Application 2 database connection failed.
+```
+
+Non-JSON export mode still writes only the final four summary lines to stdout and now emits line-oriented per-record progress on stderr:
+
+```text
+Application 2 export progress: 1/10 records written.
+Application 2 export progress: 2/10 records written.
+```
+
+In `--json` mode, Application 2 emits NDJSON to stdout, one JSON object per line.
+
+Current NDJSON event contract:
+
+```json
+{"type":"connect_start"}
+{"type":"connect_ok"}
+{"type":"record_progress","current":1,"total":10}
+{"type":"complete","ok":true,"run_id":"run-id","export_file_id":"export-file-id","record_count":10,"out_path":"./out/application_02_export.txt","validation_error_count":0}
+{"type":"error","ok":false,"error":"clear message"}
+```
+
+Stage 4 emits:
+
+- success path: `connect_start`, `connect_ok`, zero or more `record_progress`, `complete`
+- failure path before export completion: `connect_start`, `error`
+
 ## Boundaries
 
 - No nested package is required.
@@ -71,6 +108,8 @@ Defaults:
 APP2_API_HOST=127.0.0.1
 APP2_API_PORT=3002
 ```
+
+`GET /database/status` is the canonical API endpoint for checking Application 2 database connectivity.
 
 ### `GET /database/status`
 
