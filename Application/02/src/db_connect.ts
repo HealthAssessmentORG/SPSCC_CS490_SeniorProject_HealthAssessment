@@ -99,8 +99,6 @@ export async function getApplication2Pool(): Promise<DbPool> {
   if (cached) return cached;
 
   const cfg = getApplication2DbConfigFromEnv();
-  console.error("[db:application2] connect", getApplication2DbLogContext(cfg));
-
   const pool = await new sql.ConnectionPool(cfg).connect();
   poolCache.set("application2", pool);
   return pool;
