@@ -103,7 +103,7 @@ jobs:
             const result = await pool.request().query("SELECT 1 AS ready");
             console.log(JSON.stringify(result.recordset[0]));
             await pool.close();
-EOF
+          EOF
             then
               exit 0
             fi
@@ -128,17 +128,17 @@ EOF
 
             const pool = await sql.connect(cfg);
             await pool.request().batch(`
-IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
-IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
-  CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
+            IF DB_ID('CS490_SeniorProject') IS NULL CREATE DATABASE [CS490_SeniorProject];
+            IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
+              CREATE LOGIN [cs490_app] WITH PASSWORD = N'password', CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;
 `);
             const result = await pool.request().query(`
-SELECT name FROM sys.databases WHERE name = 'CS490_SeniorProject';
-SELECT name FROM sys.server_principals WHERE name = N'cs490_app';
+            SELECT name FROM sys.databases WHERE name = 'CS490_SeniorProject';
+            SELECT name FROM sys.server_principals WHERE name = N'cs490_app';
 `);
             console.log(JSON.stringify(result.recordsets, null, 2));
             await pool.close();
-EOF
+          EOF
       - name: Provision Application 2 database user and roles
         run: |
           set -euo pipefail
@@ -156,19 +156,19 @@ EOF
 
             const pool = await sql.connect(cfg);
             await pool.request().batch(`
-IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
-  CREATE USER [cs490_app] FOR LOGIN [cs490_app];
-ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
-ALTER ROLE db_datareader ADD MEMBER [cs490_app];
-ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
+            IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
+              CREATE USER [cs490_app] FOR LOGIN [cs490_app];
+            ALTER ROLE db_ddladmin ADD MEMBER [cs490_app];
+            ALTER ROLE db_datareader ADD MEMBER [cs490_app];
+            ALTER ROLE db_datawriter ADD MEMBER [cs490_app];
 `);
             const result = await pool.request().query(`
-SELECT name FROM sys.database_principals WHERE name = N'cs490_app';
-SELECT role_principal_id, member_principal_id FROM sys.database_role_members;
+            SELECT name FROM sys.database_principals WHERE name = N'cs490_app';
+            SELECT role_principal_id, member_principal_id FROM sys.database_role_members;
 `);
             console.log(JSON.stringify(result.recordsets, null, 2));
             await pool.close();
-EOF
+          EOF
       - name: Apply Application 2 schema
         run: |
           set -euo pipefail
@@ -201,7 +201,7 @@ EOF
               await pool.request().batch(batches[index]);
             }
             await pool.close();
-EOF
+          EOF
       - name: Apply Application 2 seed data
         run: |
           set -euo pipefail
@@ -234,7 +234,7 @@ EOF
               await pool.request().batch(batches[index]);
             }
             await pool.close();
-EOF
+          EOF
       - name: Run Application 2 seed smoke checks
         run: |
           set -euo pipefail
@@ -267,7 +267,7 @@ EOF
               console.log(JSON.stringify({ batch: index + 1, recordsets: result.recordsets }, null, 2));
             }
             await pool.close();
-EOF
+          EOF
       - name: Verify Application 2 schema and seed state
         run: |
           set -euo pipefail
@@ -300,15 +300,15 @@ EOF
 
             const pool = await sql.connect(cfg);
             const tablesResult = await pool.request().query(`
-SELECT TABLE_NAME
-FROM INFORMATION_SCHEMA.TABLES
-WHERE TABLE_SCHEMA = 'dbo'
-  AND TABLE_NAME IN (${requiredTables.map((name) => `'${name}'`).join(", ")})
+            SELECT TABLE_NAME
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = 'dbo'
+              AND TABLE_NAME IN (${requiredTables.map((name) => `'${name}'`).join(", ")})
 `);
             const seedResult = await pool.request().query(`
-SELECT COUNT(*) AS run_count FROM dbo.[RUN] WHERE run_name = N'prealpha_100';
-SELECT COUNT(*) AS export_spec_count FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20';
-SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1;
+            SELECT COUNT(*) AS run_count FROM dbo.[RUN] WHERE run_name = N'prealpha_100';
+            SELECT COUNT(*) AS export_spec_count FROM dbo.EXPORT_SPEC WHERE spec_version = N'prealpha_20';
+            SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N'prealpha_20' AND mapping_version = 1;
 `);
             await pool.close();
 
@@ -334,7 +334,7 @@ SELECT COUNT(*) AS mapping_set_count FROM dbo.MAPPING_SET WHERE mapping_name = N
             if (verification.run_count < 1 || verification.export_spec_count < 1 || verification.mapping_set_count < 1) {
               throw new Error("Seed verification failed for RUN, EXPORT_SPEC, or MAPPING_SET.");
             }
-EOF
+          EOF
       - name: Export Application 2 E2E IDs
         run: |
           set -euo pipefail
@@ -353,27 +353,27 @@ EOF
 
             const pool = await sql.connect(cfg);
             const result = await pool.request().query(`
-SELECT TOP (1)
-  CONVERT(varchar(36), run_id) AS run_id,
-  run_name
-FROM dbo.[RUN]
-WHERE run_name = N'prealpha_100'
-ORDER BY run_id;
+            SELECT TOP (1)
+              CONVERT(varchar(36), run_id) AS run_id,
+              run_name
+            FROM dbo.[RUN]
+            WHERE run_name = N'prealpha_100'
+            ORDER BY run_id;
 
-SELECT TOP (1)
-  CONVERT(varchar(36), export_spec_id) AS export_spec_id,
-  spec_version
-FROM dbo.EXPORT_SPEC
-WHERE spec_version = N'prealpha_20'
-ORDER BY export_spec_id;
+            SELECT TOP (1)
+              CONVERT(varchar(36), export_spec_id) AS export_spec_id,
+              spec_version
+            FROM dbo.EXPORT_SPEC
+            WHERE spec_version = N'prealpha_20'
+            ORDER BY export_spec_id;
 
-SELECT TOP (1)
-  CONVERT(varchar(36), mapping_set_id) AS mapping_set_id,
-  mapping_name,
-  mapping_version
-FROM dbo.MAPPING_SET
-WHERE mapping_name = N'prealpha_20' AND mapping_version = 1
-ORDER BY mapping_set_id;
+            SELECT TOP (1)
+              CONVERT(varchar(36), mapping_set_id) AS mapping_set_id,
+              mapping_name,
+              mapping_version
+            FROM dbo.MAPPING_SET
+            WHERE mapping_name = N'prealpha_20' AND mapping_version = 1
+            ORDER BY mapping_set_id;
 `);
             await pool.close();
 
@@ -412,7 +412,7 @@ ORDER BY mapping_set_id;
               ].join("\n") + "\n"
             );
             console.log(JSON.stringify(ids, null, 2));
-EOF
+          EOF
       - name: Run Application 2 DB integration suites
         env:
           APP2_DB_SERVER: ${{ env.CI_SQL_SERVER }}
