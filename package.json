@@ -2,15 +2,24 @@
   "type": "module",
   "scripts": {
     "ui:demo": "node --experimental-strip-types Application/01/main.ts",
-    "ui:demo:title": "node --experimental-strip-types Application/01/main.ts --title \"Ink Demo\""
+    "ui:demo:title": "node --experimental-strip-types Application/01/main.ts --title \"Ink Demo\"",
+    "test:e2e": "playwright test",
+    "test:alpha1": "playwright test tests/unit/alpha1_*.spec.ts tests/app/alpha1_cli.spec.ts",
+    "test:alpha1:db": "playwright test tests/app/alpha1_db.integration.spec.ts"
   },
   "dependencies": {
     "ink": "^7.0.0",
     "react": "^19.2.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/mssql": "^9.1.9",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
-    "tsx": "^4.21.0"
+    "@types/typescript": "^0.4.29",
+    "node": "^25.6.0",
+    "playwright": "^1.58.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

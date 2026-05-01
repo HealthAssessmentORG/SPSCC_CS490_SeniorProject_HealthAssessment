@@ -3,9 +3,211 @@ Generitive data fill for Health Assessment form data.
 
 ## Milestone 6
 
+## Steps for Windows
+
+### 1.) Install Node.js
+https://nodejs.org/en/download/current
+
+### 2.) Open Terminal in Project Folder and run:
+```bash
+npm i
+```
+```bash
+npm install tedious
+```
+### 3.) Open .venv with Server Address
+```bash
+.venv\Scripts\activate
+```
+### 4.) Run program
+```bash
+npx tsx main.ts -form ./files/ExportFixedWidthForSmoke.xlsx -gen 100 --seed 0 --mapping-profile spec --out ./out/dd2975_prealpha_seed0.txt
+```
+---
+## Prerequisites
+* https://docs.microsoft.com/en-us/sql/linux
+* TypeScript
+* Comfortable using terminal commands
+
 ### Application 1
 
 Requirements: install python requirements from requirements.txt
 ex. ```pip install -r requirements.txt```
 
 From the main directory run ```npm run ui:demo:title```
+
+### 3) One-time Database Setup
+This project expects an application database and a SQL login/user.
+
+> Local dev defaults shown below. Change passwords before any shared/non-local use.
+
+#### 3.A) Create database
+```bash
+sqlcmd -No -S "localhost,1433" -U "sa" -P '<sa-password>' -d master -b -Q "
+IF DB_ID('CS490_SeniorProject') IS NULL
+  CREATE DATABASE [CS490_SeniorProject];
+"
+```
+
+#### 3.B) Create app login + DB user + permissions
+##### Create server login (if missing)
+```bash
+sqlcmd -No -S "localhost,1433" -U "sa" -P '<sa-password>' -d master -b -Q "
+IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'cs490_app')
+BEGIN
+  CREATE LOGIN [cs490_app]
+    WITH PASSWORD = N'<app-password>',
+         CHECK_POLICY = OFF,
+         CHECK_EXPIRATION = OFF;
+END
+"
+```
+
+##### Create DB user + grant roles
+```bash
+sqlcmd -No -S "localhost,1433" -U "sa" -P '<sa-password>' -d CS490_SeniorProject -b -Q "
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'cs490_app')
+  CREATE USER [cs490_app] FOR LOGIN [cs490_app];
+
+ALTER ROLE db_ddladmin    ADD MEMBER [cs490_app];
+ALTER ROLE db_datareader  ADD MEMBER [cs490_app];
+ALTER ROLE db_datawriter  ADD MEMBER [cs490_app];
+"
+```
+
+#### 4) Configure Export Environment Variables
+Set these before running the preserved export workflow in `main_export.ts`.
+```bash
+export EXPORT_DB_SERVER=localhost
+export EXPORT_DB_PORT=1433
+export EXPORT_DB_DATABASE=CS490_SeniorProject
+export EXPORT_DB_USER=cs490_app
+export EXPORT_DB_PASSWORD='<app-password>'
+```
+Verify connection as the app user:
+```bash
+sqlcmd -No -S "localhost,1433" -U "$EXPORT_DB_USER" -P "$EXPORT_DB_PASSWORD" -d master \
+  -Q "SELECT SUSER_SNAME() AS whoami, @@SERVERNAME AS servername;"
+```
+
+#### 5) Configure Alpha1 Environment
+Set these before using the default alpha1 CLI in `main.ts`:
+```bash
+export DB_SERVER=24.18.27.110
+export DB_PORT=1433
+export DB_DATABASE=DD2975_PreDHA
+export DB_USER=sa
+export DB_PASSWORD='<db-password>'
+export DB_ENCRYPT=false
+export DB_TRUST_SERVER_CERTIFICATE=true
+export DB_REQUEST_TIMEOUT_MS=0
+```
+
+## Running Alpha1
+
+The default CLI now targets the current 3-table alpha1 database (`ASSESSMENT`, `FIELD`, `RESPONSE`).
+
+### Check DB connectivity
+
+```bash
+node --import tsx main.ts check-db
+node --import tsx main.ts check-db --json
+```
+
+### Load dynamic fields
+
+```bash
+node --import tsx main.ts fields
+node --import tsx main.ts fields --json
+```
+
+### Generate assessment previews or inserts
+
+```bash
+node --import tsx main.ts generate -gen 1 --seed 123 --dry-run --json
+node --import tsx main.ts generate -gen 1 --seed 123 --json
+```
+
+## Running the Export Workflow
+
+### Run once (first time / fresh database)
+
+This applies the schema in `./sql/00_schema.sql` then runs generation & export.
+
+```bash
+npx tsx main_export.ts \
+  -form ./files/ExportFixedWidthForDD2975.xlsx \
+  -gen 100 \
+  --seed 0 \
+  --mapping-profile spec \
+  --out ./out/dd2975_prealpha_seed0.txt \
+  --apply-schema
+```
+
+### Normal run (schema already exists)
+
+```bash
+npx tsx main_export.ts \
+  -form ./files/ExportFixedWidthForDD2975.xlsx \
+  -gen 100 \
+  --seed 0 \
+  --mapping-profile spec \
+  --out ./out/dd2975_prealpha_seed0.txt
+```
+> Note: `--seed` controls deterministic generation. Re-running with the same seed will reproduce the same values.
+> Note: default profile is `spec`, so the run follows the provided XLSX field/question metadata. Use `--mapping-profile prealpha` for the legacy hardcoded DD2795 behavior.
+
+### Legacy compatibility run
+
+```bash
+npx tsx main_export.ts \
+  -form ./files/ExportFixedWidthForDD2975.xlsx \
+  -gen 100 \
+  --seed 0 \
+  --mapping-profile prealpha \
+  --out ./out/dd2975_prealpha_seed0.txt
+```
+
+### Output Notes (Fixed-Width "Looks Blank")
+The export file is fixed-width and can appear blank in editors because it contains many spaces.
+
+Quick sanity checks:
+```bash
+wc -l ./out/dd2975_prealpha_seed0.txt
+wc -c ./out/dd2975_prealpha_seed0.txt
+
+# show first 200 chars with whitespace visible
+head -n 1 ./out/dd2975_prealpha_seed0.txt | cut -c1-200 | cat -A
+
+# confirm row length (expect 5172)
+awk '{print length($0)}' ./out/dd2975_prealpha_seed0.txt | head
+```
+
+**Tip:** view in `terminal` with horizontal scrolling:
+
+```bash
+less -S ./out/dd2975_prealpha_seed0.txt
+```
+
+## Troubleshooting
+
+### "There is already an object named 'RUN'"
+
+You re-ran `--apply-schema` on an existing schema. Use the normal run command (no `--apply-schema`), or reset the DB.
+
+#### Reset the database (dev only)
+```bash
+sqlcmd -No -S "localhost,1433" -U "sa" -P '<sa-password>' -d master -b -Q "
+IF DB_ID('CS490_SeniorProject') IS NOT NULL
+BEGIN
+  ALTER DATABASE [CS490_SeniorProject] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+  DROP DATABASE [CS490_SeniorProject];
+END
+CREATE DATABASE [CS490_SeniorProject];
+"
+```
+Then re-run the "Create app login/user + permissions" steps and run with `--apply-schema`.
+
+#### SQLCMD SSL error: "certificate verify failed: self-signed certificate"
+
+Use: `sqlcmd -No ...` (trust server certificate) or configure certificates properly.

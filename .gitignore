@@ -1,2 +1,8 @@
-/.vscode
-/out
+node_modules
+out/
+files/ExportFixedWidthForDD2975.xlsx
+files/ProjectGoals.docx
+files/ProposedMileStones.docx
+playwright-report/
+test-results/
+.vscode/
