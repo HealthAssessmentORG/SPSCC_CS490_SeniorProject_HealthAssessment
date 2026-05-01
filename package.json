@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "scripts": {
     "ui:demo": "node --experimental-strip-types Application/01/main.ts",
     "ui:demo:title": "node --experimental-strip-types Application/01/main.ts --title \"Ink Demo\""
