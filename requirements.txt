@@ -1,2 +1,0 @@
-Faker
-mssql_python
