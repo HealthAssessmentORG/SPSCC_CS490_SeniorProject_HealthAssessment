@@ -6,3 +6,7 @@ files/ProposedMileStones.docx
 playwright-report/
 test-results/
 .vscode/
+/test-results
+/playwright-report
+/test-results
+/playwright-report

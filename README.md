@@ -1,6 +1,22 @@
 # SPSCC_CS490_SeniorProject_HealthAssessment
 Generitive data fill for Health Assessment form data.
 
+## Usage Info
+
+### Application 01
+```
+npm run ui:app1
+```
+
+### Application 02
+```
+npm run ui:app2
+```
+
+### Application 03
+```
+```
+
 ## Steps for Windows
 
 ### 1.) Install Node.js
