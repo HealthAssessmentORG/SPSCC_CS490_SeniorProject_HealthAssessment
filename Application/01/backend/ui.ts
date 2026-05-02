@@ -5,7 +5,7 @@ export type ExampleUiModel = {
 	title: string;
 	status: string;
 	options: string[];
-	onRunRandomRows: (seed: number, assessmentCount: number) => Promise<string>;
+	onRunRandomRows: (seed: number | null, assessmentCount: number) => Promise<string>;
 };
 
 type InputMode = "none" | "seed" | "assessmentCount";
@@ -16,8 +16,8 @@ function MenuUi(props: ExampleUiModel) {
 	const [status, setStatus] = React.useState(props.status);
 	const [busy, setBusy] = React.useState(false);
 	const [spinnerIndex, setSpinnerIndex] = React.useState(0);
-	const [seed, setSeed] = React.useState(39);
-	const [assessmentCount, setAssessmentCount] = React.useState(100);
+	const [seed, setSeed] = React.useState<number | null>(null);
+	const [assessmentCount, setAssessmentCount] = React.useState(1);
 	const [inputMode, setInputMode] = React.useState<InputMode>("none");
 	const [inputValue, setInputValue] = React.useState("");
 
@@ -60,6 +60,12 @@ function MenuUi(props: ExampleUiModel) {
 		if (selected === "Edit Assessment Count") {
 			setInputMode("assessmentCount");
 			setInputValue(String(assessmentCount));
+			return;
+		}
+
+		if (selected === "Clear Seed") {
+			setSeed(null);
+			setStatus("Seed cleared.");
 			return;
 		}
 
@@ -135,7 +141,7 @@ function MenuUi(props: ExampleUiModel) {
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
 		React.createElement(Text, { bold: true, color: "cyan" }, props.title),
 		React.createElement(Text, null, `Status: ${status}`),
-		React.createElement(Text, null, `Seed: ${seed}, Assessment Count: ${assessmentCount}`),
+		React.createElement(Text, null, `Seed: ${seed === null ? "not set" : seed}, Assessment Count: ${assessmentCount}`),
 		busy
 			? React.createElement(Text, { color: "yellow" }, `Working ${["|", "/", "-", "\\"][spinnerIndex]}`)
 			: null,

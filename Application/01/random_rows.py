@@ -10,8 +10,8 @@ CONN_STRING = os.getenv(
     "MSSQL_CONN_STRING",
     "SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;",
 )
-ASSESSMENT_COUNT = int(os.getenv("RANDOM_ROWS_ASSESSMENTS", "100"))
-SEED = int(os.getenv("RANDOM_ROWS_SEED", "39"))
+ASSESSMENT_COUNT = int(os.getenv("RANDOM_ROWS_ASSESSMENTS", "1"))
+SEED = os.getenv("RANDOM_ROWS_SEED")  # None if not set
 MAX_RESPONSE_LENGTH = 255
 
 
@@ -97,8 +97,10 @@ def main() -> None:
         raise ValueError("RANDOM_ROWS_ASSESSMENTS must be at least 1")
 
     fake = Faker()
-    Faker.seed(SEED)
-    fake.seed_instance(SEED)
+    if SEED is not None:
+        seed_int = int(SEED)
+        Faker.seed(seed_int)
+        fake.seed_instance(seed_int)
 
     connection = mssql_python.connect(CONN_STRING)
     cursor = connection.cursor()
@@ -112,7 +114,10 @@ def main() -> None:
         for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
             assessment_id = insert_assessment(cursor)
             for field_id, field_name in fields:
-                rng = random.Random(f"{SEED}|{assessment_idx}|{field_id}")
+                if SEED is not None:
+                    rng = random.Random(f"{SEED}|{assessment_idx}|{field_id}")
+                else:
+                    rng = random.Random()
                 value = normalize(make_response(fake, rng, field_name))
                 insert_response(cursor, assessment_id, field_id, value)
                 inserted_responses += 1
