@@ -4,9 +4,9 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import { closeApplication2Pool, getApplication2Pool } from "./src/db_connect";
-import { loadDatabaseStatus } from "./src/repositories/database_status_repository";
-import { loadDatabaseSummary } from "./src/repositories/database_summary_repository";
+import { closeApplication2Pool } from "./src/db_connect";
+import { getApplication2DatabaseStatus } from "./src/api/database_status";
+import { getApplication2DatabaseSummary } from "./src/api/database_summary";
 import type { Application2DatabaseStatus, Application2DatabaseSummary } from "./src/types";
 
 type DashboardData = {
@@ -41,8 +41,32 @@ function formatTimestamp(value: string | null): string {
 }
 
 async function loadDashboardData(): Promise<DashboardData> {
-  const pool = await getApplication2Pool();
-  const [status, summary] = await Promise.all([loadDatabaseStatus(pool), loadDatabaseSummary(pool)]);
+  const [statusRes, summaryRes] = await Promise.all([
+    getApplication2DatabaseStatus(),
+    getApplication2DatabaseSummary()
+  ]);
+
+  if (statusRes.statusCode !== 200 || !("ok" in statusRes.body && statusRes.body.ok === true)) {
+    const err = (statusRes.body as any)?.error ?? "Database status check failed";
+    throw new Error(err);
+  }
+
+  if (summaryRes.statusCode !== 200 || !("ok" in summaryRes.body && summaryRes.body.ok === true)) {
+    const err = (summaryRes.body as any)?.error ?? "Database summary check failed";
+    throw new Error(err);
+  }
+
+  const status = {
+    database: (statusRes.body as any).database,
+    tables: (statusRes.body as any).tables
+  };
+
+  const summary = {
+    database: (summaryRes.body as any).database,
+    counts: (summaryRes.body as any).counts,
+    latest_run: (summaryRes.body as any).latest_run,
+    latest_export_file: (summaryRes.body as any).latest_export_file
+  };
 
   return {
     status,
@@ -194,7 +218,19 @@ async function main() {
   try {
     await app.waitUntilExit();
   } finally {
-    await closeApplication2Pool();
+    try {
+      await Promise.race([
+        closeApplication2Pool(),
+        new Promise<void>((resolve) => setTimeout(resolve, 2000))
+      ]);
+    } catch (err) {
+      // Best-effort close; log and continue so UI can exit promptly
+      // eslint-disable-next-line no-console
+      console.error("Failed to close application2 DB pool:", err);
+    }
+    // Ensure Node process terminates even if there are lingering handles.
+    // Defer exit so any pending console output can flush.
+    setImmediate(() => process.exit(0));
   }
 }
 
