@@ -1,0 +1,10 @@
+this is a test
+of the line-by-line
+display of app3
+
+it should
+display these
+on separate
+lines while
+staying inside
+the Ink UI

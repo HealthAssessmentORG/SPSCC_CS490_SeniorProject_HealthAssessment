@@ -3,6 +3,7 @@
   "dependencies": {
     "dotenv": "^17.2.4",
     "ink": "^7.0.1",
+    "ink-file-picker": "^0.2.0",
     "mssql": "^11.0.1",
     "react": "^19.2.5",
     "tedious": "^19.2.1",
@@ -23,6 +24,7 @@
     "test:alpha1": "playwright test tests/unit/alpha1_*.spec.ts tests/app/alpha1_cli.spec.ts",
     "test:alpha1:db": "playwright test tests/app/alpha1_db.integration.spec.ts",
     "ui:app1": "node --experimental-strip-types Application/01/main.ts --title \"Ink Demo\"",
-    "ui:app2": "node --import tsx Application/02/ui.ts"
+    "ui:app2": "node --import tsx Application/02/ui.ts",
+    "ui:app3": "node --import tsx Application/03/picker.tsx"
   }
 }
