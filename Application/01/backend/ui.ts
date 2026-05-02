@@ -5,8 +5,10 @@ export type ExampleUiModel = {
 	title: string;
 	status: string;
 	options: string[];
-	onRunRandomRows: () => Promise<string>;
+	onRunRandomRows: (seed: number, assessmentCount: number) => Promise<string>;
 };
+
+type InputMode = "none" | "seed" | "assessmentCount";
 
 function MenuUi(props: ExampleUiModel) {
 	const { exit } = useApp();
@@ -14,6 +16,10 @@ function MenuUi(props: ExampleUiModel) {
 	const [status, setStatus] = React.useState(props.status);
 	const [busy, setBusy] = React.useState(false);
 	const [spinnerIndex, setSpinnerIndex] = React.useState(0);
+	const [seed, setSeed] = React.useState(39);
+	const [assessmentCount, setAssessmentCount] = React.useState(100);
+	const [inputMode, setInputMode] = React.useState<InputMode>("none");
+	const [inputValue, setInputValue] = React.useState("");
 
 	React.useEffect(() => {
 		if (!busy) {
@@ -35,7 +41,7 @@ function MenuUi(props: ExampleUiModel) {
 			setBusy(true);
 			setStatus("Running random_rows.py...");
 			try {
-				const result = await props.onRunRandomRows();
+				const result = await props.onRunRandomRows(seed, assessmentCount);
 				setStatus(result);
 			} catch (error) {
 				setStatus(`Run failed: ${String(error)}`);
@@ -45,12 +51,63 @@ function MenuUi(props: ExampleUiModel) {
 			return;
 		}
 
+		if (selected === "Edit Seed") {
+			setInputMode("seed");
+			setInputValue(String(seed));
+			return;
+		}
+
+		if (selected === "Edit Assessment Count") {
+			setInputMode("assessmentCount");
+			setInputValue(String(assessmentCount));
+			return;
+		}
+
 		if (selected === "Exit") {
 			exit();
 		}
 	};
 
 	useInput((input, key) => {
+		if (inputMode !== "none") {
+			// In input mode
+			if (key.return) {
+				const numValue = parseInt(inputValue, 10);
+				if (!Number.isNaN(numValue) && numValue > 0) {
+					if (inputMode === "seed") {
+						setSeed(numValue);
+					} else if (inputMode === "assessmentCount") {
+						setAssessmentCount(numValue);
+					}
+					setStatus(`${inputMode === "seed" ? "Seed" : "Assessment Count"} updated.`);
+				} else {
+					setStatus("Invalid number. Please enter a positive integer.");
+				}
+				setInputMode("none");
+				setInputValue("");
+				return;
+			}
+
+			if (key.escape) {
+				setInputMode("none");
+				setInputValue("");
+				return;
+			}
+
+			if (key.backspace) {
+				setInputValue((current) => current.slice(0, -1));
+				return;
+			}
+
+			// Allow typing digits and basic characters
+			if (/^[0-9]$/.test(input)) {
+				setInputValue((current) => current + input);
+				return;
+			}
+			return;
+		}
+
+		// Menu mode
 		if (busy) return;
 
 		if (key.upArrow) {
@@ -78,19 +135,35 @@ function MenuUi(props: ExampleUiModel) {
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
 		React.createElement(Text, { bold: true, color: "cyan" }, props.title),
 		React.createElement(Text, null, `Status: ${status}`),
+		React.createElement(Text, null, `Seed: ${seed}, Assessment Count: ${assessmentCount}`),
 		busy
 			? React.createElement(Text, { color: "yellow" }, `Working ${["|", "/", "-", "\\"][spinnerIndex]}`)
 			: null,
-		React.createElement(Text, { dimColor: true }, "Use up/down arrows, Enter to select, q to quit."),
-		React.createElement(Text, { dimColor: true }, "Menu:"),
-		...props.options.map((option, index) => {
-			const selected = index === selectedIndex;
-			return React.createElement(
-				Text,
-				{ key: `${index}-${option}`, color: selected ? "green" : undefined },
-				`${selected ? ">" : " "} ${option}`
-			);
-		})
+		inputMode !== "none"
+			? React.createElement(
+					React.Fragment,
+					null,
+					React.createElement(
+						Text,
+						null,
+						`Enter ${inputMode === "seed" ? "seed" : "assessment count"} (positive integer): ${inputValue}`
+					),
+					React.createElement(Text, { dimColor: true }, "Press Enter to confirm, Esc to cancel.")
+				)
+			: React.createElement(
+					React.Fragment,
+					null,
+					React.createElement(Text, { dimColor: true }, "Use up/down arrows, Enter to select, q to quit."),
+					React.createElement(Text, { dimColor: true }, "Menu:"),
+					...props.options.map((option, index) => {
+						const selected = index === selectedIndex;
+						return React.createElement(
+							Text,
+							{ key: `${index}-${option}`, color: selected ? "green" : undefined },
+							`${selected ? ">" : " "} ${option}`
+						);
+					})
+				)
 	);
 }
 

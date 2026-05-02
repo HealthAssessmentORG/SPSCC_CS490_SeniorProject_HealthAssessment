@@ -28,11 +28,16 @@ async function run(): Promise<void> {
 	// Edit this if your Python executable differs.
 	const pythonCommand = resolve(process.cwd(), ".venv", "Scripts", "python.exe");
 
-	const runRandomRows = async (): Promise<string> => {
+	const runRandomRows = async (seed: number, assessmentCount: number): Promise<string> => {
 		return new Promise((resolveResult, rejectResult) => {
 			const child = spawn(pythonCommand, [scriptPath], {
 				cwd: process.cwd(),
 				stdio: "inherit",
+				env: {
+					...process.env,
+					RANDOM_ROWS_SEED: String(seed),
+					RANDOM_ROWS_ASSESSMENTS: String(assessmentCount),
+				},
 			});
 
 			child.on("error", (error: unknown) => {
@@ -54,7 +59,7 @@ async function run(): Promise<void> {
 		title,
 		status: "Ready",
 		// Edit these options to add/remove actions in the menu.
-		options: ["Run random_rows.py", "Exit"],
+		options: ["Edit Seed", "Edit Assessment Count", "Run random_rows.py", "Exit"],
 		onRunRandomRows: runRandomRows,
 	};
 
