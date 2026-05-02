@@ -15,6 +15,7 @@ npm run ui:app2
 
 ### Application 03
 ```
+npm run ui:app3
 ```
 
 ## Steps for Windows
