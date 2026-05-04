@@ -253,6 +253,18 @@ That older schema cannot be summarized by `Application/02/main.ts db-summary`. P
 
 To confirm which database and tables the login can see:
 
+List visible non-system databases for the export login:
+
+```bash
+sqlcmd -No -S "$EXPORT_DB_SERVER,$EXPORT_DB_PORT" \
+  -U "$EXPORT_DB_USER" \
+  -P "$EXPORT_DB_PASSWORD" \
+  -d master \
+  -Q "SELECT name FROM sys.databases WHERE database_id > 4 ORDER BY name;"
+```
+
+Then inspect the selected Application 2 database tables:
+
 ```bash
 sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" -U "$APP2_DB_USER" -P "$APP2_DB_PASSWORD" -d "$APP2_DB_DATABASE" -Q "
 SELECT DB_NAME() AS database_name;
