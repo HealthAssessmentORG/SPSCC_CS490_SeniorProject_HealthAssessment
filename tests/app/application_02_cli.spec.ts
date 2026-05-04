@@ -63,7 +63,7 @@ test.describe("Application 2 CLI", () => {
     expect(r.stdout).toContain("--mapping-set-id <uuid>");
     expect(r.stdout).toContain("--out <path>");
     expect(r.stdout).toContain("Export flow is available");
-    expect(r.stdout).toContain("Database status and summary APIs are not implemented yet.");
+    expect(r.stdout).toContain("Database status and summary APIs are available.");
   });
 
   test("unknown command fails fast", async () => {

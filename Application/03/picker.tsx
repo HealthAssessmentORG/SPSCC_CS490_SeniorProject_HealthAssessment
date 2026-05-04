@@ -1,22 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { render } from 'ink';
 import { FilePicker } from 'ink-file-picker';
+import ReadFile from './readfile';
 
 function App() {
-  return (
-    <FilePicker
-      initialPath={process.cwd()}
-      showDetails
-      onSelect={(paths) => {
-        console.log('Selected:', paths);
-        process.exitCode = 0;
-      }}
-      onCancel={() => {
-        console.log('Cancelled');
-        process.exitCode = 1;
-      }}
-    />
-  );
+  const [selected, setSelected] = useState<string | null>(null);
+
+  if (!selected) {
+    return (
+      <FilePicker
+        initialPath={process.cwd()}
+        showDetails
+        onSelect={(paths) => {
+          const p = Array.isArray(paths) ? paths[0] : paths;
+          setSelected(p as string);
+        }}
+        onCancel={() => {
+          process.exit(1);
+        }}
+      />
+    );
+  }
+
+  return <ReadFile path={selected} onBack={() => setSelected(null)} />;
 }
 
 render(<App />);

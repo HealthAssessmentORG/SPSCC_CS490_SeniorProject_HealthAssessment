@@ -20,7 +20,7 @@ Usage:
   node --import tsx Application/02/main.ts export --run-id <uuid> --export-spec-id <uuid> --mapping-set-id <uuid> --out <path> [--json]
 
 Application 2 status:
-  Export flow is available. Database status and summary APIs are not implemented yet.
+  Export flow is available. Database status and summary APIs are available.
 `.trim();
 
   fs.writeSync(1, msg + "\n");
