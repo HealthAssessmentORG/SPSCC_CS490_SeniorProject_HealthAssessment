@@ -37,11 +37,10 @@ If the database connection cannot be opened, stderr includes:
 Application 2 database connection failed.
 ```
 
-Non-JSON export mode still writes only the final four summary lines to stdout and now emits line-oriented per-record progress on stderr:
+Non-JSON export mode still writes only the final four summary lines to stdout and rewrites one per-record progress line on stderr with `\r`:
 
 ```text
-Application 2 export progress: 1/10 records written.
-Application 2 export progress: 2/10 records written.
+\rApplication 2 export progress: 1/10 records written.\rApplication 2 export progress: 2/10 records written.
 ```
 
 In `--json` mode, Application 2 emits NDJSON to stdout, one JSON object per line.

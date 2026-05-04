@@ -115,7 +115,7 @@ function recordProgressEvent(current: number, total: number): Application2Export
 }
 
 function printHumanRecordProgress(current: number, total: number) {
-  printStderrLine(`Application 2 export progress: ${current}/${total} records written.`);
+  fs.writeSync(2, `\rApplication 2 export progress: ${current}/${total} records written.`);
 }
 
 async function main() {
@@ -131,6 +131,7 @@ async function main() {
   if (args.command === "help") usage(0);
 
   let poolOpened = false;
+  let progressLineOpen = false;
 
   try {
     if (args.json) {
@@ -150,11 +151,16 @@ async function main() {
         printNdjsonEvent(recordProgressEvent(current, total));
       } else {
         printHumanRecordProgress(current, total);
+        progressLineOpen = true;
       }
     };
     const result = await runApplication2ExportWorkflow(pool, args, { onRecordWritten });
     if (args.json) printNdjsonEvent(completeEvent(result));
     else {
+      if (progressLineOpen) {
+        printStderrLine("");
+        progressLineOpen = false;
+      }
       fs.writeSync(1, `Output path: ${result.out_path}\n`);
       fs.writeSync(1, `Record count: ${result.record_count}\n`);
       fs.writeSync(1, `Export file ID: ${result.export_file_id}\n`);
@@ -169,6 +175,10 @@ async function main() {
         error: message
       });
     } else {
+      if (progressLineOpen) {
+        printStderrLine("");
+        progressLineOpen = false;
+      }
       if (!poolOpened) {
         printStderrLine("Application 2 database connection failed.");
       }
