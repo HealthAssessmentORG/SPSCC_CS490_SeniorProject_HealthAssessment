@@ -2,7 +2,7 @@
 
 Application 2 pulls existing database records, transforms them into export rows, writes fixed-width output, and exposes small database health APIs.
 
-Current status: independent export flow, database status API, and database summary API are wired.
+Current status: independent export flow, database status API, database summary API, and database summary command are wired.
 
 ## CLI
 
@@ -16,6 +16,12 @@ Export command:
 
 ```text
 node --import tsx Application/02/main.ts export --run-id <uuid> --export-spec-id <uuid> --mapping-set-id <uuid> --out <path> [--json]
+```
+
+Database form-summary command:
+
+```text
+node --import tsx Application/02/main.ts db-summary [--json]
 ```
 
 The export command pulls existing database records, transforms them with an existing mapping set, writes a fixed-width output file, persists validation errors, and finalizes the run.
@@ -60,11 +66,50 @@ Stage 4 emits:
 - success path: `connect_start`, `connect_ok`, zero or more `record_progress`, `complete`
 - failure path before export completion: `connect_start`, `error`
 
+The `db-summary` command is read-only. It opens the Application 2 database, reads form-definition metadata from `EXPORT_SPEC`, field metadata from `EXPORT_FIELD`, associated mapping UUIDs from `MAPPING_SET`, and prints a stable Markdown-style summary to stdout:
+
+```text
+Database: database_name
+Forms: 1
+
+## spec name spec version
+Form UUIDs:
+- export_spec_id: uuid
+- mapping_set_ids: uuid
+
+Fields:
+1. DODID
+   field_uuid: uuid
+   question_code: DEM
+   positions: 1-10
+   length: 10
+```
+
+In `db-summary --json` mode, the command writes exactly one JSON object to stdout:
+
+```json
+{
+  "ok": true,
+  "database": "database_name",
+  "forms": []
+}
+```
+
+On failure, human-readable mode writes only sanitized error text to stderr. JSON mode writes exactly one JSON object to stdout:
+
+```json
+{
+  "ok": false,
+  "error": "clear message"
+}
+```
+
 ## Boundaries
 
 - No nested package is required.
 - The CLI opens only the Application 2 database connection namespace.
 - The export command writes only the requested output path and database export/validation/run-status rows.
+- The `db-summary` command is read-only and does not write files.
 - The API uses Node's built-in `node:http`; no HTTP framework is required.
 - `GET /database/status` is read-only and does not call the export workflow.
 - `GET /database/summary` returns only aggregate counts and latest-row metadata.
