@@ -160,6 +160,35 @@ npx tsx main_export.ts \
 > Note: `--seed` controls deterministic generation. Re-running with the same seed will reproduce the same values.
 > Note: default profile is `spec`, so the run follows the provided XLSX field/question metadata. Use `--mapping-profile prealpha` for the legacy hardcoded DD2795 behavior.
 
+## Application 2 Database Form Summary
+
+Application 2 can print a read-only summary of form definitions in the Application 2 export schema:
+
+```bash
+node --import tsx Application/02/main.ts db-summary
+```
+
+Application 2 reads only `APP2_DB_*` environment variables. If your `.env` currently has `EXPORT_DB_*` for the export schema, map them when running the command:
+
+```bash
+set -a; source .env; set +a
+
+APP2_DB_SERVER="${EXPORT_DB_SERVER:-$DB_SERVER}" \
+APP2_DB_PORT="${EXPORT_DB_PORT:-${DB_PORT:-1433}}" \
+APP2_DB_DATABASE="$EXPORT_DB_DATABASE" \
+APP2_DB_USER="$EXPORT_DB_USER" \
+APP2_DB_PASSWORD="$EXPORT_DB_PASSWORD" \
+APP2_DB_ENCRYPT="${EXPORT_DB_ENCRYPT:-${DB_ENCRYPT:-false}}" \
+APP2_DB_TRUST_SERVER_CERTIFICATE="${EXPORT_DB_TRUST_SERVER_CERTIFICATE:-${DB_TRUST_SERVER_CERTIFICATE:-true}}" \
+node --import tsx Application/02/main.ts db-summary
+```
+
+For machine-readable output:
+
+```bash
+node --import tsx Application/02/main.ts db-summary --json
+```
+
 ### Legacy compatibility run
 
 ```bash
@@ -193,6 +222,46 @@ less -S ./out/dd2975_prealpha_seed0.txt
 ```
 
 ## Troubleshooting
+
+### `db-summary`: `Database form summary check failed`
+
+This command expects the Application 2 export schema, not the older alpha1 3-table database.
+
+Required tables include:
+
+```text
+dbo.EXPORT_SPEC
+dbo.EXPORT_FIELD
+dbo.MAPPING_SET
+```
+
+If the underlying SQL error is:
+
+```text
+Invalid object name 'dbo.EXPORT_SPEC'
+```
+
+then `APP2_DB_DATABASE` is pointing at the wrong database or the schema has not been applied. The older `DD2975_PreDHA` database has only:
+
+```text
+dbo.ASSESSMENT
+dbo.FIELD
+dbo.RESPONSE
+```
+
+That older schema cannot be summarized by `Application/02/main.ts db-summary`. Point `APP2_DB_DATABASE` at the database created from `sql/00_schema.sql`, or run the export workflow setup with `--apply-schema` against the intended export database.
+
+To confirm which database and tables the login can see:
+
+```bash
+sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" -U "$APP2_DB_USER" -P "$APP2_DB_PASSWORD" -d "$APP2_DB_DATABASE" -Q "
+SELECT DB_NAME() AS database_name;
+SELECT s.name + '.' + t.name AS table_name
+FROM sys.tables t
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+ORDER BY s.name, t.name;
+"
+```
 
 ### “There is already an object named 'RUN'”
 

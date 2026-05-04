@@ -24,6 +24,21 @@ Database form-summary command:
 node --import tsx Application/02/main.ts db-summary [--json]
 ```
 
+When using values from the root `.env`, map the export database settings into the Application 2 namespace:
+
+```bash
+set -a; source .env; set +a
+
+APP2_DB_SERVER="${EXPORT_DB_SERVER:-$DB_SERVER}" \
+APP2_DB_PORT="${EXPORT_DB_PORT:-${DB_PORT:-1433}}" \
+APP2_DB_DATABASE="$EXPORT_DB_DATABASE" \
+APP2_DB_USER="$EXPORT_DB_USER" \
+APP2_DB_PASSWORD="$EXPORT_DB_PASSWORD" \
+APP2_DB_ENCRYPT="${EXPORT_DB_ENCRYPT:-${DB_ENCRYPT:-false}}" \
+APP2_DB_TRUST_SERVER_CERTIFICATE="${EXPORT_DB_TRUST_SERVER_CERTIFICATE:-${DB_TRUST_SERVER_CERTIFICATE:-true}}" \
+node --import tsx Application/02/main.ts db-summary
+```
+
 The export command pulls existing database records, transforms them with an existing mapping set, writes a fixed-width output file, persists validation errors, and finalizes the run.
 
 ```text
@@ -252,6 +267,40 @@ Summary failures return HTTP `503`:
 ```
 
 Summary responses do not include raw table rows, response values, validation payloads, stack traces, passwords, or SQL connection details.
+
+## Troubleshooting
+
+### `db-summary` Returns `Database form summary check failed`
+
+The CLI sanitizes database errors, so this message means the connection or metadata query failed. The command expects an Application 2 export-schema database with these tables:
+
+```text
+dbo.EXPORT_SPEC
+dbo.EXPORT_FIELD
+dbo.MAPPING_SET
+```
+
+If the database has only the older alpha1 tables:
+
+```text
+dbo.ASSESSMENT
+dbo.FIELD
+dbo.RESPONSE
+```
+
+then `db-summary` cannot run against it. Point `APP2_DB_DATABASE` at the database created from `sql/00_schema.sql`, or apply the export schema to the intended export database before running the command.
+
+To confirm the selected database and visible tables:
+
+```bash
+sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" -U "$APP2_DB_USER" -P "$APP2_DB_PASSWORD" -d "$APP2_DB_DATABASE" -Q "
+SELECT DB_NAME() AS database_name;
+SELECT s.name + '.' + t.name AS table_name
+FROM sys.tables t
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+ORDER BY s.name, t.name;
+"
+```
 
 ## Transformation Modules
 
