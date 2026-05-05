@@ -2,7 +2,7 @@
 
 Application 2 pulls existing database records, transforms them into export rows, writes fixed-width output, and exposes small database health APIs.
 
-Current status: independent export flow, database status API, and database summary API are wired.
+Current status: independent export flow, database status API, database summary API, and database summary command are wired.
 
 ## CLI
 
@@ -16,6 +16,27 @@ Export command:
 
 ```text
 node --import tsx Application/02/main.ts export --run-id <uuid> --export-spec-id <uuid> --mapping-set-id <uuid> --out <path> [--json]
+```
+
+Database form-summary command:
+
+```text
+node --import tsx Application/02/main.ts db-summary [--json]
+```
+
+When using values from the root `.env`, map the export database settings into the Application 2 namespace:
+
+```bash
+set -a; source .env; set +a
+
+APP2_DB_SERVER="${EXPORT_DB_SERVER:-$DB_SERVER}" \
+APP2_DB_PORT="${EXPORT_DB_PORT:-${DB_PORT:-1433}}" \
+APP2_DB_DATABASE="$EXPORT_DB_DATABASE" \
+APP2_DB_USER="$EXPORT_DB_USER" \
+APP2_DB_PASSWORD="$EXPORT_DB_PASSWORD" \
+APP2_DB_ENCRYPT="${EXPORT_DB_ENCRYPT:-${DB_ENCRYPT:-false}}" \
+APP2_DB_TRUST_SERVER_CERTIFICATE="${EXPORT_DB_TRUST_SERVER_CERTIFICATE:-${DB_TRUST_SERVER_CERTIFICATE:-true}}" \
+node --import tsx Application/02/main.ts db-summary
 ```
 
 The export command pulls existing database records, transforms them with an existing mapping set, writes a fixed-width output file, persists validation errors, and finalizes the run.
@@ -37,11 +58,10 @@ If the database connection cannot be opened, stderr includes:
 Application 2 database connection failed.
 ```
 
-Non-JSON export mode still writes only the final four summary lines to stdout and now emits line-oriented per-record progress on stderr:
+Non-JSON export mode still writes only the final four summary lines to stdout and rewrites one per-record progress line on stderr with `\r`:
 
 ```text
-Application 2 export progress: 1/10 records written.
-Application 2 export progress: 2/10 records written.
+\rApplication 2 export progress: 1/10 records written.\rApplication 2 export progress: 2/10 records written.
 ```
 
 In `--json` mode, Application 2 emits NDJSON to stdout, one JSON object per line.
@@ -61,11 +81,50 @@ Stage 4 emits:
 - success path: `connect_start`, `connect_ok`, zero or more `record_progress`, `complete`
 - failure path before export completion: `connect_start`, `error`
 
+The `db-summary` command is read-only. It opens the Application 2 database, reads form-definition metadata from `EXPORT_SPEC`, field metadata from `EXPORT_FIELD`, associated mapping UUIDs from `MAPPING_SET`, and prints a stable Markdown-style summary to stdout:
+
+```text
+Database: database_name
+Forms: 1
+
+## spec name spec version
+Form UUIDs:
+- export_spec_id: uuid
+- mapping_set_ids: uuid
+
+Fields:
+1. DODID
+   field_uuid: uuid
+   question_code: DEM
+   positions: 1-10
+   length: 10
+```
+
+In `db-summary --json` mode, the command writes exactly one JSON object to stdout:
+
+```json
+{
+  "ok": true,
+  "database": "database_name",
+  "forms": []
+}
+```
+
+On failure, human-readable mode writes only sanitized error text to stderr. JSON mode writes exactly one JSON object to stdout:
+
+```json
+{
+  "ok": false,
+  "error": "clear message"
+}
+```
+
 ## Boundaries
 
 - No nested package is required.
 - The CLI opens only the Application 2 database connection namespace.
 - The export command writes only the requested output path and database export/validation/run-status rows.
+- The `db-summary` command is read-only and does not write files.
 - The API uses Node's built-in `node:http`; no HTTP framework is required.
 - `GET /database/status` is read-only and does not call the export workflow.
 - `GET /database/summary` returns only aggregate counts and latest-row metadata.
@@ -208,6 +267,40 @@ Summary failures return HTTP `503`:
 ```
 
 Summary responses do not include raw table rows, response values, validation payloads, stack traces, passwords, or SQL connection details.
+
+## Troubleshooting
+
+### `db-summary` Returns `Database form summary check failed`
+
+The CLI sanitizes database errors, so this message means the connection or metadata query failed. The command expects an Application 2 export-schema database with these tables:
+
+```text
+dbo.EXPORT_SPEC
+dbo.EXPORT_FIELD
+dbo.MAPPING_SET
+```
+
+If the database has only the older alpha1 tables:
+
+```text
+dbo.ASSESSMENT
+dbo.FIELD
+dbo.RESPONSE
+```
+
+then `db-summary` cannot run against it. Point `APP2_DB_DATABASE` at the database created from `sql/00_schema.sql`, or apply the export schema to the intended export database before running the command.
+
+To confirm the selected database and visible tables:
+
+```bash
+sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" -U "$APP2_DB_USER" -P "$APP2_DB_PASSWORD" -d "$APP2_DB_DATABASE" -Q "
+SELECT DB_NAME() AS database_name;
+SELECT s.name + '.' + t.name AS table_name
+FROM sys.tables t
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+ORDER BY s.name, t.name;
+"
+```
 
 ## Transformation Modules
 

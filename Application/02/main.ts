@@ -1,6 +1,9 @@
 import fs from "node:fs";
 
+import { safeApplication2DbConfigError } from "./src/api/db_error";
+import { formatDatabaseFormSummary } from "./src/cli/database_form_summary_format";
 import { closeApplication2Pool, getApplication2Pool } from "./src/db_connect";
+import { loadDatabaseFormSummary } from "./src/repositories/database_form_summary_repository";
 import { runApplication2ExportWorkflow } from "./src/workflow/export_workflow";
 import type {
   Application2ExportEvent,
@@ -11,6 +14,7 @@ import type {
 
 type ParsedArgs =
   | { command: "help" }
+  | { command: "db-summary"; json: boolean }
   | ({ command: "export" } & Application2ExportOptions);
 
 function usage(exitCode = 0): never {
@@ -18,9 +22,14 @@ function usage(exitCode = 0): never {
 Usage:
   node --import tsx Application/02/main.ts --help
   node --import tsx Application/02/main.ts export --run-id <uuid> --export-spec-id <uuid> --mapping-set-id <uuid> --out <path> [--json]
+  node --import tsx Application/02/main.ts db-summary [--json]
 
 Application 2 status:
+<<<<<<< HEAD
   Export flow is available. Database status and summary APIs are available.
+=======
+  Export flow, database status API, database summary API, and db-summary command are available.
+>>>>>>> origin/alpha-M6
 `.trim();
 
   fs.writeSync(1, msg + "\n");
@@ -40,6 +49,23 @@ function requireOption(value: string | undefined, flag: string): string {
   return value;
 }
 
+function parseDbSummaryArgs(rest: string[]): ParsedArgs {
+  let json = false;
+
+  for (const arg of rest) {
+    if (arg === "-h" || arg === "--help") {
+      return { command: "help" };
+    }
+    if (arg === "--json") {
+      json = true;
+    } else {
+      throw new Error(`Unknown argument for db-summary: ${arg}`);
+    }
+  }
+
+  return { command: "db-summary", json };
+}
+
 function parseArgs(argv: string[]): ParsedArgs {
   if (argv.length === 0) {
     throw new Error("A command is required: export");
@@ -48,6 +74,10 @@ function parseArgs(argv: string[]): ParsedArgs {
   const [command, ...rest] = argv;
   if (command === "-h" || command === "--help") {
     return { command: "help" };
+  }
+
+  if (command === "db-summary") {
+    return parseDbSummaryArgs(rest);
   }
 
   if (command !== "export") {
@@ -115,7 +145,42 @@ function recordProgressEvent(current: number, total: number): Application2Export
 }
 
 function printHumanRecordProgress(current: number, total: number) {
-  printStderrLine(`Application 2 export progress: ${current}/${total} records written.`);
+  fs.writeSync(2, `\rApplication 2 export progress: ${current}/${total} records written.`);
+}
+
+function sanitizeDbSummaryError(error: unknown): string {
+  return safeApplication2DbConfigError(error) ?? "Database form summary check failed";
+}
+
+function printJsonLine(value: unknown) {
+  fs.writeSync(1, JSON.stringify(value) + "\n");
+}
+
+async function runDbSummaryCommand(args: { json: boolean }) {
+  try {
+    const pool = await getApplication2Pool();
+    const summary = await loadDatabaseFormSummary(pool);
+
+    if (args.json) {
+      printJsonLine({
+        ok: true,
+        database: summary.database,
+        forms: summary.forms
+      });
+    } else {
+      fs.writeSync(1, formatDatabaseFormSummary(summary));
+    }
+  } catch (error) {
+    const message = sanitizeDbSummaryError(error);
+    if (args.json) {
+      printJsonLine({ ok: false, error: message });
+    } else {
+      fs.writeSync(2, message + "\n");
+    }
+    process.exitCode = 1;
+  } finally {
+    await closeApplication2Pool();
+  }
 }
 
 async function main() {
@@ -129,8 +194,13 @@ async function main() {
   }
 
   if (args.command === "help") usage(0);
+  if (args.command === "db-summary") {
+    await runDbSummaryCommand(args);
+    return;
+  }
 
   let poolOpened = false;
+  let progressLineOpen = false;
 
   try {
     if (args.json) {
@@ -150,11 +220,16 @@ async function main() {
         printNdjsonEvent(recordProgressEvent(current, total));
       } else {
         printHumanRecordProgress(current, total);
+        progressLineOpen = true;
       }
     };
     const result = await runApplication2ExportWorkflow(pool, args, { onRecordWritten });
     if (args.json) printNdjsonEvent(completeEvent(result));
     else {
+      if (progressLineOpen) {
+        printStderrLine("");
+        progressLineOpen = false;
+      }
       fs.writeSync(1, `Output path: ${result.out_path}\n`);
       fs.writeSync(1, `Record count: ${result.record_count}\n`);
       fs.writeSync(1, `Export file ID: ${result.export_file_id}\n`);
@@ -169,6 +244,10 @@ async function main() {
         error: message
       });
     } else {
+      if (progressLineOpen) {
+        printStderrLine("");
+        progressLineOpen = false;
+      }
       if (!poolOpened) {
         printStderrLine("Application 2 database connection failed.");
       }

@@ -52,18 +52,23 @@ function parseNdjson(text: string) {
 }
 
 test.describe("Application 2 CLI", () => {
-  test("--help prints usage and reserved export command", async () => {
+  test("--help prints usage and available commands", async () => {
     const r = await runApplication2Cli(["--help"], { cwd: process.cwd(), env: clearedDbEnv });
 
     expect(r.code).toBe(0);
     expect(r.stderr).toBe("");
     expect(r.stdout).toContain("Application/02/main.ts export");
+    expect(r.stdout).toContain("Application/02/main.ts db-summary [--json]");
     expect(r.stdout).toContain("--run-id <uuid>");
     expect(r.stdout).toContain("--export-spec-id <uuid>");
     expect(r.stdout).toContain("--mapping-set-id <uuid>");
     expect(r.stdout).toContain("--out <path>");
+<<<<<<< HEAD
     expect(r.stdout).toContain("Export flow is available");
     expect(r.stdout).toContain("Database status and summary APIs are available.");
+=======
+    expect(r.stdout).toContain("Export flow, database status API, database summary API, and db-summary command are available.");
+>>>>>>> origin/alpha-M6
   });
 
   test("unknown command fails fast", async () => {

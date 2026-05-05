@@ -94,6 +94,34 @@ export type Application2DatabaseSummary = {
   latest_export_file: Application2DatabaseSummaryExportFile | null;
 };
 
+export type Application2DatabaseFormSummaryField = {
+  field_name: string;
+  field_uuid: string;
+  field_order: number;
+  question_code: string | null;
+  start_pos: number;
+  end_pos: number;
+  field_length: number;
+};
+
+export type Application2DatabaseFormSummaryUuids = {
+  export_spec_id: string;
+  mapping_set_ids: string[];
+};
+
+export type Application2DatabaseFormSummaryForm = {
+  form_name: string;
+  spec_name: string;
+  spec_version: string;
+  uuids: Application2DatabaseFormSummaryUuids;
+  fields: Application2DatabaseFormSummaryField[];
+};
+
+export type Application2DatabaseFormSummary = {
+  database: string;
+  forms: Application2DatabaseFormSummaryForm[];
+};
+
 export type Application2ExportSpecLayout = {
   export_spec_id: string;
   row_length: number;

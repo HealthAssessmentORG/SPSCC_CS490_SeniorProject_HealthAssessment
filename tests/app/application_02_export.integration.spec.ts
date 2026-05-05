@@ -130,11 +130,11 @@ test.describe("Application 2 export flow (DB)", () => {
     const stderrLines = result.stderr.trimEnd().split(/\r?\n/);
     expect(stderrLines[0]).toBe("Connecting to Application 2 database...");
     expect(stderrLines[1]).toBe("Application 2 database connection established.");
-    expect(stderrLines.slice(2)).toEqual(
+    expect(stderrLines.slice(2).join("\n")).toBe(
       Array.from(
         { length: recordCount },
-        (_, index) => `Application 2 export progress: ${index + 1}/${recordCount} records written.`
-      )
+        (_, index) => `\rApplication 2 export progress: ${index + 1}/${recordCount} records written.`
+      ).join("")
     );
     await expect(fs.promises.stat(outPath)).resolves.toBeTruthy();
   });
