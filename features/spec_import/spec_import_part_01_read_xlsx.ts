@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import XLSX from "xlsx";
 
 /**
  * Represents a field row from an exported specification.

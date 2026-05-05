@@ -1,9 +1,20 @@
 {
+  "extends": [
+    // Extend from base configurations for strict type checking 
+    "@tsconfig/strictest/tsconfig.json",
+    // Extend from base configuration for Node.js 24 compatibility
+    "@tsconfig/node24/tsconfig.json"
+  ],
   "compilerOptions": {
+    "incremental": true,// Incremental compilation for faster builds
     "jsx": "react",
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "lib": [
+      // Include libraries to use their features
+      "ES2022"
+    ],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "types": ["node"],
     "strict": true,
     "skipLibCheck": true
