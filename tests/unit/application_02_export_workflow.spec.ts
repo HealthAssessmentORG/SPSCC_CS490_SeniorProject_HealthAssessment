@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 
-import type { DbPool } from "../../Application/02/src/db/db_connect";
-import { runApplication2ExportWorkflow } from "../../Application/02/src/workflow/export_workflow";
+import type { DbPool } from "../../Application/02/src/db/db_connect.js";
+import { runApplication2ExportWorkflow } from "../../Application/02/src/workflow/export_workflow.js";
 
 type QueryCall = {
   text: string;

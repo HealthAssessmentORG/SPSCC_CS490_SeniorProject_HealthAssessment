@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { getDbConfigFromEnv, getDbLogContext } from "../../db/db_connect";
+import { getDbConfigFromEnv, getDbLogContext } from "../../db/db_connect.js";
 
 const DB_ENV_KEYS = [
   "DB_SERVER",

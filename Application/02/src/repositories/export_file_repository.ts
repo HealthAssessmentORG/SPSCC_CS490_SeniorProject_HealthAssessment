@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { type DbPool, execSql, sql } from "../db_connect";
-import type { Application2ExportFileInsert } from "../types";
+import { type DbPool, execSql, sql } from "../db_connect.js";
+import type { Application2ExportFileInsert } from "../types.js";
 
 export async function createExportFile(pool: DbPool, row: Application2ExportFileInsert): Promise<string> {
   const exportFileId = randomUUID();

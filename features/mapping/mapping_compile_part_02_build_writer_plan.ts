@@ -1,5 +1,5 @@
-import { DbPool, execSql, sql } from "../../db/db_connect";
-import { parsePadRule, parseSourceExpression, parseTransformPipeline, ParsedRule } from "./mapping_compile_part_01_parse_rules";
+import { DbPool, execSql, sql } from "../../db/db_connect.js";
+import { parsePadRule, parseSourceExpression, parseTransformPipeline, ParsedRule } from "./mapping_compile_part_01_parse_rules.js";
 
 /**
  * Represents metadata for a single fixed-width export field in a mapping plan.

@@ -1,5 +1,5 @@
-import { type DbPool, execSql, sql } from "../db_connect";
-import type { Application2RecordContext } from "../types";
+import { type DbPool, execSql, sql } from "../db_connect.js";
+import type { Application2RecordContext } from "../types.js";
 
 export async function loadExportRecordContext(
   pool: DbPool,

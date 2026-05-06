@@ -3,9 +3,9 @@ import type { AddressInfo } from "node:net";
 
 import { test, expect } from "@playwright/test";
 
-import { createApplication2Server } from "../../Application/02/src/api/server";
-import { closeApplication2Pool, type DbPool } from "../../Application/02/src/db_connect";
-import { APPLICATION2_REQUIRED_DATABASE_TABLES } from "../../Application/02/src/repositories/database_status_repository";
+import { createApplication2Server } from "../../Application/02/src/api/server.js";
+import { closeApplication2Pool, type DbPool } from "../../Application/02/src/db_connect.js";
+import { APPLICATION2_REQUIRED_DATABASE_TABLES } from "../../Application/02/src/repositories/database_status_repository.js";
 
 type QueryCall = {
   text: string;

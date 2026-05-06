@@ -1,11 +1,11 @@
-import { type DbPool } from "../../db/db_connect";
-import { Rng } from "./generator_part_01_rng";
+import { type DbPool } from "../../db/db_connect.js";
+import { Rng } from "./generator_part_01_rng.js";
 import {
   insertAssessment,
   insertRun,
   updateRunStatus,
   upsertDeployerByDodId
-} from "./generator_part_04_repository";
+} from "./generator_part_04_repository.js";
 
 export type DeployerRow = { deployer_id: string; dod_id: string };
 export type AssessmentRow = { assessment_id: string; deployer_id: string; event_date: string };
@@ -97,9 +97,11 @@ export function buildAssessmentSeeds(
   const out: AssessmentSeed[] = [];
   const form_type_observed = formObserved.form_type_observed;
   const form_version_observed = formObserved.form_version_observed;
+  if (deployers.length === 0) throw new Error("Cannot build assessment seeds without deployers");
 
   for (let i = 0; i < count; i++) {
     const dep = deployers[i % deployers.length];
+    if (!dep) throw new Error("Missing deployer seed row");
 
     // random date within last 365 days
     const daysAgo = rng.int(0, 364);

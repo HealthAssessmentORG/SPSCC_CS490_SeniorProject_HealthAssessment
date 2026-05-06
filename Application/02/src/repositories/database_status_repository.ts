@@ -1,5 +1,5 @@
-import { type DbPool, execSql, sql } from "../db_connect";
-import type { Application2DatabaseStatus } from "../types";
+import { type DbPool, execSql, sql } from "../db_connect.js";
+import type { Application2DatabaseStatus } from "../types.js";
 
 export const APPLICATION2_REQUIRED_DATABASE_TABLES = [
   "RUN",

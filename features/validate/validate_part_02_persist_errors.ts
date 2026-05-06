@@ -1,6 +1,6 @@
-import { type DbPool } from "../../db/db_connect";
-import type { ValidationErrorRow } from "./validate_part_01_rules_engine";
-import { insertValidationError } from "./validate_part_03_repository";
+import { type DbPool } from "../../db/db_connect.js";
+import type { ValidationErrorRow } from "./validate_part_01_rules_engine.js";
+import { insertValidationError } from "./validate_part_03_repository.js";
 
 /**
  * Persists validation error records for a specific export file into `dbo.VALIDATION_ERROR`.

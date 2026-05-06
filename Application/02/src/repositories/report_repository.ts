@@ -1,5 +1,5 @@
-import { type DbPool, execSql, sql } from "../db_connect";
-import type { Application2RunSummary, Application2ValidationErrorCount } from "../types";
+import { type DbPool, execSql, sql } from "../db_connect.js";
+import type { Application2RunSummary, Application2ValidationErrorCount } from "../types.js";
 
 export async function loadRunSummary(pool: DbPool, runId: string): Promise<Application2RunSummary | null> {
   const result = await execSql(
@@ -16,13 +16,13 @@ export async function loadRunSummary(pool: DbPool, runId: string): Promise<Appli
   if (!row) return null;
 
   return {
-    run_id: String(row.run_id),
-    run_name: row.run_name == null ? null : String(row.run_name),
-    seed: row.seed == null ? null : Number(row.seed),
-    target_record_count: Number(row.target_record_count),
-    started_at: row.started_at as Application2RunSummary["started_at"],
-    finished_at: row.finished_at as Application2RunSummary["finished_at"],
-    status: String(row.status)
+    run_id: String(row["run_id"]),
+    run_name: row["run_name"] == null ? null : String(row["run_name"]),
+    seed: row["seed"] == null ? null : Number(row["seed"]),
+    target_record_count: Number(row["target_record_count"]),
+    started_at: row["started_at"] as Application2RunSummary["started_at"],
+    finished_at: row["finished_at"] as Application2RunSummary["finished_at"],
+    status: String(row["status"])
   };
 }
 
@@ -43,7 +43,7 @@ export async function loadValidationErrorCounts(
   );
 
   return (result.recordset as Array<Record<string, unknown>>).map((row) => ({
-    error_code: String(row.error_code),
-    cnt: Number(row.cnt)
+    error_code: String(row["error_code"]),
+    cnt: Number(row["cnt"])
   }));
 }

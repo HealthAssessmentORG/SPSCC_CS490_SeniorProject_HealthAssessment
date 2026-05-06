@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { DbPool, execSql } from "./db_connect";
+import { DbPool, execSql } from "./db_connect.js";
 
 /**
  * Splits a SQL script into individual batches separated by GO statements.

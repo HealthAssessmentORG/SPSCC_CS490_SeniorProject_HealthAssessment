@@ -1,16 +1,16 @@
 import fs from "node:fs";
 
-import { safeApplication2DbConfigError } from "./src/api/db_error";
-import { formatDatabaseFormSummary } from "./src/cli/database_form_summary_format";
-import { closeApplication2Pool, getApplication2Pool } from "./src/db_connect";
-import { loadDatabaseFormSummary } from "./src/repositories/database_form_summary_repository";
-import { runApplication2ExportWorkflow } from "./src/workflow/export_workflow";
+import { safeApplication2DbConfigError } from "./src/api/db_error.js";
+import { formatDatabaseFormSummary } from "./src/cli/database_form_summary_format.js";
+import { closeApplication2Pool, getApplication2Pool } from "./src/db_connect.js";
+import { loadDatabaseFormSummary } from "./src/repositories/database_form_summary_repository.js";
+import { runApplication2ExportWorkflow } from "./src/workflow/export_workflow.js";
 import type {
   Application2ExportEvent,
   Application2ExportOptions,
   Application2ExportProgressHandler,
   Application2ExportResult
-} from "./src/types";
+} from "./src/types.js";
 
 type ParsedArgs =
   | { command: "help" }

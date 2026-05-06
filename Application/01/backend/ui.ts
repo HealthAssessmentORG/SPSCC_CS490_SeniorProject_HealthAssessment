@@ -165,7 +165,7 @@ function MenuUi(props: ExampleUiModel) {
 						const selected = index === selectedIndex;
 						return React.createElement(
 							Text,
-							{ key: `${index}-${option}`, color: selected ? "green" : undefined },
+							selected ? { key: `${index}-${option}`, color: "green" } : { key: `${index}-${option}` },
 							`${selected ? ">" : " "} ${option}`
 						);
 					})

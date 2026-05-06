@@ -1,4 +1,4 @@
-import { WriterFieldPlan } from "../mapping/mapping_compile_part_02_build_writer_plan";
+import { WriterFieldPlan } from "../mapping/mapping_compile_part_02_build_writer_plan.js";
 
 /**
  * Represents a validation error for a record in a data export.

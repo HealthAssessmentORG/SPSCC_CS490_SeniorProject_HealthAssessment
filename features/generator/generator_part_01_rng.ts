@@ -70,7 +70,8 @@ class Rng {
    * @returns {T} A random element from the array.
    */
   pick<T>(arr: T[]): T {
-    return arr[this.int(0, arr.length - 1)];
+    if (arr.length === 0) throw new Error("Cannot pick from an empty array");
+    return arr[this.int(0, arr.length - 1)]!;
   }
 
   /**

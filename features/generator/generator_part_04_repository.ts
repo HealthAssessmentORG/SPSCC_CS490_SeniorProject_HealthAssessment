@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { type DbPool, execSql, sql } from "../../db/db_connect";
+import { type DbPool, execSql, sql } from "../../db/db_connect.js";
 
 export type AssessmentInsertRow = {
   deployer_id: string;

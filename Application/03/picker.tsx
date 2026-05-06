@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { render } from 'ink';
 import { FilePicker } from 'ink-file-picker';
-import ReadFile from './readfile';
+import ReadFile from './readfile.js';
 
 function App() {
   const [selected, setSelected] = useState<string | null>(null);

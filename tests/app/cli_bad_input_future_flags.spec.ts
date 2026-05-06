@@ -1,6 +1,6 @@
 import { test } from "@playwright/test";
 import path from "node:path";
-import { runExportCli } from "../_helpers/runCli";
+import { runExportCli } from "../_helpers/runCli.js";
 
 test.describe("CLI bad-input future flags (Milestone 5 placeholders)", () => {
   const validFormPath = path.resolve(process.cwd(), "files", "ExportFixedWidthForSmoke.xlsx");

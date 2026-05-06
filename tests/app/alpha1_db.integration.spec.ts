@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-import { runCli } from "../_helpers/runCli";
+import { runCli } from "../_helpers/runCli.js";
 
-const shouldRun = process.env.RUN_ALPHA1_DB_E2E === "1";
+const shouldRun = process.env["RUN_ALPHA1_DB_E2E"] === "1";
 
 test.describe("alpha1 live DB verification", () => {
   test.skip(!shouldRun, "Set RUN_ALPHA1_DB_E2E=1 to enable (requires DB_* alpha1 env vars).");
@@ -48,7 +48,8 @@ test.describe("alpha1 live DB verification", () => {
 
     expect(payload).toHaveLength(1);
 
-    const byName = (fieldName: string) => payload[0].fields.find((field) => field.field_name === fieldName)?.response;
+    const firstAssessment = payload[0]!;
+    const byName = (fieldName: string) => firstAssessment.fields.find((field) => field.field_name === fieldName)?.response;
     const lastName = byName("Deployer Last Name");
     const email = byName("Deployer Email");
     const todaysDate = byName("Deployer Today's Date");

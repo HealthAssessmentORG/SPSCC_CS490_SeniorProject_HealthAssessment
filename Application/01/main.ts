@@ -1,19 +1,13 @@
-import { spawn } from "child_process";
-import { resolve } from "path";
-import { renderExampleUi, type ExampleUiModel } from "./backend/ui.ts";
-
-// Minimal process typing for this local script-only setup.
-declare const process: {
-	argv: string[];
-	exitCode?: number;
-	cwd: () => string;
-};
+import { spawn } from "node:child_process";
+import { resolve } from "node:path";
+import { renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
 
 // Edit this function if you want different CLI flags or default title behavior.
 function parseTitle(argv: string[]): string {
 	const titleIndex = argv.findIndex((arg) => arg === "--title");
-	if (titleIndex >= 0 && argv[titleIndex + 1]) {
-		return argv[titleIndex + 1];
+	const title = titleIndex >= 0 ? argv[titleIndex + 1] : undefined;
+	if (title) {
+		return title;
 	}
 	// Edit this fallback text to change the default title when --title is not provided.
 	return "Dev Tools UI Example";
@@ -30,12 +24,12 @@ async function run(): Promise<void> {
 
 	const runRandomRows = async (seed: number | null, assessmentCount: number): Promise<string> => {
 		return new Promise((resolveResult, rejectResult) => {
-			const env: Record<string, string> = {
+			const env: NodeJS.ProcessEnv = {
 				...process.env,
 				RANDOM_ROWS_ASSESSMENTS: String(assessmentCount),
 			};
 			if (seed !== null) {
-				env.RANDOM_ROWS_SEED = String(seed);
+				env["RANDOM_ROWS_SEED"] = String(seed);
 			}
 
 			const child = spawn(pythonCommand, [scriptPath], {

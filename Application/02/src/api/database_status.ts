@@ -1,7 +1,7 @@
-import { getApplication2Pool, type DbPool } from "../db_connect";
-import { loadDatabaseStatus as loadDatabaseStatusFromRepository } from "../repositories/database_status_repository";
-import type { Application2DatabaseStatus } from "../types";
-import { safeApplication2DbConfigError } from "./db_error";
+import { getApplication2Pool, type DbPool } from "../db_connect.js";
+import { loadDatabaseStatus as loadDatabaseStatusFromRepository } from "../repositories/database_status_repository.js";
+import type { Application2DatabaseStatus } from "../types.js";
+import { safeApplication2DbConfigError } from "./db_error.js";
 
 export type Application2DatabaseStatusDeps = {
   getPool?: () => Promise<DbPool>;

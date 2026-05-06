@@ -1,4 +1,4 @@
-import { Rng } from "../generator/generator_part_01_rng";
+import { Rng } from "../generator/generator_part_01_rng.js";
 
 export function hashString32(input: string): number {
   let h = 2166136261 >>> 0;

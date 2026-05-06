@@ -1,9 +1,9 @@
-import { type DbPool, execSql } from "../db_connect";
+import { type DbPool, execSql } from "../db_connect.js";
 import type {
   Application2DatabaseFormSummary,
   Application2DatabaseFormSummaryField,
   Application2DatabaseFormSummaryForm
-} from "../types";
+} from "../types.js";
 
 type FormSpecRow = {
   export_spec_id: unknown;

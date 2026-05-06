@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 
-import { buildFixedWidthLine } from "../../Application/02/src/fixed_width/place_fields";
-import { writeLinesToFile } from "../../Application/02/src/fixed_width/stream_write";
-import type { Application2WriterFieldPlan } from "../../Application/02/src/mapping/build_writer_plan";
-import type { Application2RecordContext } from "../../Application/02/src/types";
+import { buildFixedWidthLine } from "../../Application/02/src/fixed_width/place_fields.js";
+import { writeLinesToFile } from "../../Application/02/src/fixed_width/stream_write.js";
+import type { Application2WriterFieldPlan } from "../../Application/02/src/mapping/build_writer_plan.js";
+import type { Application2RecordContext } from "../../Application/02/src/types.js";
 
 const ctx: Application2RecordContext = {
   assessment: {},

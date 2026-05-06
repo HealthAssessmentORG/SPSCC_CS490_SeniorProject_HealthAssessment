@@ -1,4 +1,4 @@
-import type { Application2DatabaseFormSummary } from "../types";
+import type { Application2DatabaseFormSummary } from "../types.js";
 
 function mappingSetIdsText(mappingSetIds: string[]): string {
   if (mappingSetIds.length === 0) return "none";

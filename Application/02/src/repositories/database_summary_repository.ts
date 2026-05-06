@@ -1,10 +1,10 @@
-import { type DbPool, execSql } from "../db_connect";
+import { type DbPool, execSql } from "../db_connect.js";
 import type {
   Application2DatabaseSummary,
   Application2DatabaseSummaryCounts,
   Application2DatabaseSummaryExportFile,
   Application2DatabaseSummaryRun
-} from "../types";
+} from "../types.js";
 
 function toIsoString(value: unknown): string | null {
   if (value == null) return null;
@@ -14,17 +14,17 @@ function toIsoString(value: unknown): string | null {
 
 function buildCounts(row: Record<string, unknown> | undefined): Application2DatabaseSummaryCounts {
   return {
-    runs: Number(row?.runs ?? 0),
-    deployers: Number(row?.deployers ?? 0),
-    assessments: Number(row?.assessments ?? 0),
-    responses: Number(row?.responses ?? 0),
-    provider_reviews: Number(row?.provider_reviews ?? 0),
-    export_specs: Number(row?.export_specs ?? 0),
-    export_fields: Number(row?.export_fields ?? 0),
-    mapping_sets: Number(row?.mapping_sets ?? 0),
-    mapping_rules: Number(row?.mapping_rules ?? 0),
-    export_files: Number(row?.export_files ?? 0),
-    validation_errors: Number(row?.validation_errors ?? 0)
+    runs: Number(row?.["runs"] ?? 0),
+    deployers: Number(row?.["deployers"] ?? 0),
+    assessments: Number(row?.["assessments"] ?? 0),
+    responses: Number(row?.["responses"] ?? 0),
+    provider_reviews: Number(row?.["provider_reviews"] ?? 0),
+    export_specs: Number(row?.["export_specs"] ?? 0),
+    export_fields: Number(row?.["export_fields"] ?? 0),
+    mapping_sets: Number(row?.["mapping_sets"] ?? 0),
+    mapping_rules: Number(row?.["mapping_rules"] ?? 0),
+    export_files: Number(row?.["export_files"] ?? 0),
+    validation_errors: Number(row?.["validation_errors"] ?? 0)
   };
 }
 
@@ -32,13 +32,13 @@ function buildLatestRun(row: Record<string, unknown> | undefined): Application2D
   if (!row) return null;
 
   return {
-    run_id: String(row.run_id),
-    run_name: row.run_name == null ? null : String(row.run_name),
-    seed: row.seed == null ? null : Number(row.seed),
-    target_record_count: Number(row.target_record_count),
-    started_at: toIsoString(row.started_at),
-    finished_at: toIsoString(row.finished_at),
-    status: String(row.status)
+    run_id: String(row["run_id"]),
+    run_name: row["run_name"] == null ? null : String(row["run_name"]),
+    seed: row["seed"] == null ? null : Number(row["seed"]),
+    target_record_count: Number(row["target_record_count"]),
+    started_at: toIsoString(row["started_at"]),
+    finished_at: toIsoString(row["finished_at"]),
+    status: String(row["status"])
   };
 }
 
@@ -48,11 +48,11 @@ function buildLatestExportFile(
   if (!row) return null;
 
   return {
-    export_file_id: String(row.export_file_id),
-    run_id: String(row.run_id),
-    file_path: String(row.file_path),
-    record_count: Number(row.record_count),
-    created_at: toIsoString(row.created_at)
+    export_file_id: String(row["export_file_id"]),
+    run_id: String(row["run_id"]),
+    file_path: String(row["file_path"]),
+    record_count: Number(row["record_count"]),
+    created_at: toIsoString(row["created_at"])
   };
 }
 

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-import type { DbPool } from "../../Application/02/src/db/db_connect";
-import { loadDatabaseFormSummary } from "../../Application/02/src/repositories/database_form_summary_repository";
+import type { DbPool } from "../../Application/02/src/db/db_connect.js";
+import { loadDatabaseFormSummary } from "../../Application/02/src/repositories/database_form_summary_repository.js";
 
 type QueryCall = {
   text: string;

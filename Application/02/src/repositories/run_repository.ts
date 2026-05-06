@@ -1,4 +1,4 @@
-import { type DbPool, execSql, sql } from "../db_connect";
+import { type DbPool, execSql, sql } from "../db_connect.js";
 
 export async function loadAssessmentIdsForRun(pool: DbPool, runId: string): Promise<string[]> {
   const result = await execSql(

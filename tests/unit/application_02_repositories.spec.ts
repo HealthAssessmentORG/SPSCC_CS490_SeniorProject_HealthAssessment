@@ -1,16 +1,16 @@
 import { test, expect } from "@playwright/test";
 
-import type { DbPool } from "../../Application/02/src/db/db_connect";
-import { createExportFile } from "../../Application/02/src/repositories/export_file_repository";
-import { loadExportRecordContext } from "../../Application/02/src/repositories/export_repository";
+import type { DbPool } from "../../Application/02/src/db/db_connect.js";
+import { createExportFile } from "../../Application/02/src/repositories/export_file_repository.js";
+import { loadExportRecordContext } from "../../Application/02/src/repositories/export_repository.js";
 import {
   loadExportFields,
   loadExportSpecLayout,
   loadRawMappingRules
-} from "../../Application/02/src/repositories/mapping_repository";
-import { loadRunSummary, loadValidationErrorCounts } from "../../Application/02/src/repositories/report_repository";
-import { loadAssessmentIdsForRun, updateRunStatus } from "../../Application/02/src/repositories/run_repository";
-import { persistValidationErrors } from "../../Application/02/src/repositories/validation_repository";
+} from "../../Application/02/src/repositories/mapping_repository.js";
+import { loadRunSummary, loadValidationErrorCounts } from "../../Application/02/src/repositories/report_repository.js";
+import { loadAssessmentIdsForRun, updateRunStatus } from "../../Application/02/src/repositories/run_repository.js";
+import { persistValidationErrors } from "../../Application/02/src/repositories/validation_repository.js";
 
 type QueryCall = {
   text: string;

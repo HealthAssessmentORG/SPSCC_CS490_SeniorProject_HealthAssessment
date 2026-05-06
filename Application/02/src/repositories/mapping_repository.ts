@@ -1,9 +1,9 @@
-import { type DbPool, execSql, sql } from "../db_connect";
+import { type DbPool, execSql, sql } from "../db_connect.js";
 import type {
   Application2ExportFieldRow,
   Application2ExportSpecLayout,
   Application2RawMappingRuleRow
-} from "../types";
+} from "../types.js";
 
 export async function loadExportSpecLayout(
   pool: DbPool,
@@ -25,8 +25,8 @@ export async function loadExportSpecLayout(
   }
 
   return {
-    export_spec_id: String(row.export_spec_id),
-    row_length: Number(row.row_length)
+    export_spec_id: String(row["export_spec_id"]),
+    row_length: Number(row["row_length"])
   };
 }
 
@@ -53,12 +53,12 @@ export async function loadExportFields(
   );
 
   return (result.recordset as Array<Record<string, unknown>>).map((row) => ({
-    export_field_id: String(row.export_field_id),
-    field_name: String(row.field_name),
-    start_pos: Number(row.start_pos),
-    end_pos: Number(row.end_pos),
-    field_length: Number(row.field_length),
-    domain_type: row.domain_type == null ? null : String(row.domain_type)
+    export_field_id: String(row["export_field_id"]),
+    field_name: String(row["field_name"]),
+    start_pos: Number(row["start_pos"]),
+    end_pos: Number(row["end_pos"]),
+    field_length: Number(row["field_length"]),
+    domain_type: row["domain_type"] == null ? null : String(row["domain_type"])
   }));
 }
 
@@ -77,10 +77,10 @@ export async function loadRawMappingRules(
   );
 
   return (result.recordset as Array<Record<string, unknown>>).map((row) => ({
-    export_field_id: String(row.export_field_id),
-    source_expression: String(row.source_expression),
-    transform_pipeline: row.transform_pipeline == null ? null : String(row.transform_pipeline),
-    default_value: row.default_value == null ? null : String(row.default_value),
-    pad_rule: row.pad_rule == null ? null : String(row.pad_rule)
+    export_field_id: String(row["export_field_id"]),
+    source_expression: String(row["source_expression"]),
+    transform_pipeline: row["transform_pipeline"] == null ? null : String(row["transform_pipeline"]),
+    default_value: row["default_value"] == null ? null : String(row["default_value"]),
+    pad_rule: row["pad_rule"] == null ? null : String(row["pad_rule"])
   }));
 }

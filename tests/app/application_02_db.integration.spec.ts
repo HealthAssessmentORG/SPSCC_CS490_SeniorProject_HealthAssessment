@@ -4,9 +4,9 @@ import {
   closeApplication2Pool,
   execSql,
   getApplication2Pool
-} from "../../Application/02/src/db/db_connect";
+} from "../../Application/02/src/db/db_connect.js";
 
-const shouldRun = process.env.RUN_APP2_DB_E2E === "1";
+const shouldRun = process.env["RUN_APP2_DB_E2E"] === "1";
 
 test.describe("Application 2 live DB verification", () => {
   test.skip(!shouldRun, "Set RUN_APP2_DB_E2E=1 to enable (requires APP2_DB_* env vars).");

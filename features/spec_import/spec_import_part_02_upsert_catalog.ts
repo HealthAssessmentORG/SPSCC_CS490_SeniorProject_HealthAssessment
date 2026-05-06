@@ -1,7 +1,7 @@
-import { DbPool, execSql, sql } from "../../db/db_connect";
-import { ExportSpecModel, ExportFieldRow } from "./spec_import_part_01_read_xlsx";
+import { DbPool, execSql, sql } from "../../db/db_connect.js";
+import { ExportSpecModel, ExportFieldRow } from "./spec_import_part_01_read_xlsx.js";
 import { randomUUID } from "node:crypto";
-import { classifyValuesSpec } from "./spec_values_part_01_utils";
+import { classifyValuesSpec } from "./spec_values_part_01_utils.js";
 
 /**
  * Represents a guess for a domain with its type and specification details.
@@ -45,18 +45,18 @@ function guessDomain(f: ExportFieldRow): DomainGuess {
     return { domain_type: "DODID10", raw_spec: spec.raw };
   }
   if (spec.kind === "enum_yn") {
-    return {
+    return spec.enum_pairs ? {
       domain_type: "ENUM_YN",
       raw_spec: spec.raw,
       enum_pairs: spec.enum_pairs
-    };
+    } : { domain_type: "ENUM_YN", raw_spec: spec.raw };
   }
   if (spec.kind === "enum") {
-    return {
+    return spec.enum_pairs ? {
       domain_type: "ENUM",
       raw_spec: spec.raw,
       enum_pairs: spec.enum_pairs
-    };
+    } : { domain_type: "ENUM", raw_spec: spec.raw };
   }
 
   return { domain_type: "SPEC_RAW", raw_spec: spec.raw };

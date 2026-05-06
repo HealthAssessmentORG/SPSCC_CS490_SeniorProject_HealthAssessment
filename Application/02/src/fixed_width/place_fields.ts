@@ -1,5 +1,5 @@
-import type { Application2RecordContext } from "../types";
-import type { Application2WriterFieldPlan } from "../mapping/build_writer_plan";
+import type { Application2RecordContext } from "../types.js";
+import type { Application2WriterFieldPlan } from "../mapping/build_writer_plan.js";
 
 export function buildFixedWidthLine(
   rowLength: number,

@@ -37,7 +37,8 @@ export function parseSourceExpression(src: string): SourceExpr {
     const rest = src.slice(5);
     const parts = rest.split(":");
     if (parts.length !== 2) throw new Error(`Bad RESP source_expression: ${src}`);
-    return { kind: "resp", question_code: parts[0], field_name: parts[1] };
+    const [question_code, field_name] = parts as [string, string];
+    return { kind: "resp", question_code, field_name };
   }
   throw new Error(`Unknown source_expression: ${src}`);
 }

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
-import { writeLinesToFile } from "../../features/fixed_width/fixed_width_writer_part_02_stream_write";
+import { writeLinesToFile } from "../../features/fixed_width/fixed_width_writer_part_02_stream_write.js";
 
 test.describe("writeLinesToFile", () => {
   test("writes all lines with newlines", async ({}, testInfo) => {

@@ -62,6 +62,12 @@ function requireEnvValue(names: string[], label: string): string {
   return value;
 }
 
+function primaryEnvName(names: string[]): string {
+  const name = names[0];
+  if (!name) throw new Error("Expected at least one environment variable name");
+  return name;
+}
+
 function envNamesForTarget(target: DbConnectionTarget) {
   if (target === "export") {
     return {
@@ -130,14 +136,14 @@ export function getDbConfigFromEnv(target: DbConnectionTarget = "alpha1"): sql.c
   const database = requireEnvValue(names.database, `${target} DB database`);
   const user = requireEnvValue(names.user, `${target} DB user`);
   const password = requireEnvValue(names.password, `${target} DB password`);
-  const port = parseNumberEnv(names.port[0], firstEnvValue(names.port), 1433);
-  const encrypt = parseBooleanEnv(names.encrypt[0], firstEnvValue(names.encrypt), false);
+  const port = parseNumberEnv(primaryEnvName(names.port), firstEnvValue(names.port), 1433);
+  const encrypt = parseBooleanEnv(primaryEnvName(names.encrypt), firstEnvValue(names.encrypt), false);
   const trustServerCertificate = parseBooleanEnv(
-    names.trustServerCertificate[0],
+    primaryEnvName(names.trustServerCertificate),
     firstEnvValue(names.trustServerCertificate),
     true
   );
-  const requestTimeout = parseNumberEnv(names.requestTimeout[0], firstEnvValue(names.requestTimeout), 0);
+  const requestTimeout = parseNumberEnv(primaryEnvName(names.requestTimeout), firstEnvValue(names.requestTimeout), 0);
 
   return {
     server,

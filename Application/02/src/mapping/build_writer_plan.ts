@@ -2,7 +2,7 @@ import type {
   Application2ExportFieldRow,
   Application2RawMappingRuleRow,
   Application2RecordContext
-} from "../types";
+} from "../types.js";
 import {
   parsePadRule,
   parseSourceExpression,
@@ -10,7 +10,7 @@ import {
   type PadRule,
   type ParsedRule,
   type TransformOp
-} from "./parse_rules";
+} from "./parse_rules.js";
 
 export type Application2WriterFieldPlan = {
   field_name: string;

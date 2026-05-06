@@ -1,15 +1,15 @@
 import { test, expect } from "@playwright/test";
-import { Rng } from "../../features/generator/generator_part_01_rng";
+import { Rng } from "../../features/generator/generator_part_01_rng.js";
 import {
   buildAssessmentSeeds,
   buildDeployerDodIds,
-} from "../../features/generator/generator_part_02_insert_assessments";
+} from "../../features/generator/generator_part_02_insert_assessments.js";
 import {
   formatDateYyyymmdd,
   hashString32,
   seededRngFromParts,
   truncateValue,
-} from "../../features/shared/deterministic_utils";
+} from "../../features/shared/deterministic_utils.js";
 
 test.describe("Rng (xorshift32)", () => {
   test("locks shared deterministic helper outputs", () => {

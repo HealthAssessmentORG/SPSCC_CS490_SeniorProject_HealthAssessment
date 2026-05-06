@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { runApplication2Cli } from "../_helpers/runCli";
+import { runApplication2Cli } from "../_helpers/runCli.js";
 
 const clearedDbEnv = {
   DB_SERVER: "",
@@ -76,7 +76,7 @@ test.describe("Application 2 CLI", () => {
   });
 
   test("missing export args fail before placeholder workflow", async () => {
-    const r = await runApplication2Cli(["export", "--run-id", validExportArgs[2]], {
+    const r = await runApplication2Cli(["export", "--run-id", validExportArgs[2]!], {
       cwd: process.cwd(),
       env: clearedDbEnv
     });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { buildSpecRulePreview } from "../../features/mapping/mapping_seed_part_03_profiles";
+import { buildSpecRulePreview } from "../../features/mapping/mapping_seed_part_03_profiles.js";
 
 test.describe("spec mapping profile rule builder", () => {
   test("locks representative exact spec rule previews", () => {

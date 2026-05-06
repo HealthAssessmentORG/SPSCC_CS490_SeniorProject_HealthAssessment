@@ -4,12 +4,12 @@ import {
   getApplication2DatabaseStatus,
   type Application2DatabaseStatusBody,
   type Application2DatabaseStatusDeps
-} from "./database_status";
+} from "./database_status.js";
 import {
   getApplication2DatabaseSummary,
   type Application2DatabaseSummaryBody,
   type Application2DatabaseSummaryDeps
-} from "./database_summary";
+} from "./database_summary.js";
 
 export type Application2ServerDeps = Application2DatabaseStatusDeps & Application2DatabaseSummaryDeps;
 

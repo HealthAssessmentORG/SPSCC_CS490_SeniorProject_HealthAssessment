@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
-import { runExportCli } from "../../_helpers/runCli";
-import { readExportSpecXlsx } from "../../../features/spec_import/spec_import_part_01_read_xlsx";
+import { runExportCli } from "../../_helpers/runCli.js";
+import { readExportSpecXlsx } from "../../../features/spec_import/spec_import_part_01_read_xlsx.js";
 
 // Opt-in: this test requires a running SQL Server that matches your EXPORT_DB_* env vars.
 // Run with:
 //   RUN_DB_E2E=1 npm test
-const shouldRun = process.env.RUN_DB_E2E === "1";
+const shouldRun = process.env["RUN_DB_E2E"] === "1";
 
 test.describe("full pipeline export (DB)", () => {
   test.skip(!shouldRun, "Set RUN_DB_E2E=1 to enable (requires SQL Server + env vars).");

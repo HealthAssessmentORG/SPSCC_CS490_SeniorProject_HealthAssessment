@@ -1,4 +1,4 @@
-import { RecordContext, WriterFieldPlan } from "../mapping/mapping_compile_part_02_build_writer_plan";
+import { RecordContext, WriterFieldPlan } from "../mapping/mapping_compile_part_02_build_writer_plan.js";
 
 /**
  * Builds a fixed-width formatted line from a record context using a field plan.

@@ -1,5 +1,5 @@
-import { type DbPool } from "../../db/db_connect";
-import { selectRunSummary, selectValidationErrorCounts } from "./report_part_03_repository";
+import { type DbPool } from "../../db/db_connect.js";
+import { selectRunSummary, selectValidationErrorCounts } from "./report_part_03_repository.js";
 
 /**
  * Retrieves summary metadata for a single run from `dbo.[RUN]` by its unique identifier.

@@ -3,7 +3,7 @@ import {
   parseSourceExpression,
   parseTransformPipeline,
   parsePadRule,
-} from "../../features/mapping/mapping_compile_part_01_parse_rules";
+} from "../../features/mapping/mapping_compile_part_01_parse_rules.js";
 
 test.describe("mapping rule parsing", () => {
   test("parses COL sources", () => {

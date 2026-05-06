@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
-import { runExportCli } from "../_helpers/runCli";
+import { runExportCli } from "../_helpers/runCli.js";
 
 const clearedExportDbEnv = {
   EXPORT_DB_SERVER: "",

@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import { DbPool, execSql, sql } from "../../db/db_connect";
-import { seededRngFromParts } from "../shared/deterministic_utils";
-import { classifyValuesSpec, extractLiteralConstant } from "../spec_import/spec_values_part_01_utils";
+import { DbPool, execSql, sql } from "../../db/db_connect.js";
+import { seededRngFromParts } from "../shared/deterministic_utils.js";
+import { classifyValuesSpec, extractLiteralConstant } from "../spec_import/spec_values_part_01_utils.js";
 
 /**
  * Represents the available mapping profile variants used by the seeding/mapping feature.
@@ -281,7 +281,7 @@ function placeholderDefaultForField(r: ExportFieldSeedRow): string {
   const analysis = classifyValuesSpec(r.field_name, r.values_spec_raw);
 
   if ((analysis.kind === "enum" || analysis.kind === "enum_yn") && analysis.enum_pairs && analysis.enum_pairs.length) {
-    return analysis.enum_pairs[0].code;
+    return analysis.enum_pairs[0]!.code;
   }
   if (analysis.kind === "date_yyyymmdd") return "20000101";
   if (analysis.kind === "dodid10") return "0000000000";

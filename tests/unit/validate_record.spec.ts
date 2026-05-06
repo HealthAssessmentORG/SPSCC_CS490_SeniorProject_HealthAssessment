@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { validateRecord } from "../../features/validate/validate_part_01_rules_engine";
-import type { WriterFieldPlan } from "../../features/mapping/mapping_compile_part_02_build_writer_plan";
+import { validateRecord } from "../../features/validate/validate_part_01_rules_engine.js";
+import type { WriterFieldPlan } from "../../features/mapping/mapping_compile_part_02_build_writer_plan.js";
 
 test.describe("validateRecord", () => {
   test("allows blank padded domain values when length is correct", () => {

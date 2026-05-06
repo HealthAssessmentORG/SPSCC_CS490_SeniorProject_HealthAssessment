@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
-import { readExportSpecXlsx } from "../../features/spec_import/spec_import_part_01_read_xlsx";
+import { readExportSpecXlsx } from "../../features/spec_import/spec_import_part_01_read_xlsx.js";
 import {
   classifyValuesSpec,
   type ValuesSpecKind,
-} from "../../features/spec_import/spec_values_part_01_utils";
+} from "../../features/spec_import/spec_values_part_01_utils.js";
 
 test.describe("readExportSpecXlsx", () => {
   const REQUIRED_KINDS_BY_FORM_TYPE: Record<"CAM" | "PRE", ValuesSpecKind[]> = {

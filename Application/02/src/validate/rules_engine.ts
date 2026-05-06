@@ -1,4 +1,4 @@
-import type { Application2WriterFieldPlan } from "../mapping/build_writer_plan";
+import type { Application2WriterFieldPlan } from "../mapping/build_writer_plan.js";
 
 export type Application2ValidationErrorRow = {
   record_ordinal: number;

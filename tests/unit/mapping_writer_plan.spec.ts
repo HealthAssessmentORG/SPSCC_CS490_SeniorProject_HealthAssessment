@@ -3,8 +3,8 @@ import {
   buildWriterPlan,
   type ExportField,
   type RecordContext,
-} from "../../features/mapping/mapping_compile_part_02_build_writer_plan";
-import type { ParsedRule } from "../../features/mapping/mapping_compile_part_01_parse_rules";
+} from "../../features/mapping/mapping_compile_part_02_build_writer_plan.js";
+import type { ParsedRule } from "../../features/mapping/mapping_compile_part_01_parse_rules.js";
 
 function mkRule(p: Partial<ParsedRule> & { export_field_id: string }): ParsedRule {
   return {

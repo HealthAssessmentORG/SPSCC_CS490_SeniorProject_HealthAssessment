@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 import {
   getApplication2DbConfigFromEnv,
   getApplication2DbLogContext
-} from "../../Application/02/src/db/db_connect";
+} from "../../Application/02/src/db/db_connect.js";
 
 const DB_ENV_KEYS = [
   "DB_SERVER",

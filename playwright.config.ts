@@ -13,13 +13,13 @@ export default defineConfig({
     timeout: 5_000,
   },
   fullyParallel: true,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env["CI"] ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
 
   // Base URL is here for future UI/E2E work; unit tests won't use it.
   use: {
     headless: true,
-    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    baseURL: process.env["BASE_URL"] || "http://localhost:3000",
     trace: "on-first-retry",
   },
 

@@ -1,5 +1,5 @@
-import { createApplication2Server } from "./src/api/server";
-import { closeApplication2Pool } from "./src/db_connect";
+import { createApplication2Server } from "./src/api/server.js";
+import { closeApplication2Pool } from "./src/db_connect.js";
 
 function envValue(name: string): string | undefined {
   const value = process.env[name];

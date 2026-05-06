@@ -3,12 +3,12 @@ import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 
-import { applySchemaFromDir } from "./db/db_schema_apply";
-import { closePool, type DbPool, getPool } from "./db/db_connect";
-import { createExportFile, loadExportRecordContext } from "./features/export/export_part_01_repository";
-import { buildFixedWidthLine } from "./features/fixed_width/fixed_width_writer_part_01_place_fields";
-import { writeLinesToFile } from "./features/fixed_width/fixed_width_writer_part_02_stream_write";
-import { Rng } from "./features/generator/generator_part_01_rng";
+import { applySchemaFromDir } from "./db/db_schema_apply.js";
+import { closePool, type DbPool, getPool } from "./db/db_connect.js";
+import { createExportFile, loadExportRecordContext } from "./features/export/export_part_01_repository.js";
+import { buildFixedWidthLine } from "./features/fixed_width/fixed_width_writer_part_01_place_fields.js";
+import { writeLinesToFile } from "./features/fixed_width/fixed_width_writer_part_02_stream_write.js";
+import { Rng } from "./features/generator/generator_part_01_rng.js";
 import {
   buildAssessmentSeeds,
   buildDeployerDodIds,
@@ -17,29 +17,29 @@ import {
   insertAssessments,
   insertDeployers,
   type AssessmentRow
-} from "./features/generator/generator_part_02_insert_assessments";
+} from "./features/generator/generator_part_02_insert_assessments.js";
 import {
   buildResponseAndProviderReviewSeeds,
   insertGeneratedResponsesAndProviderReviews
-} from "./features/generator/generator_part_03_insert_responses";
+} from "./features/generator/generator_part_03_insert_responses.js";
 import {
   buildWriterPlan,
   loadExportFields,
   loadParsedRules,
   type WriterFieldPlan
-} from "./features/mapping/mapping_compile_part_02_build_writer_plan";
+} from "./features/mapping/mapping_compile_part_02_build_writer_plan.js";
 import {
   ensureMappingSetForProfile,
   type MappingProfile,
   type MappingProfileBuildResult,
   type MappingSourceCounts
-} from "./features/mapping/mapping_seed_part_03_profiles";
-import { getRunSummary, getValidationErrorCounts } from "./features/report/report_part_01_queries";
-import { printErrorHistogram } from "./features/report/report_part_02_charts";
-import { readExportSpecXlsx, type ExportSpecModel } from "./features/spec_import/spec_import_part_01_read_xlsx";
-import { importSpecToDb } from "./features/spec_import/spec_import_part_02_upsert_catalog";
-import { persistValidationErrors } from "./features/validate/validate_part_02_persist_errors";
-import { type ValidationErrorRow, validateRecord } from "./features/validate/validate_part_01_rules_engine";
+} from "./features/mapping/mapping_seed_part_03_profiles.js";
+import { getRunSummary, getValidationErrorCounts } from "./features/report/report_part_01_queries.js";
+import { printErrorHistogram } from "./features/report/report_part_02_charts.js";
+import { readExportSpecXlsx, type ExportSpecModel } from "./features/spec_import/spec_import_part_01_read_xlsx.js";
+import { importSpecToDb } from "./features/spec_import/spec_import_part_02_upsert_catalog.js";
+import { persistValidationErrors } from "./features/validate/validate_part_02_persist_errors.js";
+import { type ValidationErrorRow, validateRecord } from "./features/validate/validate_part_01_rules_engine.js";
 
 type Options = {
   form?: string;
@@ -120,7 +120,7 @@ function parseArgs(argv: string[]): Options {
     const a = argv[i];
 
     if (a === "-h" || a === "--help") opts.help = true;
-    else if (a === "-form" || a === "--form") opts.form = argv[++i];
+    else if (a === "-form" || a === "--form") opts.form = String(argv[++i] ?? "");
     else if (a === "-gen" || a === "--gen") opts.gen = Number(argv[++i]);
     else if (a === "--seed") opts.seed = Number(argv[++i]);
     else if (a === "--spec-name") opts.specName = String(argv[++i]);
@@ -236,6 +236,7 @@ async function writeAndValidateExportFile(
   async function* lineGen() {
     for (let i = 0; i < seeded.assessments.length; i++) {
       const a = seeded.assessments[i];
+      if (!a) throw new Error("Missing seeded assessment row");
       const ordinal = i + 1;
       const ctx = await loadExportRecordContext(pool, a.assessment_id);
 

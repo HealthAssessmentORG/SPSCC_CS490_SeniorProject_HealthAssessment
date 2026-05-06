@@ -3,17 +3,17 @@ import { test, expect } from "@playwright/test";
 import {
   buildParsedRuleMap,
   buildWriterPlan
-} from "../../Application/02/src/mapping/build_writer_plan";
+} from "../../Application/02/src/mapping/build_writer_plan.js";
 import {
   parsePadRule,
   parseSourceExpression,
   parseTransformPipeline
-} from "../../Application/02/src/mapping/parse_rules";
+} from "../../Application/02/src/mapping/parse_rules.js";
 import type {
   Application2ExportFieldRow,
   Application2RawMappingRuleRow,
   Application2RecordContext
-} from "../../Application/02/src/types";
+} from "../../Application/02/src/types.js";
 
 function ctx(overrides: Partial<Application2RecordContext> = {}): Application2RecordContext {
   return {

@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { Rng } from "../../features/generator/generator_part_01_rng";
+import { Rng } from "../../features/generator/generator_part_01_rng.js";
 import {
   buildResponseAndProviderReviewSeeds,
   buildSpecResponses,
   generateSpecResponseValue,
   SpecResponseSeedField,
-} from "../../features/generator/generator_part_03_insert_responses";
+} from "../../features/generator/generator_part_03_insert_responses.js";
 
 function mkField(p: Partial<SpecResponseSeedField> & { field_name: string; question_code: string }): SpecResponseSeedField {
   return {
@@ -186,7 +186,7 @@ test.describe("spec response deterministic generation", () => {
         }),
       ],
     });
-    expect(specBundle[0].providerReview).toEqual({
+    expect(specBundle[0]!.providerReview).toEqual({
       provider_name: "Dr 688220",
       certify_date: "2026-02-27",
       provider_title: "2",
@@ -197,7 +197,7 @@ test.describe("spec response deterministic generation", () => {
       profile: "prealpha",
       seed: 123,
     });
-    expect(Object.fromEntries(prealphaBundle[0].responses.map((r) => [r.field_name, r.value_raw]))).toMatchObject({
+    expect(Object.fromEntries(prealphaBundle[0]!.responses.map((r) => [r.field_name, r.value_raw]))).toMatchObject({
       LNAME: "LAST688220",
       FNAME: "FIRST501187",
       MI: "W",
@@ -205,7 +205,7 @@ test.describe("spec response deterministic generation", () => {
       EMAIL: "user880016@example.mil",
       TRICARE: "N",
     });
-    expect(prealphaBundle[0].providerReview).toEqual({
+    expect(prealphaBundle[0]!.providerReview).toEqual({
       provider_name: "Dr 792178",
       certify_date: "2026-02-27",
       provider_title: "6",

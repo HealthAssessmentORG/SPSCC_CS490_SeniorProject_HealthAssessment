@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import { runCli } from "../_helpers/runCli";
+import { runCli } from "../_helpers/runCli.js";
 
 const clearedDbEnv = {
   DB_SERVER: "",
@@ -21,7 +21,7 @@ const clearedDbEnv = {
   EXPORT_DB_REQUEST_TIMEOUT_MS: ""
 };
 
-const shouldRunDbCli = process.env.RUN_ALPHA1_DB_E2E === "1";
+const shouldRunDbCli = process.env["RUN_ALPHA1_DB_E2E"] === "1";
 
 test.describe("alpha1 CLI", () => {
   test("--help prints usage", async () => {
@@ -88,10 +88,11 @@ test.describe("alpha1 CLI", () => {
 
     const payload = JSON.parse(r.stdout) as Array<{ assessment_index: number; fields: Array<{ field_name: string; response: string }> }>;
     expect(payload).toHaveLength(1);
-    expect(payload[0]).toHaveProperty("assessment_index", 1);
-    expect(Array.isArray(payload[0].fields)).toBeTruthy();
+    const firstAssessment = payload[0]!;
+    expect(firstAssessment).toHaveProperty("assessment_index", 1);
+    expect(Array.isArray(firstAssessment.fields)).toBeTruthy();
 
-    const byName = (fieldName: string) => payload[0].fields.find((field) => field.field_name === fieldName)?.response;
+    const byName = (fieldName: string) => firstAssessment.fields.find((field) => field.field_name === fieldName)?.response;
     const middleInitial = byName("Deployer Middle Initial");
     const deploymentDate = byName("Estimated Date of Upcoming Deployment");
     const completedDate = byName("Date Completed");

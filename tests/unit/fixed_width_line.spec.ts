@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { buildFixedWidthLine } from "../../features/fixed_width/fixed_width_writer_part_01_place_fields";
+import { buildFixedWidthLine } from "../../features/fixed_width/fixed_width_writer_part_01_place_fields.js";
 import type {
   WriterFieldPlan,
   RecordContext,
-} from "../../features/mapping/mapping_compile_part_02_build_writer_plan";
+} from "../../features/mapping/mapping_compile_part_02_build_writer_plan.js";
 
 test.describe("buildFixedWidthLine", () => {
   test("places multiple non-overlapping fields into an exact row", () => {

@@ -1,1 +1,1 @@
-export * from "../db_connect";
+export * from "../db_connect.js";

@@ -4,10 +4,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import { closeApplication2Pool } from "./src/db_connect";
-import { getApplication2DatabaseStatus } from "./src/api/database_status";
-import { getApplication2DatabaseSummary } from "./src/api/database_summary";
-import type { Application2DatabaseStatus, Application2DatabaseSummary } from "./src/types";
+import { closeApplication2Pool } from "./src/db_connect.js";
+import { getApplication2DatabaseStatus } from "./src/api/database_status.js";
+import { getApplication2DatabaseSummary } from "./src/api/database_summary.js";
+import type { Application2DatabaseStatus, Application2DatabaseSummary } from "./src/types.js";
 
 type DashboardData = {
   status: Application2DatabaseStatus;

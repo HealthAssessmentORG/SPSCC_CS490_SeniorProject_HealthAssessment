@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-import { validateRecord } from "../../Application/02/src/validate/rules_engine";
-import type { Application2WriterFieldPlan } from "../../Application/02/src/mapping/build_writer_plan";
+import { validateRecord } from "../../Application/02/src/validate/rules_engine.js";
+import type { Application2WriterFieldPlan } from "../../Application/02/src/mapping/build_writer_plan.js";
 
 test.describe("Application 2 validateRecord", () => {
   test("allows blank padded domain values when length is correct", () => {

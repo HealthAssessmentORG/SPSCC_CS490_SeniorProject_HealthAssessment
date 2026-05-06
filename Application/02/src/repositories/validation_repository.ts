@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { type DbPool, execSql, sql } from "../db_connect";
-import type { Application2ValidationErrorRow } from "../validate/rules_engine";
+import { type DbPool, execSql, sql } from "../db_connect.js";
+import type { Application2ValidationErrorRow } from "../validate/rules_engine.js";
 
 export async function insertValidationError(
   pool: DbPool,

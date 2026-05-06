@@ -1,15 +1,15 @@
-import { type DbPool } from "../../db/db_connect";
-import { classifyValuesSpec, inferNumericTemplateWidth } from "../spec_import/spec_values_part_01_utils";
-import { Rng } from "./generator_part_01_rng";
-import { AssessmentRow } from "./generator_part_02_insert_assessments";
+import { type DbPool } from "../../db/db_connect.js";
+import { classifyValuesSpec, inferNumericTemplateWidth } from "../spec_import/spec_values_part_01_utils.js";
+import { Rng } from "./generator_part_01_rng.js";
+import { AssessmentRow } from "./generator_part_02_insert_assessments.js";
 import {
   insertProviderReview as insertProviderReviewRow,
   insertResponse as insertResponseRow
-} from "./generator_part_04_repository";
+} from "./generator_part_04_repository.js";
 import {
   formatDateYyyymmdd,
   seededRngFromParts
-} from "../shared/deterministic_utils";
+} from "../shared/deterministic_utils.js";
 
 /**
  * Data used to seed a single response for the generator.
@@ -174,7 +174,7 @@ export function generateSpecResponseValue(
 
   if ((spec.kind === "enum" || spec.kind === "enum_yn") && spec.enum_pairs && spec.enum_pairs.length) {
     const codes = spec.enum_pairs.map((x) => x.code);
-    return codes[rng.int(0, codes.length - 1)];
+    return codes[rng.int(0, codes.length - 1)]!;
   }
 
   if (field.domain_type === "DATE_YYYYMMDD" || spec.kind === "date_yyyymmdd") {
@@ -323,6 +323,7 @@ export function buildResponseAndProviderReviewSeeds(
 
   for (let i = 0; i < assessments.length; i++) {
     const a = assessments[i];
+    if (!a) throw new Error("Missing assessment row");
     const ordinal = i + 1;
 
     const responses =

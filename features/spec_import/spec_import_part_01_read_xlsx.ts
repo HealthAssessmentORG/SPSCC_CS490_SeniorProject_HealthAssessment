@@ -87,7 +87,7 @@ function mustNum(v: any, label: string): number {
  * @param label - A label identifying the context or purpose of the lookup (currently unused)
  * @returns The value associated with the first matching normalized key, or undefined if no key is found
  */
-function getVal(rowMap: Map<string, any>, keys: string[], label: string): any {
+function getVal(rowMap: Map<string, any>, keys: string[]): any {
   for (const k of keys) {
     const nk = normKey(k);
     if (rowMap.has(nk)) return rowMap.get(nk);
@@ -122,6 +122,7 @@ export function readExportSpecXlsx(
   if (!sheetName) throw new Error("XLSX has no sheets");
 
   const ws = wb.Sheets[sheetName];
+  if (!ws) throw new Error(`XLSX sheet not found: ${sheetName}`);
 
   // If debugging needed:
   // const preview = XLSX.utils.sheet_to_json<any>(ws, { defval: null, range: 0, blankrows: false });
@@ -134,34 +135,34 @@ export function readExportSpecXlsx(
   for (const r of rows) {
     const m = buildKeyMap(r);
 
-    const orderRaw = getVal(m, ["ORDER"], "ORDER");
+    const orderRaw = getVal(m, ["ORDER"]);
     if (orderRaw == null) continue;
 
     const order = mustNum(orderRaw, "ORDER");
 
-    const field_name = String(getVal(m, ["FIELDNAME", "FIELD_NAME"], "FIELDNAME") ?? "").trim();
+    const field_name = String(getVal(m, ["FIELDNAME", "FIELD_NAME"]) ?? "").trim();
     if (!field_name) {
       // Skip any odd rows that have ORDER but no fieldname
       continue;
     }
 
-    const length = mustNum(getVal(m, ["LENGTH"], "LENGTH"), "LENGTH");
-    const start_pos = mustNum(getVal(m, ["STARTPOS", "START_POS", "START POS"], "START POS"), "START POS");
+    const length = mustNum(getVal(m, ["LENGTH"]), "LENGTH");
+    const start_pos = mustNum(getVal(m, ["STARTPOS", "START_POS", "START POS"]), "START POS");
 
     // END POS header is often wrapped; accept many variants:
-    let endRaw = getVal(m, ["ENDPOS", "END_POS", "END POS", "END\r\nPOS", "END\nPOS"], "END POS");
+    let endRaw = getVal(m, ["ENDPOS", "END_POS", "END POS", "END\r\nPOS", "END\nPOS"]);
 
     // If END POS is missing for any reason, infer it from start+length
     const end_pos = endRaw == null ? (start_pos + length - 1) : mustNum(endRaw, "END POS");
 
-    const question_code_raw = getVal(m, ["QUESTION", "QUESTION_CODE"], "QUESTION");
+    const question_code_raw = getVal(m, ["QUESTION", "QUESTION_CODE"]);
     const question_code =
       question_code_raw != null && String(question_code_raw).trim() !== ""
         ? String(question_code_raw).trim()
         : null;
 
-    const descRaw = getVal(m, ["DESCRIPTION", "DESC"], "DESCRIPTION");
-    const valuesRaw = getVal(m, ["VALUES", "VALUE_SPEC", "VALUES_SPEC"], "VALUES");
+    const descRaw = getVal(m, ["DESCRIPTION", "DESC"]);
+    const valuesRaw = getVal(m, ["VALUES", "VALUE_SPEC", "VALUES_SPEC"]);
 
     fields.push({
       order,

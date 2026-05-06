@@ -1,7 +1,7 @@
-import { getApplication2Pool, type DbPool } from "../db_connect";
-import { loadDatabaseSummary as loadDatabaseSummaryFromRepository } from "../repositories/database_summary_repository";
-import type { Application2DatabaseSummary } from "../types";
-import { safeApplication2DbConfigError } from "./db_error";
+import { getApplication2Pool, type DbPool } from "../db_connect.js";
+import { loadDatabaseSummary as loadDatabaseSummaryFromRepository } from "../repositories/database_summary_repository.js";
+import type { Application2DatabaseSummary } from "../types.js";
+import { safeApplication2DbConfigError } from "./db_error.js";
 
 export type Application2DatabaseSummaryDeps = {
   getPool?: () => Promise<DbPool>;

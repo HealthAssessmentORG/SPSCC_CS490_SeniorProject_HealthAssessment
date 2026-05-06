@@ -1,10 +1,10 @@
-import { DbPool, execSql, sql } from "../../db/db_connect";
-import { Rng } from "../generator/generator_part_01_rng";
+import { DbPool, execSql, sql } from "../../db/db_connect.js";
+import { Rng } from "../generator/generator_part_01_rng.js";
 import {
   formatDateYyyymmdd,
   seededRngFromParts,
   truncateValue
-} from "../shared/deterministic_utils";
+} from "../shared/deterministic_utils.js";
 
 export type Alpha1FieldRow = {
   field_id: number;

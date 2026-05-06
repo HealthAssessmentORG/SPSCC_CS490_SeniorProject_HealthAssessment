@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-import { formatDatabaseFormSummary } from "../../Application/02/src/cli/database_form_summary_format";
-import type { Application2DatabaseFormSummary } from "../../Application/02/src/types";
-import { runApplication2Cli } from "../_helpers/runCli";
+import { formatDatabaseFormSummary } from "../../Application/02/src/cli/database_form_summary_format.js";
+import type { Application2DatabaseFormSummary } from "../../Application/02/src/types.js";
+import { runApplication2Cli } from "../_helpers/runCli.js";
 
 const clearedDbEnv = {
   DB_SERVER: "",

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 import {
   Alpha1FieldRow,
   buildAlpha1PreviewBatch
-} from "../../features/alpha1/alpha1_part_01_workflow";
+} from "../../features/alpha1/alpha1_part_01_workflow.js";
 
 const emailField: Alpha1FieldRow = { field_id: 1, field_code: "EMAIL", field_name: "Deployer Email" };
 const dobField: Alpha1FieldRow = { field_id: 2, field_code: "DOB", field_name: "Date of Birth" };
@@ -34,7 +34,7 @@ const longQuestionField: Alpha1FieldRow = {
 };
 
 function responseFor(field: Alpha1FieldRow, seed: number, assessmentIndex: number): string {
-  return buildAlpha1PreviewBatch([field], assessmentIndex, seed)[assessmentIndex - 1].fields[0].response;
+  return buildAlpha1PreviewBatch([field], assessmentIndex, seed)[assessmentIndex - 1]!.fields[0]!.response;
 }
 
 test.describe("alpha1 generator", () => {
@@ -89,9 +89,10 @@ test.describe("alpha1 generator", () => {
     const preview = buildAlpha1PreviewBatch([emailField, longQuestionField], 2, 123);
 
     expect(preview).toHaveLength(2);
-    expect(preview[0]).toMatchObject({ assessment_index: 1 });
-    expect(preview[0].fields).toHaveLength(2);
-    expect(preview[0].fields[0]).toHaveProperty("response");
+    const firstAssessment = preview[0]!;
+    expect(firstAssessment).toMatchObject({ assessment_index: 1 });
+    expect(firstAssessment.fields).toHaveLength(2);
+    expect(firstAssessment.fields[0]).toHaveProperty("response");
   });
 
   test("locks preview batch response arrays for fixed seed", () => {

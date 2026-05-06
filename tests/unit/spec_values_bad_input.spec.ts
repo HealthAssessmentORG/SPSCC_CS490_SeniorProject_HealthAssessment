@@ -3,7 +3,7 @@ import {
   classifyValuesSpec,
   inferNumericTemplateWidth,
   parseEnumPairs,
-} from "../../features/spec_import/spec_values_part_01_utils";
+} from "../../features/spec_import/spec_values_part_01_utils.js";
 
 test.describe("spec values bad-input handling", () => {
   test("malformed enum-like values do not crash parsing", () => {

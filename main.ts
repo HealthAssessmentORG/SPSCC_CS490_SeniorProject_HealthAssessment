@@ -2,13 +2,13 @@ import "dotenv/config";
 
 import fs from "node:fs";
 
-import { closePool, getPool } from "./db/db_connect";
+import { closePool, getPool } from "./db/db_connect.js";
 import {
   runAlpha1Command,
   type Alpha1CommandOptions,
   type Alpha1CommandResult,
   type Alpha1FieldRow
-} from "./features/alpha1/alpha1_part_01_workflow";
+} from "./features/alpha1/alpha1_part_01_workflow.js";
 
 type InspectArgs = {
   command: "check-db" | "fields";

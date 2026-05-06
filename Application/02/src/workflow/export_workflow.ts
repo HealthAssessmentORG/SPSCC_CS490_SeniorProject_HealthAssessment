@@ -1,22 +1,22 @@
-import type { DbPool } from "../db_connect";
-import { buildFixedWidthLine } from "../fixed_width/place_fields";
-import { writeLinesToFile } from "../fixed_width/stream_write";
-import { buildParsedRuleMap, buildWriterPlan } from "../mapping/build_writer_plan";
-import { createExportFile } from "../repositories/export_file_repository";
-import { loadExportRecordContext } from "../repositories/export_repository";
+import type { DbPool } from "../db_connect.js";
+import { buildFixedWidthLine } from "../fixed_width/place_fields.js";
+import { writeLinesToFile } from "../fixed_width/stream_write.js";
+import { buildParsedRuleMap, buildWriterPlan } from "../mapping/build_writer_plan.js";
+import { createExportFile } from "../repositories/export_file_repository.js";
+import { loadExportRecordContext } from "../repositories/export_repository.js";
 import {
   loadExportFields,
   loadExportSpecLayout,
   loadRawMappingRules
-} from "../repositories/mapping_repository";
-import { loadAssessmentIdsForRun, updateRunStatus } from "../repositories/run_repository";
-import { persistValidationErrors } from "../repositories/validation_repository";
-import { validateRecord, type Application2ValidationErrorRow } from "../validate/rules_engine";
+} from "../repositories/mapping_repository.js";
+import { loadAssessmentIdsForRun, updateRunStatus } from "../repositories/run_repository.js";
+import { persistValidationErrors } from "../repositories/validation_repository.js";
+import { validateRecord, type Application2ValidationErrorRow } from "../validate/rules_engine.js";
 import type {
   Application2ExportOptions,
   Application2ExportProgressHandler,
   Application2ExportResult
-} from "../types";
+} from "../types.js";
 
 type Application2ExportWorkflowHooks = {
   onRecordWritten?: Application2ExportProgressHandler;

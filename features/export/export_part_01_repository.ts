@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { type DbPool, execSql, sql } from "../../db/db_connect";
-import type { RecordContext } from "../mapping/mapping_compile_part_02_build_writer_plan";
+import { type DbPool, execSql, sql } from "../../db/db_connect.js";
+import type { RecordContext } from "../mapping/mapping_compile_part_02_build_writer_plan.js";
 
 export type ExportFileInsert = {
   runId: string;

@@ -1,18 +1,18 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 
-import { runApplication2Cli } from "../_helpers/runCli";
+import { runApplication2Cli } from "../_helpers/runCli.js";
 
-const shouldRun = process.env.RUN_APP2_DB_E2E === "1";
+const shouldRun = process.env["RUN_APP2_DB_E2E"] === "1";
 
 test.describe("Application 2 export flow (DB)", () => {
   test.skip(!shouldRun, "Set RUN_APP2_DB_E2E=1 to enable (requires APP2_DB_* env vars).");
   test.describe.configure({ mode: "serial" });
 
   test("exports an existing run using explicit IDs", async ({}, testInfo) => {
-    const runId = process.env.APP2_E2E_RUN_ID;
-    const exportSpecId = process.env.APP2_E2E_EXPORT_SPEC_ID;
-    const mappingSetId = process.env.APP2_E2E_MAPPING_SET_ID;
+    const runId = process.env["APP2_E2E_RUN_ID"];
+    const exportSpecId = process.env["APP2_E2E_EXPORT_SPEC_ID"];
+    const mappingSetId = process.env["APP2_E2E_MAPPING_SET_ID"];
     test.skip(
       !runId || !exportSpecId || !mappingSetId,
       "Set APP2_E2E_RUN_ID, APP2_E2E_EXPORT_SPEC_ID, and APP2_E2E_MAPPING_SET_ID to run export flow."
@@ -89,9 +89,9 @@ test.describe("Application 2 export flow (DB)", () => {
   });
 
   test("non-json export prints only the final summary lines on stdout", async ({}, testInfo) => {
-    const runId = process.env.APP2_E2E_RUN_ID;
-    const exportSpecId = process.env.APP2_E2E_EXPORT_SPEC_ID;
-    const mappingSetId = process.env.APP2_E2E_MAPPING_SET_ID;
+    const runId = process.env["APP2_E2E_RUN_ID"];
+    const exportSpecId = process.env["APP2_E2E_EXPORT_SPEC_ID"];
+    const mappingSetId = process.env["APP2_E2E_MAPPING_SET_ID"];
     test.skip(
       !runId || !exportSpecId || !mappingSetId,
       "Set APP2_E2E_RUN_ID, APP2_E2E_EXPORT_SPEC_ID, and APP2_E2E_MAPPING_SET_ID to run export flow."
