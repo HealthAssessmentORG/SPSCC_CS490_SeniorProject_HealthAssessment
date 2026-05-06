@@ -5,6 +5,10 @@ import type {
   Application2DatabaseSummaryExportFile,
   Application2DatabaseSummaryRun
 } from "../types.js";
+import {
+  detectSupportedDatabaseSchema,
+  type DatabaseSchemaDetection
+} from "./database_schema.js";
 
 function toIsoString(value: unknown): string | null {
   if (value == null) return null;
@@ -12,7 +16,7 @@ function toIsoString(value: unknown): string | null {
   return String(value);
 }
 
-function buildCounts(row: Record<string, unknown> | undefined): Application2DatabaseSummaryCounts {
+function buildApplication2Counts(row: Record<string, unknown> | undefined): Application2DatabaseSummaryCounts {
   return {
     runs: Number(row?.["runs"] ?? 0),
     deployers: Number(row?.["deployers"] ?? 0),
@@ -25,6 +29,23 @@ function buildCounts(row: Record<string, unknown> | undefined): Application2Data
     mapping_rules: Number(row?.["mapping_rules"] ?? 0),
     export_files: Number(row?.["export_files"] ?? 0),
     validation_errors: Number(row?.["validation_errors"] ?? 0)
+  };
+}
+
+function buildLegacyAlpha1Counts(row: Record<string, unknown> | undefined): Application2DatabaseSummaryCounts {
+  return {
+    fields: Number(row?.["fields"] ?? 0),
+    runs: 0,
+    deployers: 0,
+    assessments: Number(row?.["assessments"] ?? 0),
+    responses: Number(row?.["responses"] ?? 0),
+    provider_reviews: 0,
+    export_specs: 0,
+    export_fields: 0,
+    mapping_sets: 0,
+    mapping_rules: 0,
+    export_files: 0,
+    validation_errors: 0
   };
 }
 
@@ -56,8 +77,10 @@ function buildLatestExportFile(
   };
 }
 
-export async function loadDatabaseSummary(pool: DbPool): Promise<Application2DatabaseSummary> {
-  const dbResult = await execSql(pool, "SELECT DB_NAME() AS database_name");
+async function loadApplication2DatabaseSummary(
+  pool: DbPool,
+  schema: DatabaseSchemaDetection
+): Promise<Application2DatabaseSummary> {
   const countsResult = await execSql(
     pool,
     `
@@ -95,11 +118,42 @@ export async function loadDatabaseSummary(pool: DbPool): Promise<Application2Dat
   );
 
   return {
-    database: String((dbResult.recordset as Array<{ database_name: unknown }>)[0]?.database_name ?? ""),
-    counts: buildCounts((countsResult.recordset as Array<Record<string, unknown>>)[0]),
+    database: schema.database,
+    counts: buildApplication2Counts((countsResult.recordset as Array<Record<string, unknown>>)[0]),
     latest_run: buildLatestRun((latestRunResult.recordset as Array<Record<string, unknown>>)[0]),
     latest_export_file: buildLatestExportFile(
       (latestExportFileResult.recordset as Array<Record<string, unknown>>)[0]
     )
   };
+}
+
+async function loadLegacyAlpha1DatabaseSummary(
+  pool: DbPool,
+  schema: DatabaseSchemaDetection
+): Promise<Application2DatabaseSummary> {
+  const countsResult = await execSql(
+    pool,
+    `
+      SELECT
+        (SELECT COUNT(*) FROM dbo.ASSESSMENT) AS assessments,
+        (SELECT COUNT(*) FROM dbo.FIELD) AS fields,
+        (SELECT COUNT(*) FROM dbo.RESPONSE) AS responses
+    `
+  );
+
+  return {
+    database: schema.database,
+    counts: buildLegacyAlpha1Counts((countsResult.recordset as Array<Record<string, unknown>>)[0]),
+    latest_run: null,
+    latest_export_file: null
+  };
+}
+
+export async function loadDatabaseSummary(pool: DbPool): Promise<Application2DatabaseSummary> {
+  const schema = await detectSupportedDatabaseSchema(pool);
+  if (schema.schema === "legacy_alpha1") {
+    return await loadLegacyAlpha1DatabaseSummary(pool, schema);
+  }
+
+  return await loadApplication2DatabaseSummary(pool, schema);
 }

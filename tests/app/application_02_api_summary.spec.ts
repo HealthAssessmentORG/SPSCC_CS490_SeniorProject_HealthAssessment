@@ -5,6 +5,7 @@ import { test, expect } from "@playwright/test";
 
 import { createApplication2Server } from "../../Application/02/src/api/server.js";
 import { closeApplication2Pool, type DbPool } from "../../Application/02/src/db_connect.js";
+import { APPLICATION2_REQUIRED_DATABASE_TABLES } from "../../Application/02/src/repositories/database_status_repository.js";
 
 type QueryCall = {
   text: string;
@@ -35,6 +36,10 @@ const zeroCounts = {
   export_files: 0,
   validation_errors: 0
 };
+
+function app2TableRows() {
+  return APPLICATION2_REQUIRED_DATABASE_TABLES.map((table) => ({ TABLE_NAME: table }));
+}
 
 function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
   const calls: QueryCall[] = [];
@@ -115,6 +120,7 @@ test.describe("Application 2 database summary API", () => {
     const createdAt = new Date("2026-02-14T00:05:00.000Z");
     const { pool, calls } = fakePool([
       [{ database_name: "app2_test" }],
+      app2TableRows(),
       [
         {
           runs: "2",
@@ -195,18 +201,19 @@ test.describe("Application 2 database summary API", () => {
       expect(JSON.stringify(body)).not.toContain("must-not-leak");
     });
 
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(5);
     expect(calls[0]!.text).toContain("DB_NAME()");
-    expect(calls[1]!.text).toContain("COUNT(*)");
-    expect(calls[1]!.text).toContain("FROM dbo.VALIDATION_ERROR");
-    expect(calls[2]!.text).toContain("FROM dbo.[RUN]");
-    expect(calls[2]!.text).toContain("ORDER BY started_at DESC, run_id DESC");
-    expect(calls[3]!.text).toContain("FROM dbo.EXPORT_FILE");
-    expect(calls[3]!.text).toContain("ORDER BY created_at DESC, export_file_id DESC");
+    expect(calls[1]!.text).toContain("INFORMATION_SCHEMA.TABLES");
+    expect(calls[2]!.text).toContain("COUNT(*)");
+    expect(calls[2]!.text).toContain("FROM dbo.VALIDATION_ERROR");
+    expect(calls[3]!.text).toContain("FROM dbo.[RUN]");
+    expect(calls[3]!.text).toContain("ORDER BY started_at DESC, run_id DESC");
+    expect(calls[4]!.text).toContain("FROM dbo.EXPORT_FILE");
+    expect(calls[4]!.text).toContain("ORDER BY created_at DESC, export_file_id DESC");
   });
 
   test("GET /database/summary returns null latest rows when no rows exist", async () => {
-    const { pool } = fakePool([[{ database_name: "app2_empty" }], [zeroCounts], [], []]);
+    const { pool } = fakePool([[{ database_name: "app2_empty" }], app2TableRows(), [zeroCounts], [], []]);
 
     await withServer(createApplication2Server({ getPool: async () => pool }), async (baseUrl) => {
       const response = await fetch(`${baseUrl}/database/summary`);
@@ -221,6 +228,46 @@ test.describe("Application 2 database summary API", () => {
         latest_export_file: null
       });
     });
+  });
+
+  test("GET /database/summary returns legacy alpha1 counts", async () => {
+    const { pool, calls } = fakePool([
+      [{ database_name: "DD2975_PreDHA" }],
+      [{ TABLE_NAME: "ASSESSMENT" }, { TABLE_NAME: "FIELD" }, { TABLE_NAME: "RESPONSE" }],
+      [{ assessments: "2", fields: "20", responses: "40" }]
+    ]);
+
+    await withServer(createApplication2Server({ getPool: async () => pool }), async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/database/summary`);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toEqual({
+        ok: true,
+        database: "DD2975_PreDHA",
+        counts: {
+          fields: 20,
+          runs: 0,
+          deployers: 0,
+          assessments: 2,
+          responses: 40,
+          provider_reviews: 0,
+          export_specs: 0,
+          export_fields: 0,
+          mapping_sets: 0,
+          mapping_rules: 0,
+          export_files: 0,
+          validation_errors: 0
+        },
+        latest_run: null,
+        latest_export_file: null
+      });
+    });
+
+    expect(calls).toHaveLength(3);
+    expect(calls[1]!.text).toContain("INFORMATION_SCHEMA.TABLES");
+    expect(calls[2]!.text).toContain("FROM dbo.FIELD");
+    expect(calls[2]!.text).not.toContain("FROM dbo.[RUN]");
   });
 
   test("GET /database/summary returns safe missing-env failure from default DB config", async () => {

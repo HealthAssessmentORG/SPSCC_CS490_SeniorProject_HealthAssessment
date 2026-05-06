@@ -56,6 +56,7 @@ export type Application2DatabaseStatus = {
 };
 
 export type Application2DatabaseSummaryCounts = {
+  fields?: number;
   runs: number;
   deployers: number;
   assessments: number;

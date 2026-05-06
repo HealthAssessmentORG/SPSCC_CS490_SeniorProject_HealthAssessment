@@ -125,6 +125,29 @@ test.describe("Application 2 database status API", () => {
     expect(calls[1]!.text).not.toContain("COUNT(");
   });
 
+  test("GET /database/status accepts the legacy alpha1 schema", async () => {
+    const { pool } = fakePool([
+      [{ database_name: "DD2975_PreDHA" }],
+      [{ TABLE_NAME: "ASSESSMENT" }, { TABLE_NAME: "FIELD" }, { TABLE_NAME: "RESPONSE" }]
+    ]);
+
+    await withServer(createApplication2Server({ getPool: async () => pool }), async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/database/status`);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toEqual({
+        ok: true,
+        database: "DD2975_PreDHA",
+        tables: {
+          ASSESSMENT: true,
+          FIELD: true,
+          RESPONSE: true
+        }
+      });
+    });
+  });
+
   test("GET /database/status returns safe missing-env failure from default DB config", async () => {
     await withClearedApp2DbEnv(async () => {
       await withServer(createApplication2Server(), async (baseUrl) => {
