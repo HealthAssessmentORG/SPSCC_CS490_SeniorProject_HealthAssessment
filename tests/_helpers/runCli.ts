@@ -12,6 +12,13 @@ type RunOptions = {
   entry?: string;
 };
 
+function childEnv(overrides?: Record<string, string | undefined>): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, ...(overrides ?? {}) };
+  delete env["FORCE_COLOR"];
+  delete env["NO_COLOR"];
+  return env;
+}
+
 async function runTsEntry(
   entry: string,
   args: string[],
@@ -26,7 +33,7 @@ async function runTsEntry(
     return await new Promise<RunResult>((resolve, reject) => {
       const child = spawn(npx, npxArgs, {
         cwd: opts?.cwd ?? process.cwd(),
-        env: { ...process.env, ...(opts?.env ?? {}) },
+        env: childEnv(opts?.env),
         stdio: ["ignore", "pipe", "pipe"],
       });
 
@@ -44,7 +51,7 @@ async function runTsEntry(
     return await new Promise<RunResult>((resolve, reject) => {
       const child = spawn(nodeBin, ["--import", "tsx", resolvedEntry, ...args], {
         cwd: opts?.cwd ?? process.cwd(),
-        env: { ...process.env, ...(opts?.env ?? {}) },
+        env: childEnv(opts?.env),
         stdio: ["ignore", "pipe", "pipe"],
       });
 

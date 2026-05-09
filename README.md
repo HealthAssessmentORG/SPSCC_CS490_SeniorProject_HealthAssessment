@@ -18,6 +18,34 @@ npm run ui:app2
 npm run ui:app3
 ```
 
+## Testing
+
+Run all Playwright-backed tests:
+
+```bash
+npm test
+```
+
+Run unit tests by application:
+
+```bash
+npm run test:unit:app2
+npm run test:unit:app3
+```
+
+Run the non-DB Application 2 or Application 3 test sets:
+
+```bash
+npm run test:app2
+npm run test:app3
+```
+
+Application 2 DB integration tests stay opt-in:
+
+```bash
+RUN_APP2_DB_E2E=1 npm run test:app2:db
+```
+
 ## Steps for Windows
 
 ### 1.) Install Node.js
