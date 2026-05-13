@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import { renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
+import { renderExampleUi, type ExampleUiModel } from "./backend/ui.ts";
 
 // Edit this function if you want different CLI flags or default title behavior.
 function parseTitle(argv: string[]): string {
