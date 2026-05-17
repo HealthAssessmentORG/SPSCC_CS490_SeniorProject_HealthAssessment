@@ -18,6 +18,34 @@ npm run ui:app2
 npm run ui:app3
 ```
 
+### Application 03 UI Demo
+
+Run App 3 UI:
+
+```bash
+npm run ui:app3
+```
+
+For the passing case, select:
+
+```text
+Application/03/demo/valid_output.txt
+Application/03/demo/layout.json
+```
+
+For the failing case, select:
+
+```text
+Application/03/demo/invalid_output.txt
+Application/03/demo/layout.json
+```
+
+Press `w` on the validation screen to write the UI report, then view it:
+
+```bash
+sed -n '1,120p' out/milestones/demo/app3_ui_report.txt
+```
+
 ## Testing
 
 Run all Playwright-backed tests:
@@ -141,7 +169,7 @@ sqlcmd -No -S "localhost,1433" -U "$EXPORT_DB_USER" -P "$EXPORT_DB_PASSWORD" -d 
 #### 5) Configure Alpha1 Environment
 Set these before using the default alpha1 CLI in `main.ts`:
 ```bash
-export DB_SERVER=24.18.27.110
+export DB_SERVER=<database-host>
 export DB_PORT=1433
 export DB_DATABASE=DD2975_PreDHA
 export DB_USER=sa

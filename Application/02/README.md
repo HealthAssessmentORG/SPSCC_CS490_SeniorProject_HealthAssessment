@@ -4,6 +4,36 @@ Application 2 pulls existing database records, transforms them into export rows,
 
 Current status: independent export flow, database status API, database summary API, and database summary command are wired.
 
+## Ink UI
+
+Run the dashboard with:
+
+```bash
+npm run ui:app2
+```
+
+By default, the dashboard uses the live Application 2 database status and summary helpers. It reads only the `APP2_DB_*` database namespace documented below.
+
+For customer demo rehearsals where SQL Server is unavailable, use saved demo data:
+
+```bash
+APP2_UI_DEMO_DATA_PATH=out/milestones/demo/fixtures/app2_ui_demo_data.json npm run ui:app2
+```
+
+When saved data is used, the dashboard displays:
+
+```text
+Data source: saved demo data
+```
+
+Live mode displays:
+
+```text
+Data source: live database
+```
+
+Saved demo data must be sanitized JSON. Do not put passwords, connection strings, external database addresses, raw `.env` values, or real customer data in the fixture.
+
 ## CLI
 
 Run the CLI with the root project toolchain:
@@ -164,7 +194,7 @@ APP2_API_PORT
 Defaults:
 
 ```text
-APP2_API_HOST=127.0.0.1
+APP2_API_HOST=localhost
 APP2_API_PORT=3002
 ```
 
