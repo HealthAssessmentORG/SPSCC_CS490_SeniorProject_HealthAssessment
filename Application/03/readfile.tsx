@@ -4,6 +4,8 @@ import { createInterface } from "node:readline";
 import { Box, Text, useApp, useInput } from "ink";
 
 import { loadOutputLayout } from "./src/output_layout.js";
+import { APPLICATION3_REPORT_ERROR_SAMPLE_LIMIT } from "./src/report.js";
+import { writeApplication3UiHumanReport } from "./src/ui_report_action.js";
 import {
   validateApplication2OutputFile,
   type Application3ValidationWorkflowResult
@@ -11,7 +13,7 @@ import {
 
 type Props = {
   path: string;
-  layoutPath: string | undefined;
+  layoutPath: string;
   maxDisplayLines: number;
   onBack?: () => void;
 };
@@ -52,25 +54,25 @@ export default function ReadFile({ path, layoutPath, maxDisplayLines, onBack }: 
   const [result, setResult] = useState<Application3ValidationWorkflowResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [reportStatus, setReportStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setResult(null);
     setError(null);
+    setReportStatus(null);
     setPreview({ lines: [], truncated: false });
 
     async function loadFileState() {
       const nextPreview = await readPreviewLines(path, maxDisplayLines);
-      const nextResult = layoutPath
-        ? await loadOutputLayout(layoutPath).then((layout) =>
-            validateApplication2OutputFile({
-              inputPath: path,
-              layout,
-              layoutSource: layoutPath
-            })
-          )
-        : null;
+      const nextResult = await loadOutputLayout(layoutPath).then((layout) =>
+        validateApplication2OutputFile({
+          inputPath: path,
+          layout,
+          layoutSource: layoutPath
+        })
+      );
 
       if (!cancelled) {
         setPreview(nextPreview);
@@ -98,7 +100,14 @@ export default function ReadFile({ path, layoutPath, maxDisplayLines, onBack }: 
       setTimeout(() => process.exit(0), 0);
     }
     if (input === "b" && onBack) onBack();
+    if (input === "w" && result) {
+      void writeApplication3UiHumanReport(result).then((writeResult) => {
+        setReportStatus(writeResult.ok ? `Report written: ${writeResult.path}` : writeResult.message);
+      });
+    }
   });
+
+  const errorSample = result?.validation_errors.slice(0, APPLICATION3_REPORT_ERROR_SAMPLE_LIMIT) ?? [];
 
   return (
     <Box flexDirection="column">
@@ -108,7 +117,7 @@ export default function ReadFile({ path, layoutPath, maxDisplayLines, onBack }: 
       </Box>
       <Box>
         <Text bold>Layout:</Text>
-        <Text> {layoutPath ?? "Set APP3_LAYOUT_PATH to validate"}</Text>
+        <Text> {layoutPath}</Text>
       </Box>
 
       <Box marginTop={1} flexDirection="column">
@@ -126,9 +135,22 @@ export default function ReadFile({ path, layoutPath, maxDisplayLines, onBack }: 
                 {row.error_code}: {row.count}
               </Text>
             ))}
+            <Text bold>Error sample</Text>
+            {errorSample.length === 0 ? <Text>Error sample: none</Text> : null}
+            {errorSample.map((row) => (
+              <Text key={`${row.record_ordinal}:${row.export_field_name}:${row.error_code}:${row.actual ?? ""}`}>
+                record {row.record_ordinal} {row.export_field_name} {row.error_code}: expected {row.expected ?? "(none)"}, actual{" "}
+                {row.actual ?? "(none)"}; {row.message}
+              </Text>
+            ))}
+            {result.validation_errors.length > errorSample.length ? (
+              <Text dimColor>
+                Error sample truncated: {result.validation_errors.length - errorSample.length} more errors
+              </Text>
+            ) : null}
           </>
         )}
-        {!loading && !error && !result && <Text color="yellow">Validation skipped: layout is not configured.</Text>}
+        {reportStatus ? <Text>{reportStatus}</Text> : null}
       </Box>
 
       <Box marginTop={1} flexDirection="column">
@@ -141,7 +163,7 @@ export default function ReadFile({ path, layoutPath, maxDisplayLines, onBack }: 
       </Box>
 
       <Box marginTop={1}>
-        <Text dimColor>Press b to go back, q to quit.</Text>
+        <Text dimColor>Press w to write report, b to go back, q to quit.</Text>
       </Box>
     </Box>
   );

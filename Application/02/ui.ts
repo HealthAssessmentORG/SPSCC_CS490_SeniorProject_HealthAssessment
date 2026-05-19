@@ -2,21 +2,20 @@ import React from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 import { closeApplication2Pool } from "./src/db_connect.js";
 import { getApplication2DatabaseStatus } from "./src/api/database_status.js";
 import { getApplication2DatabaseSummary } from "./src/api/database_summary.js";
-import type { Application2DatabaseStatus, Application2DatabaseSummary } from "./src/types.js";
-
-type DashboardData = {
-  status: Application2DatabaseStatus;
-  summary: Application2DatabaseSummary;
-  loadedAt: string;
-};
+import {
+  loadApplication2UiDemoData,
+  readApplication2UiDemoDataPath,
+  type Application2DashboardData,
+  type Application2UiDataSource
+} from "./src/ui_demo_data.js";
 
 type DashboardState = {
-  data: DashboardData | null;
+  data: Application2DashboardData | null;
   error: string | null;
   loading: boolean;
   spinnerIndex: number;
@@ -40,7 +39,22 @@ function formatTimestamp(value: string | null): string {
   return parsed.toLocaleString();
 }
 
-async function loadDashboardData(): Promise<DashboardData> {
+function selectedDataSource(): Application2UiDataSource {
+  return readApplication2UiDemoDataPath() ? "saved demo data" : "live database";
+}
+
+function errorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (readApplication2UiDemoDataPath()) return message;
+  return `${message}\nDemo fallback: set APP2_UI_DEMO_DATA_PATH to a saved demo data JSON file.`;
+}
+
+async function loadDashboardData(): Promise<Application2DashboardData> {
+  const demoDataPath = readApplication2UiDemoDataPath();
+  if (demoDataPath) {
+    return await loadApplication2UiDemoData(demoDataPath);
+  }
+
   const [statusRes, summaryRes] = await Promise.all([
     getApplication2DatabaseStatus(),
     getApplication2DatabaseSummary()
@@ -71,7 +85,8 @@ async function loadDashboardData(): Promise<DashboardData> {
   return {
     status,
     summary,
-    loadedAt: new Date().toISOString()
+    loadedAt: new Date().toISOString(),
+    dataSource: "live database"
   };
 }
 
@@ -94,7 +109,7 @@ function DashboardUi() {
       setState((current) => ({
         ...current,
         loading: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: errorMessage(error)
       }));
     }
   }, []);
@@ -158,6 +173,7 @@ function DashboardUi() {
           ? "Status: error"
           : `Status: ready | loaded ${formatTimestamp(content?.loadedAt ?? null)}`
     ),
+    React.createElement(Text, null, `Data source: ${content?.dataSource ?? selectedDataSource()}`),
     state.error ? React.createElement(Text, { color: "red" }, state.error) : null,
     content
       ? React.createElement(

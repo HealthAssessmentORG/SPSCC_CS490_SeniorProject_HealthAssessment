@@ -30,7 +30,55 @@ Run the file picker with:
 npm run ui:app3
 ```
 
-Set `APP3_LAYOUT_PATH` before launching the UI to validate the selected file. `APP3_MAX_DISPLAY_LINES` controls the bounded preview size and defaults to 20.
+The UI first asks for the fixed-width output file, then asks for the layout JSON file. After both files are selected, it validates the output file and displays the selected paths, validation result, records checked, validation error count, deterministic error counts, and a bounded file preview.
+
+`APP3_LAYOUT_PATH` is still supported as an optional preselected layout path. When it is set, the UI skips the layout picker and validates the selected output file with that layout.
+
+`APP3_MAX_DISPLAY_LINES` controls the bounded preview size and defaults to 20.
+
+Press `w` after validation completes to write a human-readable report. The UI uses `APP3_REPORT_PATH` when set; otherwise it writes:
+
+```text
+out/milestones/demo/app3_ui_report.txt
+```
+
+UI report writing is explicit and human-readable only. JSON report output remains a CLI feature.
+
+Useful demo files:
+
+```text
+Application/03/demo/valid_output.txt
+Application/03/demo/invalid_output.txt
+Application/03/demo/layout.json
+```
+
+## UI Demo Smoke
+
+Run App 3 UI:
+
+```bash
+npm run ui:app3
+```
+
+For the passing case, select:
+
+```text
+Application/03/demo/valid_output.txt
+Application/03/demo/layout.json
+```
+
+For the failing case, select:
+
+```text
+Application/03/demo/invalid_output.txt
+Application/03/demo/layout.json
+```
+
+Press `w` on the validation screen to write the UI report, then view it:
+
+```bash
+sed -n '1,120p' out/milestones/demo/app3_ui_report.txt
+```
 
 ## Layout Contract
 

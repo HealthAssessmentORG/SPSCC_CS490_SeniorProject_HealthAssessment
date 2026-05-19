@@ -1,0 +1,17 @@
+{
+  "row_length": 18,
+  "fields": [
+    {
+      "field_name": "DODID",
+      "start_pos": 1,
+      "length": 10,
+      "domain_type": "DODID10"
+    },
+    {
+      "field_name": "DATE",
+      "start_pos": 11,
+      "length": 8,
+      "domain_type": "DATE_YYYYMMDD"
+    }
+  ]
+}
