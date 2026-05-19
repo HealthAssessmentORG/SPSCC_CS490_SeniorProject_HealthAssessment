@@ -8,7 +8,7 @@ type QueryCall = {
   inputs: Array<{ name: string; value: unknown }>;
 };
 
-function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
+function fakePool(recordsets: Array<Array<Record<string, unknown>> | Error>) {
   const calls: QueryCall[] = [];
 
   const pool = {
@@ -21,7 +21,9 @@ function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
         },
         async query(text: string) {
           calls.push({ text, inputs: [...inputs] });
-          return { recordset: recordsets.shift() ?? [] };
+          const next = recordsets.shift();
+          if (next instanceof Error) throw next;
+          return { recordset: next ?? [] };
         }
       };
     }
@@ -178,5 +180,16 @@ test.describe("Application 2 database form summary repository", () => {
     for (const call of calls) {
       expect(call.inputs).toEqual([]);
     }
+  });
+
+  test("reports a safe export-schema error when form metadata tables are missing", async () => {
+    const { pool } = fakePool([
+      [{ database_name: "DD2975_PreDHA" }],
+      new Error("Invalid object name 'dbo.EXPORT_SPEC'. Server=tcp:private-db password=secret")
+    ]);
+
+    await expect(loadDatabaseFormSummary(pool)).rejects.toThrow(
+      "Database form summary requires Application 2 export schema. Selected database DD2975_PreDHA is missing EXPORT_SPEC, EXPORT_FIELD, or MAPPING_SET."
+    );
   });
 });

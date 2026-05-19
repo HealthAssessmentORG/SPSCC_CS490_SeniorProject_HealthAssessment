@@ -57,6 +57,7 @@ test.describe("Application 2 CLI", () => {
 
     expect(r.code).toBe(0);
     expect(r.stderr).toBe("");
+    expect(r.stdout).toContain("Application/02/main.ts ui");
     expect(r.stdout).toContain("Application/02/main.ts export");
     expect(r.stdout).toContain("Application/02/main.ts db-summary [--json]");
     expect(r.stdout).toContain("--run-id <uuid>");
@@ -65,6 +66,31 @@ test.describe("Application 2 CLI", () => {
     expect(r.stdout).toContain("--out <path>");
     expect(r.stdout).toContain("Export flow is available");
     expect(r.stdout).toContain("Database status and summary APIs are available.");
+    expect(r.stdout).toContain("Ink UI");
+    expect(r.stdout).not.toContain("<<<<<<<");
+    expect(r.stdout).not.toContain("=======");
+    expect(r.stdout).not.toContain(">>>>>>>");
+  });
+
+  test("ui command help routes to usage without rendering the Ink UI", async () => {
+    const r = await runApplication2Cli(["ui", "--help"], { cwd: process.cwd(), env: clearedDbEnv });
+
+    expect(r.code).toBe(0);
+    expect(r.stderr).toBe("");
+    expect(r.stdout).toContain("Application/02/main.ts ui");
+    expect(r.stdout).toContain("Usage:");
+  });
+
+  test("unknown ui argument fails before rendering the Ink UI", async () => {
+    const r = await runApplication2Cli(["ui", "--definitely-not-real"], {
+      cwd: process.cwd(),
+      env: clearedDbEnv
+    });
+
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("Unknown argument for ui: --definitely-not-real");
+    expect(r.stdout).toContain("Usage:");
+    expect(r.stderr).not.toContain("Application 2 database connection failed.");
   });
 
   test("unknown command fails fast", async () => {
@@ -97,7 +123,7 @@ test.describe("Application 2 CLI", () => {
     expect(r.stderr).toContain("Unknown argument for export: --definitely-not-real");
   });
 
-  test("valid export command reaches APP2 DB layer without reading root DB env", async () => {
+  test("valid export command reports a safe DB config failure when no fallback namespace is set", async () => {
     const r = await runApplication2Cli(validExportArgs, { cwd: process.cwd(), env: clearedDbEnv });
 
     expect(r.code).toBe(1);

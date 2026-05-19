@@ -4,20 +4,45 @@ import dotenv from "dotenv";
 
 dotenv.config({ quiet: true });
 
-import { closeApplication2Pool } from "./src/db_connect.js";
+import { closeApplication2Pool, getApplication2Pool } from "./src/db_connect.js";
 import { getApplication2DatabaseStatus } from "./src/api/database_status.js";
 import { getApplication2DatabaseSummary } from "./src/api/database_summary.js";
+import { loadDatabaseFormSummary } from "./src/repositories/database_form_summary_repository.js";
+import { runApplication2ExportWorkflow } from "./src/workflow/export_workflow.js";
+import type { Application2DatabaseFormSummary } from "./src/types.js";
 import {
   loadApplication2UiDemoData,
   readApplication2UiDemoDataPath,
   type Application2DashboardData,
   type Application2UiDataSource
 } from "./src/ui_demo_data.js";
+import {
+  buildApplication2UiExportCompleteView,
+  buildApplication2UiExportReadiness,
+  formatApplication2UiExportProgress,
+  getApplication2UiExportBlockedNotice,
+  sanitizeApplication2UiExportError,
+  type Application2UiExportCompleteView,
+  type Application2UiExportPlan
+} from "./src/ui_export_state.js";
+
+type DashboardContent = Application2DashboardData & {
+  formSummary: Application2DatabaseFormSummary | null;
+  formSummaryAvailable: boolean;
+};
+
+type ExportStatus =
+  | { phase: "idle" }
+  | { phase: "running"; plan: Application2UiExportPlan; current: number; total: number }
+  | { phase: "complete"; plan: Application2UiExportPlan; result: Application2UiExportCompleteView }
+  | { phase: "failed"; plan: Application2UiExportPlan; error: string };
 
 type DashboardState = {
-  data: Application2DashboardData | null;
+  data: DashboardContent | null;
   error: string | null;
+  exportStatus: ExportStatus;
   loading: boolean;
+  notice: string | null;
   spinnerIndex: number;
 };
 
@@ -49,10 +74,14 @@ function errorMessage(error: unknown): string {
   return `${message}\nDemo fallback: set APP2_UI_DEMO_DATA_PATH to a saved demo data JSON file.`;
 }
 
-async function loadDashboardData(): Promise<Application2DashboardData> {
+async function loadDashboardData(): Promise<DashboardContent> {
   const demoDataPath = readApplication2UiDemoDataPath();
   if (demoDataPath) {
-    return await loadApplication2UiDemoData(demoDataPath);
+    return {
+      ...(await loadApplication2UiDemoData(demoDataPath)),
+      formSummary: null,
+      formSummaryAvailable: false
+    };
   }
 
   const [statusRes, summaryRes] = await Promise.all([
@@ -82,12 +111,89 @@ async function loadDashboardData(): Promise<Application2DashboardData> {
     latest_export_file: (summaryRes.body as any).latest_export_file
   };
 
+  let formSummary: Application2DatabaseFormSummary | null = null;
+  let formSummaryAvailable = false;
+  try {
+    formSummary = await loadDatabaseFormSummary(await getApplication2Pool());
+    formSummaryAvailable = true;
+  } catch {
+    formSummary = null;
+    formSummaryAvailable = false;
+  }
+
   return {
     status,
     summary,
+    formSummary,
+    formSummaryAvailable,
     loadedAt: new Date().toISOString(),
     dataSource: "live database"
   };
+}
+
+function renderExportSection(content: DashboardContent, exportStatus: ExportStatus) {
+  if (exportStatus.phase === "running") {
+    const progress = formatApplication2UiExportProgress(exportStatus.current, exportStatus.total);
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(Text, { bold: true }, "Export"),
+      React.createElement(Text, null, "  Export: running"),
+      React.createElement(Text, null, `  Records: ${progress.recordText}`),
+      React.createElement(Text, null, `  Progress: ${progress.percentText}`),
+      React.createElement(Text, null, `  Output: ${exportStatus.plan.out}`)
+    );
+  }
+
+  if (exportStatus.phase === "complete") {
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(Text, { bold: true }, "Export"),
+      React.createElement(Text, { color: "green" }, "  Export: complete"),
+      React.createElement(Text, null, `  Output: ${exportStatus.result.outPath}`),
+      React.createElement(Text, null, `  Record count: ${exportStatus.result.recordCount}`),
+      React.createElement(Text, null, `  Export file ID: ${exportStatus.result.exportFileId}`),
+      React.createElement(Text, null, `  Validation errors: ${exportStatus.result.validationErrorCount}`)
+    );
+  }
+
+  if (exportStatus.phase === "failed") {
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(Text, { bold: true }, "Export"),
+      React.createElement(Text, { color: "red" }, "  Export: failed"),
+      React.createElement(Text, null, `  Error: ${exportStatus.error}`),
+      React.createElement(Text, null, `  Output: ${exportStatus.plan.out}`)
+    );
+  }
+
+  const readiness = buildApplication2UiExportReadiness(
+    content,
+    content.formSummary,
+    content.formSummaryAvailable
+  );
+  if (!readiness.ready) {
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(Text, { bold: true }, "Export"),
+      React.createElement(Text, { color: "yellow" }, `  ${readiness.reason}`)
+    );
+  }
+
+  return React.createElement(
+    React.Fragment,
+    null,
+    React.createElement(Text, { bold: true }, "Export"),
+    React.createElement(Text, { color: "green" }, "  Export: ready | Press e to export"),
+    React.createElement(Text, null, `  Run ID: ${readiness.plan.runId}`),
+    React.createElement(Text, null, `  Form: ${readiness.plan.formName}`),
+    React.createElement(Text, null, `  Export spec ID: ${readiness.plan.exportSpecId}`),
+    React.createElement(Text, null, `  Mapping set ID: ${readiness.plan.mappingSetId}`),
+    React.createElement(Text, null, `  Output: ${readiness.plan.out}`)
+  );
 }
 
 function DashboardUi() {
@@ -95,12 +201,77 @@ function DashboardUi() {
   const [state, setState] = React.useState<DashboardState>({
     data: null,
     error: null,
+    exportStatus: { phase: "idle" },
     loading: true,
+    notice: null,
     spinnerIndex: 0
   });
 
+  const startExport = React.useCallback(async (plan: Application2UiExportPlan) => {
+    setState((current) => ({
+      ...current,
+      exportStatus: { phase: "running", plan, current: 0, total: 0 },
+      notice: null
+    }));
+
+    try {
+      const pool = await getApplication2Pool();
+      const result = await runApplication2ExportWorkflow(
+        pool,
+        {
+          runId: plan.runId,
+          exportSpecId: plan.exportSpecId,
+          mappingSetId: plan.mappingSetId,
+          out: plan.out,
+          json: false
+        },
+        {
+          onRecordWritten: async ({ current, total }) => {
+            setState((existing) => {
+              if (existing.exportStatus.phase !== "running") return existing;
+              return {
+                ...existing,
+                exportStatus: {
+                  ...existing.exportStatus,
+                  current,
+                  total
+                }
+              };
+            });
+          }
+        }
+      );
+
+      setState((current) => ({
+        ...current,
+        exportStatus: {
+          phase: "complete",
+          plan,
+          result: buildApplication2UiExportCompleteView(result)
+        },
+        notice: null
+      }));
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        exportStatus: {
+          phase: "failed",
+          plan,
+          error: sanitizeApplication2UiExportError(error)
+        },
+        notice: null
+      }));
+    }
+  }, []);
+
   const refresh = React.useCallback(async () => {
-    setState((current) => ({ ...current, loading: true, error: null }));
+    setState((current) => ({
+      ...current,
+      loading: true,
+      error: null,
+      exportStatus: { phase: "idle" },
+      notice: null
+    }));
 
     try {
       const data = await loadDashboardData();
@@ -109,6 +280,7 @@ function DashboardUi() {
       setState((current) => ({
         ...current,
         loading: false,
+        exportStatus: { phase: "idle" },
         error: errorMessage(error)
       }));
     }
@@ -135,18 +307,52 @@ function DashboardUi() {
   }, [state.loading]);
 
   useInput((input, key) => {
+    const blockedNotice = getApplication2UiExportBlockedNotice(state.exportStatus.phase);
     if (key.ctrl && input === "c") {
+      if (blockedNotice) {
+        setState((current) => ({ ...current, notice: blockedNotice }));
+        return;
+      }
       exit();
       return;
     }
 
     if (input.toLowerCase() === "q") {
+      if (blockedNotice) {
+        setState((current) => ({ ...current, notice: blockedNotice }));
+        return;
+      }
       exit();
       return;
     }
 
     if (input.toLowerCase() === "r" && !state.loading) {
+      if (blockedNotice) {
+        setState((current) => ({ ...current, notice: blockedNotice }));
+        return;
+      }
       void refresh();
+      return;
+    }
+
+    if (input.toLowerCase() === "e" && !state.loading) {
+      if (blockedNotice) {
+        setState((current) => ({ ...current, notice: blockedNotice }));
+        return;
+      }
+      if (!state.data || state.exportStatus.phase !== "idle") return;
+
+      const readiness = buildApplication2UiExportReadiness(
+        state.data,
+        state.data.formSummary,
+        state.data.formSummaryAvailable
+      );
+      if (!readiness.ready) {
+        setState((current) => ({ ...current, notice: readiness.reason }));
+        return;
+      }
+
+      void startExport(readiness.plan);
     }
   });
 
@@ -175,6 +381,7 @@ function DashboardUi() {
     ),
     React.createElement(Text, null, `Data source: ${content?.dataSource ?? selectedDataSource()}`),
     state.error ? React.createElement(Text, { color: "red" }, state.error) : null,
+    state.notice ? React.createElement(Text, { color: "yellow" }, state.notice) : null,
     content
       ? React.createElement(
           React.Fragment,
@@ -213,6 +420,7 @@ function DashboardUi() {
             null,
             `  Created: ${formatTimestamp(content.summary.latest_export_file?.created_at ?? null)}`
           ),
+          renderExportSection(content, state.exportStatus),
           React.createElement(Text, { bold: true }, "Required tables"),
           ...Object.entries(content.status.tables).map(([table, exists]) =>
             React.createElement(
@@ -223,7 +431,13 @@ function DashboardUi() {
           )
         )
       : null,
-    React.createElement(Text, { dimColor: true }, "Keys: r refresh, q quit, Ctrl+C quit"),
+    React.createElement(
+      Text,
+      { dimColor: true },
+      state.exportStatus.phase === "running"
+        ? "Keys: export running; wait for completion"
+        : "Keys: r refresh, e export when ready, q quit, Ctrl+C quit"
+    ),
     state.loading ? React.createElement(Text, { color: "yellow" }, `Loading ${spinner}`) : null
   );
 }

@@ -241,7 +241,15 @@ Application 2 can print a read-only summary of form definitions in the Applicati
 node --import tsx Application/02/main.ts db-summary
 ```
 
-Application 2 reads only `APP2_DB_*` environment variables. If your `.env` currently has `EXPORT_DB_*` for the export schema, map them when running the command:
+If you want Node to load the repository `.env` file directly, include `--env-file=.env`:
+
+```bash
+node --env-file=.env --import tsx Application/02/main.ts db-summary
+```
+
+Application 2 reads database settings in this order: `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`. This lets App2 use the same physical database as the existing export or root DB configuration when that database has the Application 2 export schema.
+
+Explicit `APP2_DB_*` values are still useful when you want App2 to ignore the other database settings:
 
 ```bash
 set -a; source .env; set +a
@@ -260,6 +268,28 @@ For machine-readable output:
 
 ```bash
 node --import tsx Application/02/main.ts db-summary --json
+```
+
+Application 2 Ink UI:
+
+```bash
+npm run ui:app2
+node --import tsx Application/02/main.ts ui
+```
+
+Saved demo UI smoke:
+
+```bash
+APP2_UI_DEMO_DATA_PATH=out/milestones/demo/fixtures/app2_ui_demo_data.json npm run ui:app2
+```
+
+The saved-demo UI is read-only and disables live export. With a live App2 export-schema database, the UI export section becomes ready only when a latest run, export spec ID, and mapping set ID are available. Press `e` to start export, then watch record progress and the final output path, export file ID, record count, and validation error count.
+
+For live UI export, use the same database configuration guidance shown above for `db-summary`. To load `.env` directly:
+
+```bash
+node --env-file=.env --import tsx Application/02/main.ts ui
+node --env-file=.env --import tsx Application/02/main.ts db-summary
 ```
 
 ### Legacy compatibility run
@@ -297,6 +327,10 @@ less -S ./out/dd2975_prealpha_seed0.txt
 ## Troubleshooting
 
 ### `db-summary`: `Database form summary check failed`
+
+This command checks `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`. Loading `.env` with `--env-file=.env` is enough when one of those namespaces is complete and points at the Application 2 export-schema database.
+
+If `node --env-file=.env --import tsx Application/02/main.ts ui` opens and shows `Name: DD2975_PreDHA`, App2 is connected to the older alpha1 database. The UI can show status and counts for that database, but `db-summary` and UI export need the Application 2 export-schema tables listed below.
 
 This command expects the Application 2 export schema, not the older alpha1 3-table database.
 
@@ -339,7 +373,11 @@ sqlcmd -No -S "$EXPORT_DB_SERVER,$EXPORT_DB_PORT" \
 Then inspect the selected Application 2 database tables:
 
 ```bash
-sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" -U "$APP2_DB_USER" -P "$APP2_DB_PASSWORD" -d "$APP2_DB_DATABASE" -Q "
+sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" \
+  -U "$APP2_DB_USER" \
+  -P "$APP2_DB_PASSWORD" \
+  -d "$APP2_DB_DATABASE" \
+  -Q "
 SELECT DB_NAME() AS database_name;
 SELECT s.name + '.' + t.name AS table_name
 FROM sys.tables t

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "pre-alpha", "alpha", "alpha-M6", "dev-kyle", "alpha-M6-UI", "milestone-7" ]
+    branches: [ "pre-alpha", "alpha", "alpha-M6", "dev-kyle", "alpha-M6-UI", "milestone-7", "milestone-8" ]
   pull_request:
-    branches: [ "pre-alpha", "alpha", "alpha-M6", "dev-kyle", "alpha-M6-UI", "milestone-7" ]
+    branches: [ "pre-alpha", "alpha", "alpha-M6", "dev-kyle", "alpha-M6-UI", "milestone-7", "milestone-8" ]
 
 jobs:
   m6-application-02:

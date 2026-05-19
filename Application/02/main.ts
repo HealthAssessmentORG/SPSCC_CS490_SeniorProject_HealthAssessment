@@ -14,6 +14,7 @@ import type {
 
 type ParsedArgs =
   | { command: "help" }
+  | { command: "ui" }
   | { command: "db-summary"; json: boolean }
   | ({ command: "export" } & Application2ExportOptions);
 
@@ -21,15 +22,12 @@ function usage(exitCode = 0): never {
   const msg = `
 Usage:
   node --import tsx Application/02/main.ts --help
+  node --import tsx Application/02/main.ts ui
   node --import tsx Application/02/main.ts export --run-id <uuid> --export-spec-id <uuid> --mapping-set-id <uuid> --out <path> [--json]
   node --import tsx Application/02/main.ts db-summary [--json]
 
 Application 2 status:
-<<<<<<< HEAD
-  Export flow is available. Database status and summary APIs are available.
-=======
-  Export flow, database status API, database summary API, and db-summary command are available.
->>>>>>> origin/alpha-M6
+  Export flow is available. Database status and summary APIs are available. The db-summary command and Ink UI are available.
 `.trim();
 
   fs.writeSync(1, msg + "\n");
@@ -66,9 +64,20 @@ function parseDbSummaryArgs(rest: string[]): ParsedArgs {
   return { command: "db-summary", json };
 }
 
+function parseUiArgs(rest: string[]): ParsedArgs {
+  for (const arg of rest) {
+    if (arg === "-h" || arg === "--help") {
+      return { command: "help" };
+    }
+    throw new Error(`Unknown argument for ui: ${arg}`);
+  }
+
+  return { command: "ui" };
+}
+
 function parseArgs(argv: string[]): ParsedArgs {
   if (argv.length === 0) {
-    throw new Error("A command is required: export");
+    throw new Error("A command is required: ui, export, or db-summary");
   }
 
   const [command, ...rest] = argv;
@@ -78,6 +87,10 @@ function parseArgs(argv: string[]): ParsedArgs {
 
   if (command === "db-summary") {
     return parseDbSummaryArgs(rest);
+  }
+
+  if (command === "ui") {
+    return parseUiArgs(rest);
   }
 
   if (command !== "export") {
@@ -149,7 +162,19 @@ function printHumanRecordProgress(current: number, total: number) {
 }
 
 function sanitizeDbSummaryError(error: unknown): string {
-  return safeApplication2DbConfigError(error) ?? "Database form summary check failed";
+  const safeDbError = safeApplication2DbConfigError(error);
+  if (safeDbError) return safeDbError;
+
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    /^Database form summary requires Application 2 export schema\. Selected database [A-Za-z0-9_. -]+ is missing EXPORT_SPEC, EXPORT_FIELD, or MAPPING_SET\.$/.test(
+      message
+    )
+  ) {
+    return message;
+  }
+
+  return "Database form summary check failed";
 }
 
 function printJsonLine(value: unknown) {
@@ -194,6 +219,10 @@ async function main() {
   }
 
   if (args.command === "help") usage(0);
+  if (args.command === "ui") {
+    await import("./ui.js");
+    return;
+  }
   if (args.command === "db-summary") {
     await runDbSummaryCommand(args);
     return;

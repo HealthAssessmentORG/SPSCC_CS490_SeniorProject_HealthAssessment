@@ -92,47 +92,68 @@ function buildForms(
   });
 }
 
+function exportSchemaError(database: string): Error {
+  return new Error(
+    `Database form summary requires Application 2 export schema. Selected database ${database} is missing EXPORT_SPEC, EXPORT_FIELD, or MAPPING_SET.`
+  );
+}
+
+function isMissingExportSchemaError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /Invalid object name 'dbo\.(EXPORT_SPEC|EXPORT_FIELD|MAPPING_SET)'/i.test(message);
+}
+
 export async function loadDatabaseFormSummary(pool: DbPool): Promise<Application2DatabaseFormSummary> {
   const dbResult = await execSql(pool, "SELECT DB_NAME() AS database_name");
-  const specsResult = await execSql(
-    pool,
-    `
-      SELECT export_spec_id, spec_name, spec_version
-      FROM dbo.EXPORT_SPEC
-      ORDER BY spec_name, spec_version, export_spec_id
-    `
-  );
-  const fieldsResult = await execSql(
-    pool,
-    `
-      SELECT
-        export_spec_id,
-        export_field_id,
-        field_order,
-        question_code,
-        field_name,
-        start_pos,
-        end_pos,
-        field_length
-      FROM dbo.EXPORT_FIELD
-      ORDER BY export_spec_id, field_order, field_name, export_field_id
-    `
-  );
-  const mappingSetsResult = await execSql(
-    pool,
-    `
-      SELECT export_spec_id, mapping_set_id
-      FROM dbo.MAPPING_SET
-      ORDER BY export_spec_id, mapping_set_id
-    `
-  );
+  const database = String((dbResult.recordset as Array<{ database_name: unknown }>)[0]?.database_name ?? "");
+
+  let specsResult;
+  let fieldsResult;
+  let mappingSetsResult;
+  try {
+    specsResult = await execSql(
+      pool,
+      `
+        SELECT export_spec_id, spec_name, spec_version
+        FROM dbo.EXPORT_SPEC
+        ORDER BY spec_name, spec_version, export_spec_id
+      `
+    );
+    fieldsResult = await execSql(
+      pool,
+      `
+        SELECT
+          export_spec_id,
+          export_field_id,
+          field_order,
+          question_code,
+          field_name,
+          start_pos,
+          end_pos,
+          field_length
+        FROM dbo.EXPORT_FIELD
+        ORDER BY export_spec_id, field_order, field_name, export_field_id
+      `
+    );
+    mappingSetsResult = await execSql(
+      pool,
+      `
+        SELECT export_spec_id, mapping_set_id
+        FROM dbo.MAPPING_SET
+        ORDER BY export_spec_id, mapping_set_id
+      `
+    );
+  } catch (error) {
+    if (isMissingExportSchemaError(error)) throw exportSchemaError(database);
+    throw error;
+  }
 
   const specs = specsResult.recordset as FormSpecRow[];
   const fields = fieldsResult.recordset as FormFieldRow[];
   const mappingSets = mappingSetsResult.recordset as MappingSetRow[];
 
   return {
-    database: String((dbResult.recordset as Array<{ database_name: unknown }>)[0]?.database_name ?? ""),
+    database,
     forms: buildForms(specs, groupFields(fields), groupMappingSetIds(mappingSets))
   };
 }

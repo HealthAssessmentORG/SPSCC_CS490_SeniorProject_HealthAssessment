@@ -6,7 +6,7 @@ import { runApplication2Cli } from "../_helpers/runCli.js";
 const shouldRun = process.env["RUN_APP2_DB_E2E"] === "1";
 
 test.describe("Application 2 export flow (DB)", () => {
-  test.skip(!shouldRun, "Set RUN_APP2_DB_E2E=1 to enable (requires APP2_DB_* env vars).");
+  test.skip(!shouldRun, "Set RUN_APP2_DB_E2E=1 to enable (requires APP2_DB_*, EXPORT_DB_*, or DB_* env vars).");
   test.describe.configure({ mode: "serial" });
 
   test("exports an existing run using explicit IDs", async ({}, testInfo) => {
