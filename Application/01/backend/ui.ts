@@ -5,7 +5,11 @@ import sql from "mssql";
 export type ExampleUiModel = {
 	status: string;
 	options: string[];
-	onRunRandomRows: (seed: number | null, assessmentCount: number) => Promise<string>;
+	onRunRandomRows: (
+		seed: number | null,
+		assessmentCount: number,
+		mode?: "full" | "faker" | "sql"
+	) => Promise<string>;
 };
 
 type InputMode = "none" | "seed" | "assessmentCount";
@@ -104,11 +108,39 @@ function MenuUi(props: ExampleUiModel) {
 	const selectCurrent = async () => {
 		const selected = props.options[selectedIndex];
 
-		if (selected === "Run random_rows.py") {
+		if (selected === "Run Faker Data") {
 			setBusy(true);
-			setStatus("Running random_rows.py...");
+			setStatus("Generating faker data...");
 			try {
-				const result = await props.onRunRandomRows(seed, assessmentCount);
+				const result = await props.onRunRandomRows(seed, assessmentCount, "faker");
+				setStatus(result);
+			} catch (error) {
+				setStatus(`Run failed: ${String(error)}`);
+			} finally {
+				setBusy(false);
+			}
+			return;
+		}
+
+		if (selected === "Run SQL Statement") {
+			setBusy(true);
+			setStatus("Executing SQL statements...");
+			try {
+				const result = await props.onRunRandomRows(seed, assessmentCount, "sql");
+				setStatus(result);
+			} catch (error) {
+				setStatus(`Run failed: ${String(error)}`);
+			} finally {
+				setBusy(false);
+			}
+			return;
+		}
+
+		if (selected === "Run Full Data Fill") {
+			setBusy(true);
+			setStatus("Running full data fill...");
+			try {
+				const result = await props.onRunRandomRows(seed, assessmentCount, "full");
 				setStatus(result);
 			} catch (error) {
 				setStatus(`Run failed: ${String(error)}`);
@@ -120,19 +152,13 @@ function MenuUi(props: ExampleUiModel) {
 
 		if (selected === "Edit Seed") {
 			setInputMode("seed");
-			setInputValue(String(seed));
+			setInputValue(seed === null ? "" : String(seed));
 			return;
 		}
 
 		if (selected === "Edit Assessment Count") {
 			setInputMode("assessmentCount");
 			setInputValue(String(assessmentCount));
-			return;
-		}
-
-		if (selected === "Clear Seed") {
-			setSeed(null);
-			setStatus("Seed cleared.");
 			return;
 		}
 
@@ -145,6 +171,14 @@ function MenuUi(props: ExampleUiModel) {
 		if (inputMode !== "none") {
 			// In input mode
 			if (key.return) {
+				if (inputMode === "seed" && inputValue.trim() === "") {
+					setSeed(null);
+					setStatus("Seed cleared. Faker generation will not be seeded.");
+					setInputMode("none");
+					setInputValue("");
+					return;
+				}
+
 				const numValue = parseInt(inputValue, 10);
 				if (!Number.isNaN(numValue) && numValue > 0) {
 					if (inputMode === "seed") {
@@ -219,7 +253,9 @@ function MenuUi(props: ExampleUiModel) {
 					React.createElement(
 						Text,
 						null,
-						`Enter ${inputMode === "seed" ? "seed" : "assessment count"} (positive integer): ${inputValue}`
+						inputMode === "seed"
+							? `Enter seed (positive integer, or leave blank to clear): ${inputValue}`
+							: `Enter assessment count (positive integer): ${inputValue}`
 					),
 					React.createElement(Text, { dimColor: true }, "Press Enter to confirm, Esc to cancel.")
 				)

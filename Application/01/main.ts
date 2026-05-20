@@ -9,7 +9,11 @@ async function run(): Promise<void> {
 	// Edit this if your Python executable differs.
 	const pythonCommand = resolve(process.cwd(), ".venv", "Scripts", "python.exe");
 
-	const runRandomRows = async (seed: number | null, assessmentCount: number): Promise<string> => {
+    const runRandomRows = async (
+		seed: number | null,
+		assessmentCount: number,
+		mode: "full" | "faker" | "sql" = "full"
+	): Promise<string> => {
 		return new Promise((resolveResult, rejectResult) => {
 			const env: NodeJS.ProcessEnv = {
 				...process.env,
@@ -19,7 +23,7 @@ async function run(): Promise<void> {
 				env["RANDOM_ROWS_SEED"] = String(seed);
 			}
 
-			const child = spawn(pythonCommand, [scriptPath], {
+			const child = spawn(pythonCommand, [scriptPath, "--mode", mode], {
 				cwd: process.cwd(),
 				stdio: "inherit",
 				env,
@@ -43,7 +47,14 @@ async function run(): Promise<void> {
 	const model: ExampleUiModel = {
 		status: "Ready",
 		// Edit these options to add/remove actions in the menu.
-		options: ["Edit Seed", "Clear Seed", "Edit Assessment Count", "Run random_rows.py", "Exit"],
+		options: [
+			"Edit Seed",
+			"Edit Assessment Count",
+			"Run Faker Data",
+			"Run SQL Statement",
+			"Run Full Data Fill",
+			"Exit"
+		],
 		onRunRandomRows: runRandomRows,
 	};
 

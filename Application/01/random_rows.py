@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import os
 import random
 
@@ -11,13 +12,26 @@ CONN_STRING = os.getenv(
     "SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;",
 )
 ASSESSMENT_COUNT = int(os.getenv("RANDOM_ROWS_ASSESSMENTS", "1"))
-SEED = os.getenv("RANDOM_ROWS_SEED")  # None if not set
+SEED = os.getenv("RANDOM_ROWS_SEED") or None  # None if not set or blank
 MAX_RESPONSE_LENGTH = 255
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Generate and insert synthetic RESPONSE rows.")
+    parser.add_argument(
+        "--mode",
+        choices=("full", "faker", "sql"),
+        default="full",
+        help="Run the full fill, faker-only generation, or SQL statement generation.",
+    )
+    return parser
 
 
 def normalize(value: str) -> str:
     return " ".join(str(value).split())[:MAX_RESPONSE_LENGTH]
 
+
+# Faker data generation -----------------------------------------------------
 
 def make_response(fake: Faker, rng: random.Random, field_name: str) -> str:
     name = field_name.lower()
@@ -52,6 +66,28 @@ def make_response(fake: Faker, rng: random.Random, field_name: str) -> str:
     return normalize(fake.sentence(nb_words=8))
 
 
+def build_response_value(fake: Faker, seed_value: str | None, assessment_idx: int, field_id: int, field_name: str) -> str:
+    if seed_value is not None:
+        rng = random.Random(f"{seed_value}|{assessment_idx}|{field_id}")
+    else:
+        rng = random.Random()
+
+    return normalize(make_response(fake, rng, field_name))
+
+
+def build_response_rows(fake: Faker, seed_value: str | None, assessment_idx: int, fields: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    return [
+        (field_id, build_response_value(fake, seed_value, assessment_idx, field_id, field_name))
+        for field_id, field_name in fields
+    ]
+
+
+def sql_literal(value: str | int) -> str:
+    if isinstance(value, int):
+        return str(value)
+    return "'" + value.replace("'", "''") + "'"
+
+
 def load_fields(cursor) -> list[tuple[int, str]]:
     cursor.execute(
         """
@@ -78,21 +114,88 @@ def insert_assessment(cursor) -> int:
     return int(row[0])
 
 
-def insert_response(cursor, assessment_id: int, field_id: int, response: str) -> None:
-    cursor.execute(
+def build_assessment_insert_sql() -> str:
+    return """
+        INSERT INTO dbo.ASSESSMENT
+        OUTPUT INSERTED.assessment_id
+        DEFAULT VALUES;
         """
+
+
+# SQL statement construction ------------------------------------------------
+
+def build_response_insert_sql() -> str:
+    return """
         INSERT INTO dbo.RESPONSE (assessment_id, field_id, response)
         VALUES (%(assessment_id)s, %(field_id)s, %(response)s);
-        """,
-        {
-            "assessment_id": assessment_id,
-            "field_id": field_id,
-            "response": response,
-        },
+        """
+
+
+def build_response_insert_params(assessment_id: int, field_id: int, response: str) -> dict[str, int | str]:
+    return {
+        "assessment_id": assessment_id,
+        "field_id": field_id,
+        "response": response,
+    }
+
+
+def render_response_insert_sql(assessment_id: int, field_id: int, response: str) -> str:
+    return (
+        "INSERT INTO dbo.RESPONSE (assessment_id, field_id, response) VALUES ("
+        f"{sql_literal(assessment_id)}, {sql_literal(field_id)}, {sql_literal(response)});"
     )
 
 
+def insert_response(cursor, assessment_id: int, field_id: int, response: str) -> None:
+    cursor.execute(
+        build_response_insert_sql(),
+        build_response_insert_params(assessment_id, field_id, response),
+    )
+
+
+def run_faker_mode(fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:
+    generated_values = 0
+    for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
+        for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
+            generated_values += 1
+
+    print(f"Generated {ASSESSMENT_COUNT} assessment row(s) and {generated_values} faker response value(s).")
+
+
+def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:
+    executed_statements = 0
+
+    for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
+        cursor.execute(build_assessment_insert_sql())
+        row = cursor.fetchone()
+        if not row:
+            raise RuntimeError("Failed to create assessment row.")
+
+        assessment_id = int(row[0])
+        executed_statements += 1
+
+        for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
+            cursor.execute(render_response_insert_sql(assessment_id, field_id, value))
+            executed_statements += 1
+
+    connection.commit()
+    print(f"Executed {executed_statements} SQL statement(s) for {ASSESSMENT_COUNT} assessment row(s).")
+
+
+def run_full_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:
+    inserted_responses = 0
+    for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
+        assessment_id = insert_assessment(cursor)
+        for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
+            insert_response(cursor, assessment_id, field_id, value)
+            inserted_responses += 1
+
+    connection.commit()
+    print(f"Inserted {ASSESSMENT_COUNT} assessment row(s) and {inserted_responses} response row(s).")
+
+
 def main() -> None:
+    args = build_parser().parse_args()
     if ASSESSMENT_COUNT < 1:
         raise ValueError("RANDOM_ROWS_ASSESSMENTS must be at least 1")
 
@@ -110,22 +213,15 @@ def main() -> None:
         if not fields:
             raise RuntimeError("FIELD table is empty. Populate FIELD before running this script.")
 
-        inserted_responses = 0
-        for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
-            assessment_id = insert_assessment(cursor)
-            for field_id, field_name in fields:
-                if SEED is not None:
-                    rng = random.Random(f"{SEED}|{assessment_idx}|{field_id}")
-                else:
-                    rng = random.Random()
-                value = normalize(make_response(fake, rng, field_name))
-                insert_response(cursor, assessment_id, field_id, value)
-                inserted_responses += 1
+        if args.mode == "faker":
+            run_faker_mode(fake, SEED, fields)
+            return
 
-        connection.commit()
-        print(
-            f"Inserted {ASSESSMENT_COUNT} assessment row(s) and {inserted_responses} response row(s)."
-        )
+        if args.mode == "sql":
+            run_sql_mode(connection, cursor, fake, SEED, fields)
+            return
+
+        run_full_mode(connection, cursor, fake, SEED, fields)
     except Exception:
         connection.rollback()
         raise
