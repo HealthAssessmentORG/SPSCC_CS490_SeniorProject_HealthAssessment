@@ -9,6 +9,12 @@ export type ExampleUiModel = {
 };
 
 type InputMode = "none" | "seed" | "assessmentCount";
+type UiPhase = "welcome" | "menu";
+
+function requestExit(exit: () => void) {
+	exit();
+	process.exit(0);
+}
 
 function MenuUi(props: ExampleUiModel) {
 	const { exit } = useApp();
@@ -70,7 +76,7 @@ function MenuUi(props: ExampleUiModel) {
 		}
 
 		if (selected === "Exit") {
-			exit();
+			requestExit(exit);
 		}
 	};
 
@@ -173,6 +179,44 @@ function MenuUi(props: ExampleUiModel) {
 	);
 }
 
+function WelcomeUi(props: { title: string; onContinue: () => void }) {
+	const { exit } = useApp();
+
+	useInput((input, key) => {
+		if (key.return || input === " ") {
+			props.onContinue();
+			return;
+		}
+
+		if (input.toLowerCase() === "q" || (key.ctrl && input === "c")) {
+			requestExit(exit);
+		}
+	});
+
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
+		React.createElement(Text, { bold: true, color: "cyan" }, props.title),
+		React.createElement(Text, null, "Welcome to the Application 1 demo."),
+		React.createElement(Text, null, "This screen appears first so the user can enter the UI intentionally."),
+		React.createElement(Text, null, "Press Enter or Space to continue."),
+		React.createElement(Text, { dimColor: true }, "Press q or Ctrl+C to quit.")
+	);
+}
+
 export function renderExampleUi(model: ExampleUiModel) {
-	return render(React.createElement(MenuUi, model));
+	function ExampleUiApp() {
+		const [phase, setPhase] = React.useState<UiPhase>("welcome");
+
+		if (phase === "welcome") {
+			return React.createElement(WelcomeUi, {
+				title: model.title,
+				onContinue: () => setPhase("menu")
+			});
+		}
+
+		return React.createElement(MenuUi, model);
+	}
+
+	return render(React.createElement(ExampleUiApp));
 }
