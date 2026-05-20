@@ -1,21 +1,8 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import { renderExampleUi, type ExampleUiModel } from "./backend/ui.ts";
-
-// Edit this function if you want different CLI flags or default title behavior.
-function parseTitle(argv: string[]): string {
-	const titleIndex = argv.findIndex((arg) => arg === "--title");
-	const title = titleIndex >= 0 ? argv[titleIndex + 1] : undefined;
-	if (title) {
-		return title;
-	}
-	// Edit this fallback text to change the default title when --title is not provided.
-	return "Dev Tools UI Example";
-}
+import { renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
 
 async function run(): Promise<void> {
-	const title = parseTitle(process.argv.slice(2));
-
 	// Edit this if the Python script moves to a different location.
 	const scriptPath = resolve(process.cwd(), "Application", "01", "random_rows.py");
 
@@ -54,7 +41,6 @@ async function run(): Promise<void> {
 	};
 
 	const model: ExampleUiModel = {
-		title,
 		status: "Ready",
 		// Edit these options to add/remove actions in the menu.
 		options: ["Edit Seed", "Clear Seed", "Edit Assessment Count", "Run random_rows.py", "Exit"],

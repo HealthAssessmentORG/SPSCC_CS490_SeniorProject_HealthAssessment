@@ -2,7 +2,6 @@ import React from "react";
 import { Box, Text, render, useInput, useApp } from "ink";
 
 export type ExampleUiModel = {
-	title: string;
 	status: string;
 	options: string[];
 	onRunRandomRows: (seed: number | null, assessmentCount: number) => Promise<string>;
@@ -107,13 +106,13 @@ function MenuUi(props: ExampleUiModel) {
 			}
 
 			if (key.backspace) {
-				setInputValue((current) => current.slice(0, -1));
+				setInputValue((current: string) => current.slice(0, -1));
 				return;
 			}
 
 			// Allow typing digits and basic characters
 			if (/^[0-9]$/.test(input)) {
-				setInputValue((current) => current + input);
+				setInputValue((current: string) => current + input);
 				return;
 			}
 			return;
@@ -145,7 +144,7 @@ function MenuUi(props: ExampleUiModel) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, props.title),
+		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Main Screen"),
 		React.createElement(Text, null, `Status: ${status}`),
 		React.createElement(Text, null, `Seed: ${seed === null ? "not set" : seed}, Assessment Count: ${assessmentCount}`),
 		busy
@@ -179,7 +178,7 @@ function MenuUi(props: ExampleUiModel) {
 	);
 }
 
-function WelcomeUi(props: { title: string; onContinue: () => void }) {
+function WelcomeUi(props: { onContinue: () => void }) {
 	const { exit } = useApp();
 
 	useInput((input, key) => {
@@ -196,7 +195,7 @@ function WelcomeUi(props: { title: string; onContinue: () => void }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, props.title),
+		React.createElement(Text, { bold: true, color: "cyan" }, "Welcome to Application 1"),
 		React.createElement(Text, null, "Welcome to the Application 1 demo."),
 		React.createElement(Text, null, "This screen appears first so the user can enter the UI intentionally."),
 		React.createElement(Text, null, "Press Enter or Space to continue."),
@@ -210,7 +209,6 @@ export function renderExampleUi(model: ExampleUiModel) {
 
 		if (phase === "welcome") {
 			return React.createElement(WelcomeUi, {
-				title: model.title,
 				onContinue: () => setPhase("menu")
 			});
 		}

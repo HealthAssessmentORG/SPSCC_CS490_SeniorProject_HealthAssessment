@@ -37,7 +37,7 @@
     "test:app2": "playwright test tests/unit/application_02_*.spec.ts tests/app/application_02_api_status.spec.ts tests/app/application_02_api_summary.spec.ts tests/app/application_02_cli.spec.ts tests/app/application_02_db_summary_cli.spec.ts",
     "test:app2:db": "playwright test tests/app/application_02_db.integration.spec.ts tests/app/application_02_export.integration.spec.ts",
     "test:app3": "playwright test tests/unit/application_03_*.spec.ts tests/app/application_03_cli.spec.ts",
-    "ui:app1": "node --experimental-strip-types Application/01/main.ts --title \"Ink Demo\"",
+    "ui:app1": "node --import tsx Application/01/main.ts",
     "ui:app2": "node --import tsx Application/02/ui.ts",
     "ui:app3": "node --import tsx Application/03/picker.tsx"
   }
