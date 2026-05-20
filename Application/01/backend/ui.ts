@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text, render, useInput, useApp } from "ink";
+import sql from "mssql";
 
 export type ExampleUiModel = {
 	status: string;
@@ -8,11 +9,72 @@ export type ExampleUiModel = {
 };
 
 type InputMode = "none" | "seed" | "assessmentCount";
-type UiPhase = "welcome" | "menu";
+type UiPhase = "welcome" | "choice" | "menu" | "dataView";
+
+type ValidationProgress = {
+	current: number;
+	total: number;
+	message: string;
+};
+
+const RANDOM_ROWS_MSSQL_CONN_STRING =
+	process.env["MSSQL_CONN_STRING"] ??
+	"SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;";
+
+function readConnectionTarget(connectionString: string): string {
+	const serverMatch = connectionString.match(/(?:^|;)\s*SERVER=([^;]+)/i);
+	const databaseMatch = connectionString.match(/(?:^|;)\s*DATABASE=([^;]+)/i);
+	const server = serverMatch?.[1]?.trim();
+	const database = databaseMatch?.[1]?.trim();
+
+	if (server && database) {
+		return `${server} / ${database}`;
+	}
+
+	return "random_rows.py MSSQL server";
+}
+
+async function validateRandomRowsConnection(
+	onProgress: (progress: ValidationProgress) => void
+): Promise<void> {
+	onProgress({
+		current: 1,
+		total: 3,
+		message: `Opening SQL Server connection for ${readConnectionTarget(RANDOM_ROWS_MSSQL_CONN_STRING)}`
+	});
+	const pool = await sql.connect(RANDOM_ROWS_MSSQL_CONN_STRING);
+
+	try {
+		onProgress({ current: 2, total: 3, message: "Running validation query (SELECT 1)..." });
+		const result = await pool.request().query("SELECT 1 AS ok");
+		if (!result.recordset || result.recordset.length === 0) {
+			throw new Error("Validation query returned no rows.");
+		}
+	} finally {
+		onProgress({ current: 3, total: 3, message: "Closing validation connection..." });
+		await pool.close();
+	}
+}
 
 function requestExit(exit: () => void) {
 	exit();
 	process.exit(0);
+}
+
+function PhaseTitle(props: { phase: UiPhase }) {
+	if (props.phase === "welcome") {
+		return "Checking MSSQL Connection";
+	}
+
+	if (props.phase === "choice") {
+		return "Choose a Screen";
+	}
+
+	if (props.phase === "dataView") {
+		return "Application 1 Data Viewer";
+	}
+
+	return "Application 1 Main Screen";
 }
 
 function MenuUi(props: ExampleUiModel) {
@@ -144,7 +206,7 @@ function MenuUi(props: ExampleUiModel) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Main Screen"),
+		React.createElement(Text, { bold: true, color: "cyan" }, "Data Filling"),
 		React.createElement(Text, null, `Status: ${status}`),
 		React.createElement(Text, null, `Seed: ${seed === null ? "not set" : seed}, Assessment Count: ${assessmentCount}`),
 		busy
@@ -178,12 +240,28 @@ function MenuUi(props: ExampleUiModel) {
 	);
 }
 
-function WelcomeUi(props: { onContinue: () => void }) {
+function ChoiceUi(props: { onSelectMain: () => void; onSelectDataView: () => void }) {
 	const { exit } = useApp();
+	const [selectedIndex, setSelectedIndex] = React.useState(0);
+	const options = ["Open Data Filling Screen", "Open Data Viewing Screen"];
 
 	useInput((input, key) => {
-		if (key.return || input === " ") {
-			props.onContinue();
+		if (key.upArrow) {
+			setSelectedIndex((current) => (current === 0 ? options.length - 1 : current - 1));
+			return;
+		}
+
+		if (key.downArrow) {
+			setSelectedIndex((current) => (current + 1) % options.length);
+			return;
+		}
+
+		if (key.return) {
+			if (selectedIndex === 0) {
+				props.onSelectMain();
+			} else {
+				props.onSelectDataView();
+			}
 			return;
 		}
 
@@ -195,11 +273,153 @@ function WelcomeUi(props: { onContinue: () => void }) {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, "Welcome to Application 1"),
-		React.createElement(Text, null, "Welcome to the Application 1 demo."),
-		React.createElement(Text, null, "This screen appears first so the user can enter the UI intentionally."),
-		React.createElement(Text, null, "Press Enter or Space to continue."),
-		React.createElement(Text, { dimColor: true }, "Press q or Ctrl+C to quit.")
+		React.createElement(Text, { bold: true, color: "cyan" }, PhaseTitle({ phase: "choice" })),
+		React.createElement(Text, null, "Pick where to go next."),
+		React.createElement(Text, { dimColor: true }, "Use up/down arrows, Enter to select, q to quit."),
+		...options.map((option, index) => {
+			const selected = index === selectedIndex;
+			return React.createElement(
+				Text,
+				selected ? { key: `${index}-${option}`, color: "green" } : { key: `${index}-${option}` },
+				`${selected ? ">" : " "} ${option}`
+			);
+		})
+	);
+}
+
+function DataViewUi(props: { onBack: () => void }) {
+	const { exit } = useApp();
+
+	useInput((input, key) => {
+		if (key.return || input === "b") {
+			props.onBack();
+			return;
+		}
+
+		if (input.toLowerCase() === "q" || (key.ctrl && input === "c")) {
+			requestExit(exit);
+		}
+	});
+
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
+		React.createElement(Text, { bold: true, color: "cyan" }, PhaseTitle({ phase: "dataView" })),
+		React.createElement(Text, null, "This screen is a placeholder for future data viewing."),
+		React.createElement(Text, null, "No data view behavior has been implemented yet."),
+		React.createElement(Text, { dimColor: true }, "Press Enter or b to go back, q to quit.")
+	);
+}
+
+function WelcomeUi(props: { onContinue: () => void }) {
+	const { exit } = useApp();
+	const [connectionStatus, setConnectionStatus] = React.useState("Preparing validation target...");
+	const [connectionError, setConnectionError] = React.useState<string | null>(null);
+	const [connectionReady, setConnectionReady] = React.useState(false);
+	const [validationAttempt, setValidationAttempt] = React.useState(0);
+	const [connectionProgress, setConnectionProgress] = React.useState<ValidationProgress>({
+		current: 0,
+		total: 3,
+		message: "Preparing validation target..."
+	});
+	const [spinnerIndex, setSpinnerIndex] = React.useState(0);
+
+	React.useEffect(() => {
+		let cancelled = false;
+
+		const runValidation = async () => {
+			setConnectionReady(false);
+			setConnectionError(null);
+			setConnectionStatus("Preparing validation target...");
+			setConnectionProgress({ current: 0, total: 3, message: "Preparing validation target..." });
+
+			try {
+				await validateRandomRowsConnection((progress: ValidationProgress) => {
+					if (!cancelled) {
+						setConnectionStatus(progress.message);
+						setConnectionProgress(progress);
+					}
+				});
+				if (!cancelled) {
+					setConnectionStatus("Connection verified. Press Enter or Space to continue.");
+					setConnectionReady(true);
+					setConnectionProgress({
+						current: 3,
+						total: 3,
+						message: "Connection verified. Press Enter or Space to continue."
+					});
+				}
+			} catch (error) {
+				if (!cancelled) {
+					setConnectionError(error instanceof Error ? error.message : String(error));
+					setConnectionReady(false);
+					setConnectionProgress((current) => ({
+						...current,
+						message: "Validation failed. Press r to retry or q to quit."
+					}));
+				}
+			}
+		};
+
+		void runValidation();
+		return () => {
+			cancelled = true;
+		};
+	}, [validationAttempt]);
+
+	React.useEffect(() => {
+		const timer = setInterval(() => {
+			setSpinnerIndex((current: number) => (current + 1) % 4);
+		}, 120);
+
+		return () => clearInterval(timer);
+	}, []);
+
+	useInput((input, key) => {
+		if (connectionReady && (key.return || input === " ")) {
+			props.onContinue();
+			return;
+		}
+
+		if (input.toLowerCase() === "r") {
+			setConnectionError(null);
+			setConnectionReady(false);
+			setValidationAttempt((current) => current + 1);
+			return;
+		}
+
+		if (input.toLowerCase() === "q" || (key.ctrl && input === "c")) {
+			requestExit(exit);
+		}
+	});
+
+	const spinner = ["|", "/", "-", "\\"][spinnerIndex];
+	const title = connectionReady
+		? "MSSQL Connection Verified"
+		: connectionError
+			? "MSSQL Connection Failed"
+			: "Checking MSSQL Connection";
+	const progressPercent = Math.min(100, Math.round((connectionProgress.current / connectionProgress.total) * 100));
+	const progressBarLength = 12;
+	const progressFilled = Math.round((progressPercent / 100) * progressBarLength);
+	const progressBar = `${"█".repeat(progressFilled)}${"░".repeat(progressBarLength - progressFilled)}`;
+
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
+		React.createElement(Text, { bold: true, color: "cyan" }, title),
+		React.createElement(Text, null, connectionStatus),
+		React.createElement(Text, null, `Progress: [${progressBar}] ${progressPercent}% (${connectionProgress.current}/${connectionProgress.total})`),
+		React.createElement(Text, null, `Target: ${readConnectionTarget(RANDOM_ROWS_MSSQL_CONN_STRING)}`),
+		connectionError ? React.createElement(Text, { color: "red" }, `Error: ${connectionError}`) : null,
+		connectionReady
+			? React.createElement(Text, { color: "green" }, "Connection validated. Press Enter or Space to continue.")
+			: React.createElement(Text, { color: "yellow" }, `Connecting ${spinner}`),
+		React.createElement(
+			Text,
+			{ dimColor: true },
+			connectionReady ? "Press r to recheck, q to quit." : "Wait for validation to finish; press r to retry or q to quit."
+		)
 	);
 }
 
@@ -209,7 +429,20 @@ export function renderExampleUi(model: ExampleUiModel) {
 
 		if (phase === "welcome") {
 			return React.createElement(WelcomeUi, {
-				onContinue: () => setPhase("menu")
+				onContinue: () => setPhase("choice")
+			});
+		}
+
+		if (phase === "choice") {
+			return React.createElement(ChoiceUi, {
+				onSelectMain: () => setPhase("menu"),
+				onSelectDataView: () => setPhase("dataView")
+			});
+		}
+
+		if (phase === "dataView") {
+			return React.createElement(DataViewUi, {
+				onBack: () => setPhase("choice")
 			});
 		}
 
