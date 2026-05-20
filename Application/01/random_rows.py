@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import random
 
@@ -82,6 +83,27 @@ def build_response_rows(fake: Faker, seed_value: str | None, assessment_idx: int
     ]
 
 
+def build_generated_responses(
+    fake: Faker,
+    seed_value: str | None,
+    fields: list[tuple[int, str]],
+) -> list[dict[str, int | str]]:
+    generated_responses: list[dict[str, int | str]] = []
+
+    for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
+        for field_id, field_name in fields:
+            generated_responses.append(
+                {
+                    "assessment_number": assessment_idx,
+                    "field_id": field_id,
+                    "field_name": field_name,
+                    "response": build_response_value(fake, seed_value, assessment_idx, field_id, field_name),
+                }
+            )
+
+    return generated_responses
+
+
 def sql_literal(value: str | int) -> str:
     if isinstance(value, int):
         return str(value)
@@ -154,12 +176,8 @@ def insert_response(cursor, assessment_id: int, field_id: int, response: str) ->
 
 
 def run_faker_mode(fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:
-    generated_values = 0
-    for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
-        for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
-            generated_values += 1
-
-    print(f"Generated {ASSESSMENT_COUNT} assessment row(s) and {generated_values} faker response value(s).")
+    generated_responses = build_generated_responses(fake, seed_value, fields)
+    print(json.dumps({"assessment_count": ASSESSMENT_COUNT, "responses": generated_responses}))
 
 
 def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:

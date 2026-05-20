@@ -13,7 +13,7 @@ async function run(): Promise<void> {
 		seed: number | null,
 		assessmentCount: number,
 		mode: "full" | "faker" | "sql" = "full"
-	): Promise<string> => {
+	): Promise<{ status: string; generatedResponses?: Array<{ assessment_number: number; field_id: number; field_name: string; response: string }> }> => {
 		return new Promise((resolveResult, rejectResult) => {
 			const env: NodeJS.ProcessEnv = {
 				...process.env,
@@ -25,8 +25,13 @@ async function run(): Promise<void> {
 
 			const child = spawn(pythonCommand, [scriptPath, "--mode", mode], {
 				cwd: process.cwd(),
-				stdio: "inherit",
+				stdio: ["ignore", "pipe", "inherit"],
 				env,
+			});
+
+			let stdout = "";
+			child.stdout?.on("data", (chunk: Buffer) => {
+				stdout += chunk.toString("utf8");
 			});
 
 			child.on("error", (error: unknown) => {
@@ -35,7 +40,23 @@ async function run(): Promise<void> {
 
 			child.on("close", (code: number | null) => {
 				if (code === 0) {
-					resolveResult("random_rows.py finished successfully.");
+					if (mode === "faker") {
+						try {
+							const preview = JSON.parse(stdout.trim() || "{}");
+							resolveResult({
+								status: `Generated ${preview.responses?.length ?? 0} response(s).`,
+								generatedResponses: preview.responses ?? [],
+							});
+							return;
+						} catch (error) {
+							rejectResult(error);
+							return;
+						}
+					}
+
+					resolveResult({
+						status: stdout.trim() || "random_rows.py finished successfully.",
+					});
 					return;
 				}
 
@@ -50,9 +71,10 @@ async function run(): Promise<void> {
 		options: [
 			"Edit Seed",
 			"Edit Assessment Count",
-			"Run Faker Data",
-			"Run SQL Statement",
-			"Run Full Data Fill",
+			"Generate Assessment(s)",
+			"View Assessment",
+			"Insert into Database",
+			"Generate and Insert",
 			"Exit"
 		],
 		onRunRandomRows: runRandomRows,

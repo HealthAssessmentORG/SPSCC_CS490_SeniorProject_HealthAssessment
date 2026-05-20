@@ -9,7 +9,15 @@ export type ExampleUiModel = {
 		seed: number | null,
 		assessmentCount: number,
 		mode?: "full" | "faker" | "sql"
-	) => Promise<string>;
+	) => Promise<{
+		status: string;
+		generatedResponses?: Array<{
+			assessment_number: number;
+			field_id: number;
+			field_name: string;
+			response: string;
+		}>;
+	}>;
 };
 
 type InputMode = "none" | "seed" | "assessmentCount";
@@ -19,6 +27,13 @@ type ValidationProgress = {
 	current: number;
 	total: number;
 	message: string;
+};
+
+type GeneratedResponse = {
+	assessment_number: number;
+	field_id: number;
+	field_name: string;
+	response: string;
 };
 
 const RANDOM_ROWS_MSSQL_CONN_STRING =
@@ -81,7 +96,7 @@ function PhaseTitle(props: { phase: UiPhase }) {
 	return "Application 1 Main Screen";
 }
 
-function MenuUi(props: ExampleUiModel) {
+function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGeneratedResponses: (responses: GeneratedResponse[]) => void; generatedResponses: GeneratedResponse[] }) {
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
 	const [status, setStatus] = React.useState(props.status);
@@ -108,12 +123,13 @@ function MenuUi(props: ExampleUiModel) {
 	const selectCurrent = async () => {
 		const selected = props.options[selectedIndex];
 
-		if (selected === "Run Faker Data") {
+		if (selected === "Generate Assessment(s)") {
 			setBusy(true);
 			setStatus("Generating faker data...");
 			try {
 				const result = await props.onRunRandomRows(seed, assessmentCount, "faker");
-				setStatus(result);
+				setStatus(result.status);
+				props.onGeneratedResponses(result.generatedResponses ?? []);
 			} catch (error) {
 				setStatus(`Run failed: ${String(error)}`);
 			} finally {
@@ -122,12 +138,22 @@ function MenuUi(props: ExampleUiModel) {
 			return;
 		}
 
-		if (selected === "Run SQL Statement") {
+		if (selected === "View Assessment") {
+			if (props.generatedResponses.length === 0) {
+				setStatus("Generate assessments first, then open the viewer.");
+				return;
+			}
+
+			props.onViewAssessment();
+			return;
+		}
+
+		if (selected === "Insert into Database") {
 			setBusy(true);
 			setStatus("Executing SQL statements...");
 			try {
 				const result = await props.onRunRandomRows(seed, assessmentCount, "sql");
-				setStatus(result);
+				setStatus(result.status);
 			} catch (error) {
 				setStatus(`Run failed: ${String(error)}`);
 			} finally {
@@ -136,12 +162,12 @@ function MenuUi(props: ExampleUiModel) {
 			return;
 		}
 
-		if (selected === "Run Full Data Fill") {
+		if (selected === "Generate and Insert") {
 			setBusy(true);
 			setStatus("Running full data fill...");
 			try {
 				const result = await props.onRunRandomRows(seed, assessmentCount, "full");
-				setStatus(result);
+				setStatus(result.status);
 			} catch (error) {
 				setStatus(`Run failed: ${String(error)}`);
 			} finally {
@@ -323,10 +349,32 @@ function ChoiceUi(props: { onSelectMain: () => void; onSelectDataView: () => voi
 	);
 }
 
-function DataViewUi(props: { onBack: () => void }) {
+function DataViewUi(props: { responses: GeneratedResponse[]; onBack: () => void }) {
 	const { exit } = useApp();
+	const [selectedIndex, setSelectedIndex] = React.useState(0);
+
+	React.useEffect(() => {
+		if (props.responses.length === 0) {
+			setSelectedIndex(0);
+			return;
+		}
+
+		setSelectedIndex((current) => Math.min(current, props.responses.length - 1));
+	}, [props.responses.length]);
 
 	useInput((input, key) => {
+		if (props.responses.length > 0) {
+			if (key.leftArrow || key.upArrow) {
+				setSelectedIndex((current) => (current === 0 ? props.responses.length - 1 : current - 1));
+				return;
+			}
+
+			if (key.rightArrow || key.downArrow) {
+				setSelectedIndex((current) => (current + 1) % props.responses.length);
+				return;
+			}
+		}
+
 		if (key.return || input === "b") {
 			props.onBack();
 			return;
@@ -341,8 +389,18 @@ function DataViewUi(props: { onBack: () => void }) {
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
 		React.createElement(Text, { bold: true, color: "cyan" }, PhaseTitle({ phase: "dataView" })),
-		React.createElement(Text, null, "This screen is a placeholder for future data viewing."),
-		React.createElement(Text, null, "No data view behavior has been implemented yet."),
+		props.responses.length === 0
+			? React.createElement(Text, null, "No generated assessments available yet.")
+			: React.createElement(
+				React.Fragment,
+				null,
+				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${props.responses.length}`),
+				React.createElement(Text, null, `Assessment #: ${props.responses[selectedIndex].assessment_number}`),
+				React.createElement(Text, null, `Field ID: ${props.responses[selectedIndex].field_id}`),
+				React.createElement(Text, null, `Field Name: ${props.responses[selectedIndex].field_name}`),
+				React.createElement(Text, null, `Value: ${props.responses[selectedIndex].response}`)
+			)
+		,
 		React.createElement(Text, { dimColor: true }, "Press Enter or b to go back, q to quit.")
 	);
 }
@@ -462,6 +520,7 @@ function WelcomeUi(props: { onContinue: () => void }) {
 export function renderExampleUi(model: ExampleUiModel) {
 	function ExampleUiApp() {
 		const [phase, setPhase] = React.useState<UiPhase>("welcome");
+		const [generatedResponses, setGeneratedResponses] = React.useState<GeneratedResponse[]>([]);
 
 		if (phase === "welcome") {
 			return React.createElement(WelcomeUi, {
@@ -478,11 +537,17 @@ export function renderExampleUi(model: ExampleUiModel) {
 
 		if (phase === "dataView") {
 			return React.createElement(DataViewUi, {
+				responses: generatedResponses,
 				onBack: () => setPhase("choice")
 			});
 		}
 
-		return React.createElement(MenuUi, model);
+		return React.createElement(MenuUi, {
+			...model,
+			generatedResponses,
+			onGeneratedResponses: setGeneratedResponses,
+			onViewAssessment: () => setPhase("dataView")
+		});
 	}
 
 	return render(React.createElement(ExampleUiApp));
