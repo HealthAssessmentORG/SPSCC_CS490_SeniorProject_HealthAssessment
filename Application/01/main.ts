@@ -12,6 +12,7 @@ async function run(): Promise<void> {
     const runRandomRows = async (
 		seed: number | null,
 		assessmentCount: number,
+		editedResponses: Array<{ assessment_number: number; field_id: number; field_name: string; response: string }> = [],
 		mode: "full" | "faker" | "sql" = "full"
 	): Promise<{ status: string; generatedResponses?: Array<{ assessment_number: number; field_id: number; field_name: string; response: string }> }> => {
 		return new Promise((resolveResult, rejectResult) => {
@@ -21,6 +22,9 @@ async function run(): Promise<void> {
 			};
 			if (seed !== null) {
 				env["RANDOM_ROWS_SEED"] = String(seed);
+			}
+			if (editedResponses.length > 0) {
+				env["RANDOM_ROWS_EDITED_RESPONSES_JSON"] = JSON.stringify(editedResponses);
 			}
 
 			const child = spawn(pythonCommand, [scriptPath, "--mode", mode], {
@@ -72,7 +76,7 @@ async function run(): Promise<void> {
 			"Edit Seed",
 			"Edit Assessment Count",
 			"Generate Assessment(s)",
-			"View Assessment",
+			"View/Edit Assessment",
 			"Insert into Database",
 			"Generate and Insert",
 			"Exit"

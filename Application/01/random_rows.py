@@ -14,6 +14,7 @@ CONN_STRING = os.getenv(
 )
 ASSESSMENT_COUNT = int(os.getenv("RANDOM_ROWS_ASSESSMENTS", "1"))
 SEED = os.getenv("RANDOM_ROWS_SEED") or None  # None if not set or blank
+EDITED_RESPONSES_JSON = os.getenv("RANDOM_ROWS_EDITED_RESPONSES_JSON") or None
 MAX_RESPONSE_LENGTH = 255
 
 
@@ -83,21 +84,42 @@ def build_response_rows(fake: Faker, seed_value: str | None, assessment_idx: int
     ]
 
 
+def load_edited_responses() -> dict[tuple[int, int], str]:
+    if EDITED_RESPONSES_JSON is None:
+        return {}
+
+    raw_responses = json.loads(EDITED_RESPONSES_JSON)
+    edited_responses: dict[tuple[int, int], str] = {}
+
+    for entry in raw_responses:
+        assessment_number = int(entry["assessment_number"])
+        field_id = int(entry["field_id"])
+        edited_responses[(assessment_number, field_id)] = normalize(str(entry["response"]))
+
+    return edited_responses
+
+
 def build_generated_responses(
     fake: Faker,
     seed_value: str | None,
     fields: list[tuple[int, str]],
+    edited_responses: dict[tuple[int, int], str] | None = None,
 ) -> list[dict[str, int | str]]:
     generated_responses: list[dict[str, int | str]] = []
+    edited_responses = edited_responses or {}
 
     for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
         for field_id, field_name in fields:
+            response = edited_responses.get(
+                (assessment_idx, field_id),
+                build_response_value(fake, seed_value, assessment_idx, field_id, field_name),
+            )
             generated_responses.append(
                 {
                     "assessment_number": assessment_idx,
                     "field_id": field_id,
                     "field_name": field_name,
-                    "response": build_response_value(fake, seed_value, assessment_idx, field_id, field_name),
+                    "response": response,
                 }
             )
 
@@ -175,12 +197,12 @@ def insert_response(cursor, assessment_id: int, field_id: int, response: str) ->
     )
 
 
-def run_faker_mode(fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:
-    generated_responses = build_generated_responses(fake, seed_value, fields)
+def run_faker_mode(fake: Faker, seed_value: str | None, fields: list[tuple[int, str]], edited_responses: dict[tuple[int, int], str] | None = None) -> None:
+    generated_responses = build_generated_responses(fake, seed_value, fields, edited_responses)
     print(json.dumps({"assessment_count": ASSESSMENT_COUNT, "responses": generated_responses}))
 
 
-def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:
+def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]], edited_responses: dict[tuple[int, int], str] | None = None) -> None:
     executed_statements = 0
 
     for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
@@ -193,6 +215,7 @@ def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields
         executed_statements += 1
 
         for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
+            value = edited_responses.get((assessment_idx, field_id), value) if edited_responses else value
             cursor.execute(render_response_insert_sql(assessment_id, field_id, value))
             executed_statements += 1
 
@@ -200,11 +223,12 @@ def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields
     print(f"Executed {executed_statements} SQL statement(s) for {ASSESSMENT_COUNT} assessment row(s).")
 
 
-def run_full_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]]) -> None:
+def run_full_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]], edited_responses: dict[tuple[int, int], str] | None = None) -> None:
     inserted_responses = 0
     for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
         assessment_id = insert_assessment(cursor)
         for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
+            value = edited_responses.get((assessment_idx, field_id), value) if edited_responses else value
             insert_response(cursor, assessment_id, field_id, value)
             inserted_responses += 1
 
@@ -231,15 +255,17 @@ def main() -> None:
         if not fields:
             raise RuntimeError("FIELD table is empty. Populate FIELD before running this script.")
 
+        edited_responses = load_edited_responses()
+
         if args.mode == "faker":
-            run_faker_mode(fake, SEED, fields)
+            run_faker_mode(fake, SEED, fields, edited_responses)
             return
 
         if args.mode == "sql":
-            run_sql_mode(connection, cursor, fake, SEED, fields)
+            run_sql_mode(connection, cursor, fake, SEED, fields, edited_responses)
             return
 
-        run_full_mode(connection, cursor, fake, SEED, fields)
+        run_full_mode(connection, cursor, fake, SEED, fields, edited_responses)
     except Exception:
         connection.rollback()
         raise
