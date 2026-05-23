@@ -103,9 +103,11 @@ export function buildWriterPlan(
           } else {
             raw = toIsoDateIfDate(ctx.provider_review?.[src.column] ?? rule.default_value ?? "");
           }
-        } else {
+        } else if (src.kind === "resp") {
           const key = `${src.question_code}:${src.field_name}`;
           raw = String(ctx.responses.get(key) ?? rule.default_value ?? "");
+        } else {
+          raw = String(ctx.responses.get(src.field_name) ?? rule.default_value ?? "");
         }
 
         raw = applyTransforms(raw, rule.transforms);

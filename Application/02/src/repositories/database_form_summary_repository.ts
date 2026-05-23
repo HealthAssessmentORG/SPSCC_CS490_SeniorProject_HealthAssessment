@@ -94,7 +94,7 @@ function buildForms(
 
 function exportSchemaError(database: string): Error {
   return new Error(
-    `Database form summary requires Application 2 export schema. Selected database ${database} is missing EXPORT_SPEC, EXPORT_FIELD, or MAPPING_SET.`
+    `Database form summary requires Application 2 export catalog tables. Selected database ${database} is missing EXPORT_SPEC, EXPORT_FIELD, or MAPPING_SET.`
   );
 }
 

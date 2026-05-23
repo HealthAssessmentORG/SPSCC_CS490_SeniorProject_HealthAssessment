@@ -22,7 +22,11 @@ export function sanitizeDatabaseStatusError(error: unknown): string {
   if (safeDbError) return safeDbError;
 
   const message = error instanceof Error ? error.message : String(error);
-  if (/^Missing required database tables: [A-Z0-9_, ]+$/.test(message)) {
+  if (
+    /^Missing required Application 2 database objects: (?:(?:tables|views) [A-Za-z0-9_, ]+)(?:; (?:tables|views) [A-Za-z0-9_, ]+)?$/.test(
+      message
+    )
+  ) {
     return message;
   }
 
