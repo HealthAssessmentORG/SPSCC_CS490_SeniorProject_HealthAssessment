@@ -486,6 +486,123 @@ function DataViewUi(props: {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
+		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Data Viewer (Duplicate)"),
+		props.responses.length === 0
+			? React.createElement(Text, null, "No generated assessments available yet.")
+			: React.createElement(
+				React.Fragment,
+				null,
+				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${props.responses.length}`),
+				React.createElement(Text, null, `Assessment #: ${props.responses[selectedIndex]?.assessment_number}`),
+				React.createElement(Text, null, `Field ID: ${props.responses[selectedIndex]?.field_id}`),
+				React.createElement(Text, null, `Field Name: ${props.responses[selectedIndex]?.field_name}`),
+				React.createElement(Text, null, `Value: ${props.responses[selectedIndex]?.response}`)
+			),
+		props.responses.length > 0
+			? React.createElement(
+				Box,
+				{ flexDirection: "column", borderStyle: "round", borderColor: inputMode === "edit" ? "yellow" : "gray", paddingX: 1, paddingY: 0 },
+				React.createElement(Text, { dimColor: true }, inputMode === "edit" ? "Editing response:" : "Editable textbox (press e to edit):"),
+				React.createElement(Text, null, draftValue.length > 0 ? draftValue : " ")
+			)
+			: null,
+		React.createElement(
+			Text,
+			{ dimColor: true },
+			inputMode === "edit"
+				? "Type to edit, Enter to save, Esc to cancel, q to quit."
+				: "Use arrows to switch responses, e to edit, Enter or b to go back, q to quit."
+		)
+	);
+}
+
+function DataViewUiDuplicate(props: {
+	responses: GeneratedResponse[];
+	onBack: () => void;
+	onUpdateResponse: (index: number, response: string) => void;
+}) {
+	// Duplicate of DataViewUi (currently unused)
+	const { exit } = useApp();
+	const [selectedIndex, setSelectedIndex] = React.useState(0);
+	const [inputMode, setInputMode] = React.useState<"none" | "edit">("none");
+	const [draftValue, setDraftValue] = React.useState("");
+
+	React.useEffect(() => {
+		if (props.responses.length === 0) {
+			setSelectedIndex(0);
+			setDraftValue("");
+			setInputMode("none");
+			return;
+		}
+
+		setSelectedIndex((current) => Math.min(current, props.responses.length - 1));
+	}, [props.responses.length]);
+
+	React.useEffect(() => {
+		if (props.responses.length === 0) {
+			return;
+		}
+
+		setDraftValue(props.responses[selectedIndex]?.response ?? "");
+	}, [props.responses, selectedIndex]);
+
+	useInput((input, key) => {
+		if (inputMode === "edit") {
+			if (key.return) {
+				props.onUpdateResponse(selectedIndex, draftValue);
+				setInputMode("none");
+				return;
+			}
+
+			if (key.escape) {
+				setDraftValue(props.responses[selectedIndex]?.response ?? "");
+				setInputMode("none");
+				return;
+			}
+
+			if (key.backspace) {
+				setDraftValue((current) => current.slice(0, -1));
+				return;
+			}
+
+			if (input.length === 1) {
+				setDraftValue((current) => current + input);
+			}
+
+			return;
+		}
+
+		if (props.responses.length > 0) {
+			if (key.leftArrow || key.upArrow) {
+				setSelectedIndex((current) => (current === 0 ? props.responses.length - 1 : current - 1));
+				return;
+			}
+
+			if (key.rightArrow || key.downArrow) {
+				setSelectedIndex((current) => (current + 1) % props.responses.length);
+				return;
+			}
+		}
+
+		if (input.toLowerCase() === "e" && props.responses.length > 0) {
+			setDraftValue(props.responses[selectedIndex]?.response ?? "");
+			setInputMode("edit");
+			return;
+		}
+
+		if (key.return || input === "b") {
+			props.onBack();
+			return;
+		}
+
+		if (input.toLowerCase() === "q" || (key.ctrl && input === "c")) {
+			requestExit(exit);
+		}
+	});
+
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
 		React.createElement(Text, { bold: true, color: "cyan" }, PhaseTitle({ phase: "dataView" })),
 		props.responses.length === 0
 			? React.createElement(Text, null, "No generated assessments available yet.")
@@ -633,6 +750,7 @@ export function renderExampleUi(model: ExampleUiModel) {
 		const [phase, setPhase] = React.useState<UiPhase>("welcome");
 		const [dataViewReturnPhase, setDataViewReturnPhase] = React.useState<Exclude<UiPhase, "dataView">>("menu");
 		const [generatedResponses, setGeneratedResponses] = React.useState<GeneratedResponse[]>([]);
+		const [useDuplicateDataView, setUseDuplicateDataView] = React.useState(false);
 
 		if (phase === "welcome") {
 			return React.createElement(WelcomeUi, {
@@ -645,12 +763,25 @@ export function renderExampleUi(model: ExampleUiModel) {
 				onSelectMain: () => setPhase("menu"),
 				onSelectDataView: () => {
 					setDataViewReturnPhase("choice");
+					setUseDuplicateDataView(true);
 					setPhase("dataView");
 				}
 			});
 		}
 
 		if (phase === "dataView") {
+			if (useDuplicateDataView) {
+				return React.createElement(DataViewUiDuplicate, {
+					responses: generatedResponses,
+					onBack: () => setPhase(dataViewReturnPhase),
+					onUpdateResponse: (index: number, response: string) => {
+						setGeneratedResponses((current) =>
+							current.map((entry, currentIndex) => (currentIndex === index ? { ...entry, response } : entry))
+						);
+					}
+				});
+			}
+
 			return React.createElement(DataViewUi, {
 				responses: generatedResponses,
 				onBack: () => setPhase(dataViewReturnPhase),
@@ -669,6 +800,7 @@ export function renderExampleUi(model: ExampleUiModel) {
 			onBackToChoice: () => setPhase("choice"),
 			onViewAssessment: () => {
 				setDataViewReturnPhase("menu");
+				setUseDuplicateDataView(false);
 				setPhase("dataView");
 			}
 		});
