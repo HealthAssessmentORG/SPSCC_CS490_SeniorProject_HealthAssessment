@@ -689,7 +689,7 @@ function DataViewUiDuplicate(props: {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Data Viewer (Duplicate)"),
+		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Database Viewer"),
 		assessmentIds.length > 0
 			? React.createElement(
 				Text,
