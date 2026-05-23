@@ -517,31 +517,109 @@ function DataViewUi(props: {
 }
 
 function DataViewUiDuplicate(props: {
-	responses: GeneratedResponse[];
 	onBack: () => void;
 }) {
-	// Read-only duplicate of DataViewUi (no editing functionality)
+	type AssessmentIdRow = {
+		assessment_id: string | number;
+	};
+
+	type ResponseRow = {
+		assessment_id?: number;
+		response_id?: number;
+		field_id?: number;
+		field_name?: string;
+		response?: string;
+		response_value?: string;
+		value?: string;
+		[column: string]: unknown;
+	};
+
+	// Read-only duplicate that loads from ASSESSMENT/RESPONSE in MSSQL.
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
+	const [responses, setResponses] = React.useState<ResponseRow[]>([]);
+	const [loading, setLoading] = React.useState(true);
+	const [status, setStatus] = React.useState("Loading assessment and responses...");
+	const [error, setError] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
-		if (props.responses.length === 0) {
+		let cancelled = false;
+
+		const loadResponses = async () => {
+			setLoading(true);
+			setError(null);
+			setStatus("Querying ASSESSMENT table...");
+
+			const pool = await sql.connect(RANDOM_ROWS_MSSQL_CONN_STRING);
+
+			try {
+				const assessmentResult = await pool
+					.request()
+					.query<AssessmentIdRow>("SELECT assessment_id FROM ASSESSMENT ORDER BY assessment_id");
+
+				const firstAssessmentId = assessmentResult.recordset?.[0]?.assessment_id;
+				if (firstAssessmentId === undefined || firstAssessmentId === null) {
+					if (!cancelled) {
+						setResponses([]);
+						setStatus("No assessments found in ASSESSMENT table.");
+					}
+					return;
+				}
+
+				if (!cancelled) {
+					setStatus(`Querying RESPONSE table for assessment_id ${firstAssessmentId}...`);
+				}
+
+				const responseResult = await pool
+					.request()
+					.input("assessment_id", firstAssessmentId)
+					.query<ResponseRow>("SELECT * FROM RESPONSE WHERE assessment_id = @assessment_id");
+
+				if (!cancelled) {
+					setResponses(responseResult.recordset ?? []);
+					setStatus(
+						`Loaded ${responseResult.recordset?.length ?? 0} response(s) for assessment_id ${firstAssessmentId}.`
+					);
+				}
+			} catch (loadError) {
+				if (!cancelled) {
+					setError(loadError instanceof Error ? loadError.message : String(loadError));
+					setResponses([]);
+					setStatus("Failed to load responses from MSSQL.");
+				}
+			} finally {
+				await pool.close();
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		};
+
+		void loadResponses();
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	React.useEffect(() => {
+		if (responses.length === 0) {
 			setSelectedIndex(0);
 			return;
 		}
 
-		setSelectedIndex((current) => Math.min(current, props.responses.length - 1));
-	}, [props.responses.length]);
+		setSelectedIndex((current) => Math.min(current, responses.length - 1));
+	}, [responses.length]);
 
 	useInput((input, key) => {
-		if (props.responses.length > 0) {
+		if (responses.length > 0) {
 			if (key.leftArrow || key.upArrow) {
-				setSelectedIndex((current) => (current === 0 ? props.responses.length - 1 : current - 1));
+				setSelectedIndex((current) => (current === 0 ? responses.length - 1 : current - 1));
 				return;
 			}
 
 			if (key.rightArrow || key.downArrow) {
-				setSelectedIndex((current) => (current + 1) % props.responses.length);
+				setSelectedIndex((current) => (current + 1) % responses.length);
 				return;
 			}
 		}
@@ -560,16 +638,30 @@ function DataViewUiDuplicate(props: {
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
 		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Data Viewer (Duplicate)"),
-		props.responses.length === 0
-			? React.createElement(Text, null, "No generated assessments available yet.")
+		React.createElement(Text, null, status),
+		error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
+		loading
+			? React.createElement(Text, { color: "yellow" }, "Loading from MSSQL...")
+			: responses.length === 0
+				? React.createElement(Text, null, "No responses found for the first assessment.")
 			: React.createElement(
 				React.Fragment,
 				null,
-				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${props.responses.length}`),
-				React.createElement(Text, null, `Assessment #: ${props.responses[selectedIndex]?.assessment_number}`),
-				React.createElement(Text, null, `Field ID: ${props.responses[selectedIndex]?.field_id}`),
-				React.createElement(Text, null, `Field Name: ${props.responses[selectedIndex]?.field_name}`),
-				React.createElement(Text, null, `Value: ${props.responses[selectedIndex]?.response}`)
+				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${responses.length}`),
+				React.createElement(Text, null, `Assessment #: ${String(responses[selectedIndex]?.assessment_id ?? "n/a")}`),
+				React.createElement(Text, null, `Response ID: ${String(responses[selectedIndex]?.response_id ?? "n/a")}`),
+				React.createElement(Text, null, `Field ID: ${String(responses[selectedIndex]?.field_id ?? "n/a")}`),
+				React.createElement(Text, null, `Field Name: ${String(responses[selectedIndex]?.field_name ?? "n/a")}`),
+				React.createElement(
+					Text,
+					null,
+					`Value: ${String(
+						responses[selectedIndex]?.response ??
+							responses[selectedIndex]?.response_value ??
+							responses[selectedIndex]?.value ??
+							""
+					)}`
+				)
 			),
 		React.createElement(
 			Text,
@@ -718,13 +810,7 @@ export function renderExampleUi(model: ExampleUiModel) {
 		if (phase === "dataView") {
 			if (useDuplicateDataView) {
 				return React.createElement(DataViewUiDuplicate, {
-					responses: generatedResponses,
-					onBack: () => setPhase(dataViewReturnPhase),
-					onUpdateResponse: (index: number, response: string) => {
-						setGeneratedResponses((current) =>
-							current.map((entry, currentIndex) => (currentIndex === index ? { ...entry, response } : entry))
-						);
-					}
+					onBack: () => setPhase(dataViewReturnPhase)
 				});
 			}
 
