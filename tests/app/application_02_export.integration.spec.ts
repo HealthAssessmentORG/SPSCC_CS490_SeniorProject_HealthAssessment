@@ -35,7 +35,14 @@ test.describe("Application 2 export flow (DB)", () => {
       { cwd: process.cwd() }
     );
 
-    expect(result.code).toBe(0);
+    expect(
+      result.code,
+      [
+        "Application 2 JSON export CLI exited non-zero.",
+        `stdout:\n${result.stdout || "<empty>"}`,
+        `stderr:\n${result.stderr || "<empty>"}`
+      ].join("\n")
+    ).toBe(0);
     expect(result.stderr).not.toContain("Connecting to Application 2 database...");
     expect(result.stderr).not.toContain("Application 2 database connection established.");
     expect(result.stderr).not.toContain("Application 2 database connection failed.");

@@ -430,6 +430,20 @@ jobs:
           APP2_DB_PASSWORD: ${{ env.CI_SQL_APP_PASSWORD }}
           APP2_DB_ENCRYPT: "false"
           APP2_DB_TRUST_SERVER_CERTIFICATE: "true"
+          EXPORT_DB_SERVER: ${{ env.CI_SQL_SERVER }}
+          EXPORT_DB_PORT: ${{ env.CI_SQL_PORT }}
+          EXPORT_DB_DATABASE: ${{ env.CI_SQL_DATABASE }}
+          EXPORT_DB_USER: ${{ env.CI_SQL_APP_USER }}
+          EXPORT_DB_PASSWORD: ${{ env.CI_SQL_APP_PASSWORD }}
+          EXPORT_DB_ENCRYPT: "false"
+          EXPORT_DB_TRUST_SERVER_CERTIFICATE: "true"
+          DB_SERVER: ${{ env.CI_SQL_SERVER }}
+          DB_PORT: ${{ env.CI_SQL_PORT }}
+          DB_DATABASE: ${{ env.CI_SQL_DATABASE }}
+          DB_USER: ${{ env.CI_SQL_APP_USER }}
+          DB_PASSWORD: ${{ env.CI_SQL_APP_PASSWORD }}
+          DB_ENCRYPT: "false"
+          DB_TRUST_SERVER_CERTIFICATE: "true"
           RUN_APP2_DB_E2E: "1"
         run: |
           npx playwright test \
