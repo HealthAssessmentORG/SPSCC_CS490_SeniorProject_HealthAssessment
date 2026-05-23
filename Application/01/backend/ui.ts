@@ -537,15 +537,18 @@ function DataViewUiDuplicate(props: {
 	// Read-only duplicate that loads from ASSESSMENT/RESPONSE in MSSQL.
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
+	const [assessmentIds, setAssessmentIds] = React.useState<Array<string | number>>([]);
+	const [selectedAssessmentIndex, setSelectedAssessmentIndex] = React.useState(0);
 	const [responses, setResponses] = React.useState<ResponseRow[]>([]);
 	const [loading, setLoading] = React.useState(true);
-	const [status, setStatus] = React.useState("Loading assessment and responses...");
+	const [status, setStatus] = React.useState("Loading assessments...");
 	const [error, setError] = React.useState<string | null>(null);
+	const selectedAssessmentId = assessmentIds[selectedAssessmentIndex];
 
 	React.useEffect(() => {
 		let cancelled = false;
 
-		const loadResponses = async () => {
+		const loadAssessmentIds = async () => {
 			setLoading(true);
 			setError(null);
 			setStatus("Querying ASSESSMENT table...");
@@ -556,36 +559,22 @@ function DataViewUiDuplicate(props: {
 				const assessmentResult = await pool
 					.request()
 					.query<AssessmentIdRow>("SELECT assessment_id FROM ASSESSMENT ORDER BY assessment_id");
-
-				const firstAssessmentId = assessmentResult.recordset?.[0]?.assessment_id;
-				if (firstAssessmentId === undefined || firstAssessmentId === null) {
-					if (!cancelled) {
-						setResponses([]);
+				if (!cancelled) {
+					const loadedAssessmentIds = (assessmentResult.recordset ?? []).map((row) => row.assessment_id);
+					setAssessmentIds(loadedAssessmentIds);
+					setSelectedAssessmentIndex(0);
+					if (loadedAssessmentIds.length === 0) {
 						setStatus("No assessments found in ASSESSMENT table.");
+					} else {
+						setStatus(`Loaded ${loadedAssessmentIds.length} assessment(s).`);
 					}
-					return;
-				}
-
-				if (!cancelled) {
-					setStatus(`Querying RESPONSE table for assessment_id ${firstAssessmentId}...`);
-				}
-
-				const responseResult = await pool
-					.request()
-					.input("assessment_id", firstAssessmentId)
-					.query<ResponseRow>("SELECT * FROM RESPONSE WHERE assessment_id = @assessment_id");
-
-				if (!cancelled) {
-					setResponses(responseResult.recordset ?? []);
-					setStatus(
-						`Loaded ${responseResult.recordset?.length ?? 0} response(s) for assessment_id ${firstAssessmentId}.`
-					);
 				}
 			} catch (loadError) {
 				if (!cancelled) {
 					setError(loadError instanceof Error ? loadError.message : String(loadError));
+					setAssessmentIds([]);
 					setResponses([]);
-					setStatus("Failed to load responses from MSSQL.");
+					setStatus("Failed to load assessments from MSSQL.");
 				}
 			} finally {
 				await pool.close();
@@ -595,12 +584,61 @@ function DataViewUiDuplicate(props: {
 			}
 		};
 
-		void loadResponses();
+		void loadAssessmentIds();
 
 		return () => {
 			cancelled = true;
 		};
 	}, []);
+
+	React.useEffect(() => {
+		let cancelled = false;
+
+		const loadResponsesForAssessment = async () => {
+			if (selectedAssessmentId === undefined || selectedAssessmentId === null) {
+				setResponses([]);
+				setSelectedIndex(0);
+				return;
+			}
+
+			setLoading(true);
+			setError(null);
+			setStatus(`Querying RESPONSE table for assessment_id ${selectedAssessmentId}...`);
+
+			const pool = await sql.connect(RANDOM_ROWS_MSSQL_CONN_STRING);
+
+			try {
+				const responseResult = await pool
+					.request()
+					.input("assessment_id", selectedAssessmentId)
+					.query<ResponseRow>("SELECT * FROM RESPONSE WHERE assessment_id = @assessment_id");
+
+				if (!cancelled) {
+					setResponses(responseResult.recordset ?? []);
+					setStatus(
+						`Loaded ${responseResult.recordset?.length ?? 0} response(s) for assessment_id ${selectedAssessmentId}.`
+					);
+				}
+			} catch (loadError) {
+				if (!cancelled) {
+					setError(loadError instanceof Error ? loadError.message : String(loadError));
+					setResponses([]);
+					setStatus(`Failed to load responses for assessment_id ${selectedAssessmentId}.`);
+				}
+			} finally {
+				await pool.close();
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		};
+
+		void loadResponsesForAssessment();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [selectedAssessmentId]);
 
 	React.useEffect(() => {
 		if (responses.length === 0) {
@@ -613,13 +651,27 @@ function DataViewUiDuplicate(props: {
 
 	useInput((input, key) => {
 		if (responses.length > 0) {
-			if (key.leftArrow || key.upArrow) {
+			if (key.leftArrow) {
 				setSelectedIndex((current) => (current === 0 ? responses.length - 1 : current - 1));
 				return;
 			}
 
-			if (key.rightArrow || key.downArrow) {
+			if (key.rightArrow) {
 				setSelectedIndex((current) => (current + 1) % responses.length);
+				return;
+			}
+		}
+
+		if (assessmentIds.length > 0) {
+			if (key.upArrow) {
+				setSelectedAssessmentIndex((current) =>
+					current === 0 ? assessmentIds.length - 1 : current - 1
+				);
+				return;
+			}
+
+			if (key.downArrow) {
+				setSelectedAssessmentIndex((current) => (current + 1) % assessmentIds.length);
 				return;
 			}
 		}
@@ -638,6 +690,13 @@ function DataViewUiDuplicate(props: {
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
 		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Data Viewer (Duplicate)"),
+		assessmentIds.length > 0
+			? React.createElement(
+				Text,
+				null,
+				`Assessment ${selectedAssessmentIndex + 1} of ${assessmentIds.length} (ID: ${String(selectedAssessmentId)})`
+			)
+			: null,
 		React.createElement(Text, null, status),
 		error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
 		loading
@@ -666,7 +725,7 @@ function DataViewUiDuplicate(props: {
 		React.createElement(
 			Text,
 			{ dimColor: true },
-			"Use arrows to switch responses, Enter or b to go back, q to quit."
+			"Left/Right: responses, Up/Down: assessment, Enter or b: back, q: quit."
 		)
 	);
 }
