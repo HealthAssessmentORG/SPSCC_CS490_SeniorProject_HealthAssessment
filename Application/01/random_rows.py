@@ -144,26 +144,69 @@ def load_fields(cursor) -> list[tuple[int, str]]:
     return [(int(row[0]), str(row[1])) for row in rows]
 
 
-def insert_assessment(cursor) -> int:
+def load_existing_dod_ids(cursor) -> set[str]:
     cursor.execute(
         """
-        INSERT INTO dbo.ASSESSMENT
-        OUTPUT INSERTED.assessment_id
-        DEFAULT VALUES;
+        SELECT dod_id
+        FROM dbo.DEPLOYER
+        ORDER BY dod_id;
         """
+    )
+    rows = cursor.fetchall()
+    return {str(row[0]).strip() for row in rows}
+
+
+def build_deployer_insert_sql() -> str:
+    return """
+        INSERT INTO dbo.DEPLOYER (deployer_id, dod_id)
+        OUTPUT INSERTED.deployer_id
+        VALUES (NEWID(), %(dod_id)s);
+        """
+
+
+def build_deployer_insert_params(dod_id: str) -> dict[str, str]:
+    return {"dod_id": dod_id}
+
+
+def create_deployer(cursor, fake: Faker, used_dod_ids: set[str]) -> str:
+    while True:
+        dod_id = fake.numerify(text="##########")
+        if dod_id in used_dod_ids:
+            continue
+
+        cursor.execute(
+            build_deployer_insert_sql(),
+            build_deployer_insert_params(dod_id),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise RuntimeError("Failed to create a deployer row.")
+
+        used_dod_ids.add(dod_id)
+        return str(row[0])
+
+
+def build_assessment_insert_sql() -> str:
+    return """
+        INSERT INTO dbo.ASSESSMENT (deployer_id)
+        OUTPUT INSERTED.assessment_id
+        VALUES (%(deployer_id)s);
+        """
+
+
+def build_assessment_insert_params(deployer_id: str) -> dict[str, str]:
+    return {"deployer_id": deployer_id}
+
+
+def insert_assessment(cursor, deployer_id: str) -> int:
+    cursor.execute(
+        build_assessment_insert_sql(),
+        build_assessment_insert_params(deployer_id),
     )
     row = cursor.fetchone()
     if not row:
         raise RuntimeError("Failed to create assessment row.")
     return int(row[0])
-
-
-def build_assessment_insert_sql() -> str:
-    return """
-        INSERT INTO dbo.ASSESSMENT
-        OUTPUT INSERTED.assessment_id
-        DEFAULT VALUES;
-        """
 
 
 # SQL statement construction ------------------------------------------------
@@ -204,9 +247,11 @@ def run_faker_mode(fake: Faker, seed_value: str | None, fields: list[tuple[int, 
 
 def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]], edited_responses: dict[tuple[int, int], str] | None = None) -> None:
     executed_statements = 0
+    used_dod_ids = load_existing_dod_ids(cursor)
 
     for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
-        cursor.execute(build_assessment_insert_sql())
+        deployer_id = create_deployer(cursor, fake, used_dod_ids)
+        cursor.execute(build_assessment_insert_sql(), build_assessment_insert_params(deployer_id))
         row = cursor.fetchone()
         if not row:
             raise RuntimeError("Failed to create assessment row.")
@@ -225,8 +270,10 @@ def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields
 
 def run_full_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]], edited_responses: dict[tuple[int, int], str] | None = None) -> None:
     inserted_responses = 0
+    used_dod_ids = load_existing_dod_ids(cursor)
     for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
-        assessment_id = insert_assessment(cursor)
+        deployer_id = create_deployer(cursor, fake, used_dod_ids)
+        assessment_id = insert_assessment(cursor, deployer_id)
         for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
             value = edited_responses.get((assessment_idx, field_id), value) if edited_responses else value
             insert_response(cursor, assessment_id, field_id, value)
