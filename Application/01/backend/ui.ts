@@ -8,6 +8,12 @@ export type ExampleUiModel = {
 	onRunRandomRows: (
 		seed: number | null,
 		assessmentCount: number,
+		editedResponses?: Array<{
+			assessment_number: number;
+			field_id: number;
+			field_name: string;
+			response: string;
+		}>,
 		mode?: "full" | "faker" | "sql"
 	) => Promise<{
 		status: string;
@@ -35,6 +41,8 @@ type GeneratedResponse = {
 	field_name: string;
 	response: string;
 };
+
+const VIEW_EDIT_ASSESSMENT_OPTION = "View/Edit Assessment";
 
 const RANDOM_ROWS_MSSQL_CONN_STRING =
 	process.env["MSSQL_CONN_STRING"] ??
@@ -96,7 +104,7 @@ function PhaseTitle(props: { phase: UiPhase }) {
 	return "Application 1 Main Screen";
 }
 
-function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGeneratedResponses: (responses: GeneratedResponse[]) => void; generatedResponses: GeneratedResponse[] }) {
+function MenuUi(props: ExampleUiModel & { onBackToChoice: () => void; onViewAssessment: () => void; onGeneratedResponses: (responses: GeneratedResponse[]) => void; generatedResponses: GeneratedResponse[] }) {
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
 	const [status, setStatus] = React.useState(props.status);
@@ -106,6 +114,31 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 	const [assessmentCount, setAssessmentCount] = React.useState(1);
 	const [inputMode, setInputMode] = React.useState<InputMode>("none");
 	const [inputValue, setInputValue] = React.useState("");
+	const isViewEditDisabled = props.generatedResponses.length === 0;
+
+	const isOptionDisabled = React.useCallback(
+		(option: string | undefined) => option === VIEW_EDIT_ASSESSMENT_OPTION && isViewEditDisabled,
+		[isViewEditDisabled]
+	);
+
+	const findNextEnabledIndex = React.useCallback(
+		(startIndex: number, direction: 1 | -1) => {
+			for (let offset = 0; offset < props.options.length; offset += 1) {
+				const candidateIndex = (startIndex + offset * direction + props.options.length) % props.options.length;
+				if (!isOptionDisabled(props.options[candidateIndex])) {
+					return candidateIndex;
+				}
+			}
+			return startIndex;
+		},
+		[isOptionDisabled, props.options]
+	);
+
+	React.useEffect(() => {
+		if (isOptionDisabled(props.options[selectedIndex])) {
+			setSelectedIndex(findNextEnabledIndex(selectedIndex, 1));
+		}
+	}, [findNextEnabledIndex, isOptionDisabled, props.options, selectedIndex]);
 
 	React.useEffect(() => {
 		if (!busy) {
@@ -122,12 +155,20 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 
 	const selectCurrent = async () => {
 		const selected = props.options[selectedIndex];
+		if (!selected) {
+			return;
+		}
+
+		if (isOptionDisabled(selected)) {
+			setStatus("Generate an assessment first to enable this option.");
+			return;
+		}
 
 		if (selected === "Generate Assessment(s)") {
 			setBusy(true);
 			setStatus("Generating faker data...");
 			try {
-				const result = await props.onRunRandomRows(seed, assessmentCount, "faker");
+				const result = await props.onRunRandomRows(seed, assessmentCount, [], "faker");
 				setStatus(result.status);
 				props.onGeneratedResponses(result.generatedResponses ?? []);
 			} catch (error) {
@@ -138,7 +179,7 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 			return;
 		}
 
-		if (selected === "View Assessment") {
+		if (selected === VIEW_EDIT_ASSESSMENT_OPTION) {
 			if (props.generatedResponses.length === 0) {
 				setStatus("Generate assessments first, then open the viewer.");
 				return;
@@ -152,7 +193,7 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 			setBusy(true);
 			setStatus("Executing SQL statements...");
 			try {
-				const result = await props.onRunRandomRows(seed, assessmentCount, "sql");
+				const result = await props.onRunRandomRows(seed, assessmentCount, props.generatedResponses, "sql");
 				setStatus(result.status);
 			} catch (error) {
 				setStatus(`Run failed: ${String(error)}`);
@@ -166,7 +207,7 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 			setBusy(true);
 			setStatus("Running full data fill...");
 			try {
-				const result = await props.onRunRandomRows(seed, assessmentCount, "full");
+				const result = await props.onRunRandomRows(seed, assessmentCount, props.generatedResponses, "full");
 				setStatus(result.status);
 			} catch (error) {
 				setStatus(`Run failed: ${String(error)}`);
@@ -244,12 +285,12 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 		if (busy) return;
 
 		if (key.upArrow) {
-			setSelectedIndex((current: number) => (current === 0 ? props.options.length - 1 : current - 1));
+			setSelectedIndex((current: number) => findNextEnabledIndex(current === 0 ? props.options.length - 1 : current - 1, -1));
 			return;
 		}
 
 		if (key.downArrow) {
-			setSelectedIndex((current: number) => (current + 1) % props.options.length);
+			setSelectedIndex((current: number) => findNextEnabledIndex((current + 1) % props.options.length, 1));
 			return;
 		}
 
@@ -260,6 +301,11 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 
 		if (input.toLowerCase() === "q") {
 			exit();
+			return;
+		}
+
+		if (input.toLowerCase() === "b") {
+			props.onBackToChoice();
 		}
 	});
 
@@ -292,10 +338,15 @@ function MenuUi(props: ExampleUiModel & { onViewAssessment: () => void; onGenera
 					React.createElement(Text, { dimColor: true }, "Menu:"),
 					...props.options.map((option, index) => {
 						const selected = index === selectedIndex;
+						const disabled = isOptionDisabled(option);
 						return React.createElement(
 							Text,
-							selected ? { key: `${index}-${option}`, color: "green" } : { key: `${index}-${option}` },
-							`${selected ? ">" : " "} ${option}`
+							selected
+								? { key: `${index}-${option}`, color: disabled ? "gray" : "green" }
+								: disabled
+									? { key: `${index}-${option}`, color: "gray" }
+									: { key: `${index}-${option}` },
+							`${selected ? ">" : " "} ${option}${disabled ? " (disabled until an assessment is generated)" : ""}`
 						);
 					})
 				)
@@ -349,7 +400,127 @@ function ChoiceUi(props: { onSelectMain: () => void; onSelectDataView: () => voi
 	);
 }
 
-function DataViewUi(props: { responses: GeneratedResponse[]; onBack: () => void }) {
+function DataViewUi(props: {
+	responses: GeneratedResponse[];
+	onBack: () => void;
+	onUpdateResponse: (index: number, response: string) => void;
+}) {
+	const { exit } = useApp();
+	const [selectedIndex, setSelectedIndex] = React.useState(0);
+	const [inputMode, setInputMode] = React.useState<"none" | "edit">("none");
+	const [draftValue, setDraftValue] = React.useState("");
+
+	React.useEffect(() => {
+		if (props.responses.length === 0) {
+			setSelectedIndex(0);
+			setDraftValue("");
+			setInputMode("none");
+			return;
+		}
+
+		setSelectedIndex((current) => Math.min(current, props.responses.length - 1));
+	}, [props.responses.length]);
+
+	React.useEffect(() => {
+		if (props.responses.length === 0) {
+			return;
+		}
+
+		setDraftValue(props.responses[selectedIndex]?.response ?? "");
+	}, [props.responses, selectedIndex]);
+
+	useInput((input, key) => {
+		if (inputMode === "edit") {
+			if (key.return) {
+				props.onUpdateResponse(selectedIndex, draftValue);
+				setInputMode("none");
+				return;
+			}
+
+			if (key.escape) {
+				setDraftValue(props.responses[selectedIndex]?.response ?? "");
+				setInputMode("none");
+				return;
+			}
+
+			if (key.backspace) {
+				setDraftValue((current) => current.slice(0, -1));
+				return;
+			}
+
+			if (input.length === 1) {
+				setDraftValue((current) => current + input);
+			}
+
+			return;
+		}
+
+		if (props.responses.length > 0) {
+			if (key.leftArrow || key.upArrow) {
+				setSelectedIndex((current) => (current === 0 ? props.responses.length - 1 : current - 1));
+				return;
+			}
+
+			if (key.rightArrow || key.downArrow) {
+				setSelectedIndex((current) => (current + 1) % props.responses.length);
+				return;
+			}
+		}
+
+		if (input.toLowerCase() === "e" && props.responses.length > 0) {
+			setDraftValue(props.responses[selectedIndex]?.response ?? "");
+			setInputMode("edit");
+			return;
+		}
+
+		if (key.return || input === "b") {
+			props.onBack();
+			return;
+		}
+
+		if (input.toLowerCase() === "q" || (key.ctrl && input === "c")) {
+			requestExit(exit);
+		}
+	});
+
+	return React.createElement(
+		Box,
+		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
+		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Data Viewer"),
+		props.responses.length === 0
+			? React.createElement(Text, null, "No generated assessments available yet.")
+			: React.createElement(
+				React.Fragment,
+				null,
+				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${props.responses.length}`),
+				React.createElement(Text, null, `Assessment #: ${props.responses[selectedIndex]?.assessment_number}`),
+				React.createElement(Text, null, `Field ID: ${props.responses[selectedIndex]?.field_id}`),
+				React.createElement(Text, null, `Field Name: ${props.responses[selectedIndex]?.field_name}`),
+				React.createElement(Text, null, `Value: ${props.responses[selectedIndex]?.response}`)
+			),
+		props.responses.length > 0
+			? React.createElement(
+				Box,
+				{ flexDirection: "column", borderStyle: "round", borderColor: inputMode === "edit" ? "yellow" : "gray", paddingX: 1, paddingY: 0 },
+				React.createElement(Text, { dimColor: true }, inputMode === "edit" ? "Editing response:" : "Editable textbox (press e to edit):"),
+				React.createElement(Text, null, draftValue.length > 0 ? draftValue : " ")
+			)
+			: null,
+		React.createElement(
+			Text,
+			{ dimColor: true },
+			inputMode === "edit"
+				? "Type to edit, Enter to save, Esc to cancel, q to quit."
+				: "Use arrows to switch responses, e to edit, Enter or b to go back, q to quit."
+		)
+	);
+}
+
+function DataViewUiDuplicate(props: {
+	responses: GeneratedResponse[];
+	onBack: () => void;
+}) {
+	// Read-only duplicate of DataViewUi (no editing functionality)
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
 
@@ -388,20 +559,23 @@ function DataViewUi(props: { responses: GeneratedResponse[]; onBack: () => void 
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, PhaseTitle({ phase: "dataView" })),
+		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Data Viewer (Duplicate)"),
 		props.responses.length === 0
 			? React.createElement(Text, null, "No generated assessments available yet.")
 			: React.createElement(
 				React.Fragment,
 				null,
 				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${props.responses.length}`),
-				React.createElement(Text, null, `Assessment #: ${props.responses[selectedIndex].assessment_number}`),
-				React.createElement(Text, null, `Field ID: ${props.responses[selectedIndex].field_id}`),
-				React.createElement(Text, null, `Field Name: ${props.responses[selectedIndex].field_name}`),
-				React.createElement(Text, null, `Value: ${props.responses[selectedIndex].response}`)
-			)
-		,
-		React.createElement(Text, { dimColor: true }, "Press Enter or b to go back, q to quit.")
+				React.createElement(Text, null, `Assessment #: ${props.responses[selectedIndex]?.assessment_number}`),
+				React.createElement(Text, null, `Field ID: ${props.responses[selectedIndex]?.field_id}`),
+				React.createElement(Text, null, `Field Name: ${props.responses[selectedIndex]?.field_name}`),
+				React.createElement(Text, null, `Value: ${props.responses[selectedIndex]?.response}`)
+			),
+		React.createElement(
+			Text,
+			{ dimColor: true },
+			"Use arrows to switch responses, Enter or b to go back, q to quit."
+		)
 	);
 }
 
@@ -520,7 +694,9 @@ function WelcomeUi(props: { onContinue: () => void }) {
 export function renderExampleUi(model: ExampleUiModel) {
 	function ExampleUiApp() {
 		const [phase, setPhase] = React.useState<UiPhase>("welcome");
+		const [dataViewReturnPhase, setDataViewReturnPhase] = React.useState<Exclude<UiPhase, "dataView">>("menu");
 		const [generatedResponses, setGeneratedResponses] = React.useState<GeneratedResponse[]>([]);
+		const [useDuplicateDataView, setUseDuplicateDataView] = React.useState(false);
 
 		if (phase === "welcome") {
 			return React.createElement(WelcomeUi, {
@@ -531,14 +707,35 @@ export function renderExampleUi(model: ExampleUiModel) {
 		if (phase === "choice") {
 			return React.createElement(ChoiceUi, {
 				onSelectMain: () => setPhase("menu"),
-				onSelectDataView: () => setPhase("dataView")
+				onSelectDataView: () => {
+					setDataViewReturnPhase("choice");
+					setUseDuplicateDataView(true);
+					setPhase("dataView");
+				}
 			});
 		}
 
 		if (phase === "dataView") {
+			if (useDuplicateDataView) {
+				return React.createElement(DataViewUiDuplicate, {
+					responses: generatedResponses,
+					onBack: () => setPhase(dataViewReturnPhase),
+					onUpdateResponse: (index: number, response: string) => {
+						setGeneratedResponses((current) =>
+							current.map((entry, currentIndex) => (currentIndex === index ? { ...entry, response } : entry))
+						);
+					}
+				});
+			}
+
 			return React.createElement(DataViewUi, {
 				responses: generatedResponses,
-				onBack: () => setPhase("choice")
+				onBack: () => setPhase(dataViewReturnPhase),
+				onUpdateResponse: (index: number, response: string) => {
+					setGeneratedResponses((current) =>
+						current.map((entry, currentIndex) => (currentIndex === index ? { ...entry, response } : entry))
+					);
+				}
 			});
 		}
 
@@ -546,7 +743,12 @@ export function renderExampleUi(model: ExampleUiModel) {
 			...model,
 			generatedResponses,
 			onGeneratedResponses: setGeneratedResponses,
-			onViewAssessment: () => setPhase("dataView")
+			onBackToChoice: () => setPhase("choice"),
+			onViewAssessment: () => {
+				setDataViewReturnPhase("menu");
+				setUseDuplicateDataView(false);
+				setPhase("dataView");
+			}
 		});
 	}
 
