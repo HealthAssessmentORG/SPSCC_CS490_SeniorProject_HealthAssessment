@@ -75,8 +75,9 @@ GO
 CREATE VIEW dbo.vw_Response
 	AS
     SELECT
+        R.assessment_id,
         deployer_response_id AS response_id,
-        field_code as question_code,
+        RTRIM(field_code) as question_code,
         f.[field_name] as field_name,
         response as value_raw,
         value_norm as value_norm

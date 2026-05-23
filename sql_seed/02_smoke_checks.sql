@@ -23,7 +23,7 @@ LEFT JOIN dbo.MAPPING_RULE mr
 GROUP BY ef.export_spec_id;
 
 /* 3) Show 1 assessment's “export values inputs” */
-DECLARE @one UNIQUEIDENTIFIER =
+DECLARE @one BIGINT =
   (SELECT TOP (1) assessment_id FROM dbo.ASSESSMENT ORDER BY NEWID());
 
 SELECT
@@ -42,6 +42,6 @@ LEFT JOIN dbo.PROVIDER_REVIEW pr ON pr.assessment_id = a.assessment_id
 WHERE a.assessment_id = @one;
 
 SELECT question_code, field_name, value_norm
-FROM dbo.RESPONSE
+FROM dbo.vw_Response
 WHERE assessment_id = @one
 ORDER BY question_code, field_name;

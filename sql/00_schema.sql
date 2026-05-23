@@ -26,9 +26,9 @@ CREATE TABLE dbo.DEPLOYER (
 GO
 
 CREATE TABLE dbo.ASSESSMENT (
-    assessment_id         UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_ASSESSMENT PRIMARY KEY,
-    run_id                UNIQUEIDENTIFIER NOT NULL,
-    deployer_id           UNIQUEIDENTIFIER NOT NULL,
+    assessment_id         BIGINT NOT NULL IDENTITY(1,1) CONSTRAINT PK_ASSESSMENT PRIMARY KEY,
+    run_id                UNIQUEIDENTIFIER NULL,
+    deployer_id           UNIQUEIDENTIFIER NULL,
     form_type_observed    NVARCHAR(20) NULL,
     form_version_observed NVARCHAR(50) NULL,
     event_date            DATE NULL,
@@ -44,25 +44,50 @@ CREATE INDEX IX_ASSESSMENT_run_id ON dbo.ASSESSMENT(run_id);
 CREATE INDEX IX_ASSESSMENT_deployer_id ON dbo.ASSESSMENT(deployer_id);
 GO
 
+CREATE TABLE dbo.FIELD (
+    field_id   INT NOT NULL IDENTITY(1,1) CONSTRAINT PK_FIELD PRIMARY KEY,
+    field_code CHAR(25) NULL,
+    field_name VARCHAR(100) NOT NULL,
+    question   VARCHAR(MAX) NULL,
+
+    CONSTRAINT UQ_FIELD_field_name UNIQUE (field_name)
+);
+GO
+
 CREATE TABLE dbo.RESPONSE (
-    response_id    UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_RESPONSE PRIMARY KEY,
-    assessment_id  UNIQUEIDENTIFIER NOT NULL,
-    question_code  NVARCHAR(50) NOT NULL,
-    field_name     NVARCHAR(100) NOT NULL,
-    value_raw      NVARCHAR(4000) NULL,
-    value_norm     NVARCHAR(4000) NULL,
+    deployer_response_id BIGINT NOT NULL IDENTITY(1,1) CONSTRAINT PK_RESPONSE PRIMARY KEY,
+    assessment_id        BIGINT NOT NULL,
+    field_id             INT NOT NULL,
+    response             NVARCHAR(MAX) NULL,
+    value_norm           NVARCHAR(MAX) NULL,
 
     CONSTRAINT FK_RESPONSE_ASSESSMENT
-        FOREIGN KEY (assessment_id) REFERENCES dbo.ASSESSMENT(assessment_id) ON DELETE CASCADE
+        FOREIGN KEY (assessment_id) REFERENCES dbo.ASSESSMENT(assessment_id) ON DELETE CASCADE,
+    CONSTRAINT FK_RESPONSE_FIELD
+        FOREIGN KEY (field_id) REFERENCES dbo.FIELD(field_id)
 );
 GO
 
 CREATE INDEX IX_RESPONSE_assessment_id ON dbo.RESPONSE(assessment_id);
-CREATE INDEX IX_RESPONSE_q_field ON dbo.RESPONSE(question_code, field_name);
+CREATE INDEX IX_RESPONSE_field_id ON dbo.RESPONSE(field_id);
+GO
+
+CREATE VIEW dbo.vw_Response
+AS
+    SELECT
+        r.assessment_id,
+        r.deployer_response_id AS response_id,
+        RTRIM(f.field_code) AS question_code,
+        f.field_name,
+        r.response AS value_raw,
+        r.value_norm
+    FROM dbo.RESPONSE AS r
+    INNER JOIN dbo.FIELD AS f
+        ON r.field_id = f.field_id;
 GO
 
 CREATE TABLE dbo.PROVIDER_REVIEW (
-    assessment_id      UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_PROVIDER_REVIEW PRIMARY KEY,
+    assessment_id      BIGINT NOT NULL CONSTRAINT PK_PROVIDER_REVIEW PRIMARY KEY,
     provider_name      NVARCHAR(200) NULL,
     certify_date       DATE NULL,
     provider_title     NVARCHAR(50) NULL,
@@ -203,5 +228,3 @@ GO
 
 CREATE INDEX IX_VALIDATION_ERROR_file ON dbo.VALIDATION_ERROR(export_file_id);
 GO
-
--- bump test

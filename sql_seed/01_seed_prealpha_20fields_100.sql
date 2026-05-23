@@ -10,6 +10,22 @@ DECLARE @mapping_set_id UNIQUEIDENTIFIER = NEWID();
 INSERT INTO dbo.[RUN] (run_id, run_name, seed, target_record_count, status)
 VALUES (@run_id, N'prealpha_100', @seed, @target_record_count, N'running');
 
+/* --- Source response fields used by vw_Response --- */
+INSERT INTO dbo.FIELD (field_code, field_name, question)
+VALUES
+(N'DEM',  N'LNAME',          N'Last Name'),
+(N'DEM',  N'FNAME',          N'First Name'),
+(N'DEM',  N'MI',             N'Middle Initial'),
+(N'DEM',  N'DOB',            N'Date of Birth'),
+(N'DEM',  N'SEX',            N'Sex'),
+(N'DEM',  N'FORM_SERVICE',   N'Service Branch'),
+(N'DEM',  N'FORM_COMPONENT', N'Component'),
+(N'DEM',  N'GRADE',          N'Pay Grade'),
+(N'DEM',  N'UNIT_NAME',      N'Unit Name'),
+(N'DEM',  N'UNIT_LOC',       N'Duty Station/Location'),
+(N'DEM',  N'EMAIL',          N'Current Email'),
+(N'HP16', N'TRICARE',        N'TRICARE PROVIDER');
+
 /* --- Export spec (5172 chars) --- */
 INSERT INTO dbo.EXPORT_SPEC (export_spec_id, spec_name, spec_version, row_length)
 VALUES (@export_spec_id, N'DD2975_like', N'prealpha_20', 5172);
@@ -130,12 +146,8 @@ d AS (
     SELECT deployer_id, ROW_NUMBER() OVER (ORDER BY deployer_id) AS rn
     FROM dbo.DEPLOYER
 )
-INSERT INTO dbo.ASSESSMENT (
-    assessment_id, run_id, deployer_id,
-    form_type_observed, form_version_observed, event_date
-)
+INSERT INTO dbo.ASSESSMENT (run_id, deployer_id, form_type_observed, form_version_observed, event_date)
 SELECT
-    NEWID(),
     @run_id,
     d.deployer_id,
     N'PRE',
@@ -167,12 +179,10 @@ T AS (
         (N'HP16', N'TRICARE')
     ) v(question_code, field_name)
 )
-INSERT INTO dbo.RESPONSE (response_id, assessment_id, question_code, field_name, value_raw, value_norm)
+INSERT INTO dbo.RESPONSE (assessment_id, field_id, response, value_norm)
 SELECT
-    NEWID(),
     A.assessment_id,
-    T.question_code,
-    T.field_name,
+    F.field_id,
     /* value_raw */
     CASE T.field_name
         WHEN N'LNAME' THEN CONCAT(N'LAST', RIGHT(CONVERT(VARCHAR(12), ABS(CHECKSUM(CONCAT(A.assessment_id, N':L')))), 6))
@@ -227,7 +237,9 @@ SELECT
             END
     END
 FROM A
-CROSS JOIN T;
+CROSS JOIN T
+INNER JOIN dbo.FIELD AS F
+    ON F.field_name = T.field_name;
 
 /* --- Provider review rows (4 reviewer fields) --- */
 INSERT INTO dbo.PROVIDER_REVIEW (assessment_id, provider_name, certify_date, provider_title, provider_signature)
