@@ -534,12 +534,18 @@ function DataViewUiDuplicate(props: {
 		[column: string]: unknown;
 	};
 
+	type FieldQuestionRow = {
+		field_id: string | number;
+		question?: string;
+	};
+
 	// Read-only duplicate that loads from ASSESSMENT/RESPONSE in MSSQL.
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
 	const [assessmentIds, setAssessmentIds] = React.useState<Array<string | number>>([]);
 	const [selectedAssessmentIndex, setSelectedAssessmentIndex] = React.useState(0);
 	const [responses, setResponses] = React.useState<ResponseRow[]>([]);
+	const [fieldQuestionById, setFieldQuestionById] = React.useState<Record<string, string>>({});
 	const [loading, setLoading] = React.useState(true);
 	const [status, setStatus] = React.useState("Loading assessments...");
 	const [error, setError] = React.useState<string | null>(null);
@@ -597,6 +603,7 @@ function DataViewUiDuplicate(props: {
 		const loadResponsesForAssessment = async () => {
 			if (selectedAssessmentId === undefined || selectedAssessmentId === null) {
 				setResponses([]);
+				setFieldQuestionById({});
 				setSelectedIndex(0);
 				return;
 			}
@@ -613,16 +620,45 @@ function DataViewUiDuplicate(props: {
 					.input("assessment_id", selectedAssessmentId)
 					.query<ResponseRow>("SELECT * FROM RESPONSE WHERE assessment_id = @assessment_id");
 
+				const loadedResponses = responseResult.recordset ?? [];
+				const uniqueFieldIds = Array.from(
+					new Set(
+						loadedResponses
+							.map((row) => row.field_id)
+							.filter((fieldId): fieldId is number => fieldId !== undefined && fieldId !== null)
+					)
+				);
+
+				let questionById: Record<string, string> = {};
+				if (uniqueFieldIds.length > 0) {
+					const fieldRequest = pool.request();
+					const placeholders = uniqueFieldIds.map((fieldId, index) => {
+						const parameterName = `field_id_${index}`;
+						fieldRequest.input(parameterName, fieldId);
+						return `@${parameterName}`;
+					});
+
+					const fieldResult = await fieldRequest.query<FieldQuestionRow>(
+						`SELECT field_id, question FROM FIELD WHERE field_id IN (${placeholders.join(", ")})`
+					);
+
+					questionById = Object.fromEntries(
+						(fieldResult.recordset ?? []).map((row) => [String(row.field_id), String(row.question ?? "")])
+					);
+				}
+
 				if (!cancelled) {
-					setResponses(responseResult.recordset ?? []);
+					setResponses(loadedResponses);
+					setFieldQuestionById(questionById);
 					setStatus(
-						`Loaded ${responseResult.recordset?.length ?? 0} response(s) for assessment_id ${selectedAssessmentId}.`
+						`Loaded ${loadedResponses.length} response(s) for assessment_id ${selectedAssessmentId}.`
 					);
 				}
 			} catch (loadError) {
 				if (!cancelled) {
 					setError(loadError instanceof Error ? loadError.message : String(loadError));
 					setResponses([]);
+					setFieldQuestionById({});
 					setStatus(`Failed to load responses for assessment_id ${selectedAssessmentId}.`);
 				}
 			} finally {
@@ -704,17 +740,24 @@ function DataViewUiDuplicate(props: {
 			: responses.length === 0
 				? React.createElement(Text, null, "No responses found for the first assessment.")
 			: React.createElement(
-				React.Fragment,
-				null,
+				Box,
+				{ flexDirection: "column", marginTop: 1 },
 				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${responses.length}`),
-				React.createElement(Text, null, `Assessment #: ${String(responses[selectedIndex]?.assessment_id ?? "n/a")}`),
-				React.createElement(Text, null, `Response ID: ${String(responses[selectedIndex]?.response_id ?? "n/a")}`),
+				React.createElement(Text, null, `Assesment ID: ${String(responses[selectedIndex]?.assessment_id ?? "n/a")}`),
 				React.createElement(Text, null, `Field ID: ${String(responses[selectedIndex]?.field_id ?? "n/a")}`),
-				React.createElement(Text, null, `Field Name: ${String(responses[selectedIndex]?.field_name ?? "n/a")}`),
 				React.createElement(
 					Text,
 					null,
-					`Value: ${String(
+					`Question: ${String(
+						fieldQuestionById[String(responses[selectedIndex]?.field_id ?? "")] ??
+							responses[selectedIndex]?.field_name ??
+							"n/a"
+					)}`
+				),
+				React.createElement(
+					Text,
+					null,
+					`Response: ${String(
 						responses[selectedIndex]?.response ??
 							responses[selectedIndex]?.response_value ??
 							responses[selectedIndex]?.value ??
