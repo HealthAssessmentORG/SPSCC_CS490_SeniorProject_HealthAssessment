@@ -4,6 +4,21 @@ Application 2 pulls existing database records, transforms them into export rows,
 
 Current status: independent export flow, database status API, database summary API, and database summary command are wired.
 
+## Updated Database Contract
+
+Application 2 expects the updated DD2975 database shape used by `sql_admin/create_db.sql`:
+
+- `ASSESSMENT.assessment_id` is `BIGINT`.
+- `RESPONSE.deployer_response_id` is `BIGINT`.
+- `FIELD.field_code` is not unique.
+- `FIELD.field_name` is unique and is the stable response lookup key.
+- `FIELD.question` stores display question text.
+- App2 reads response values through `dbo.vw_Response`, not directly from `dbo.RESPONSE`.
+- Response-backed mapping rules should use `RESP_FIELD:<field_name>`. Legacy `RESP:<question_code>:<field_name>` rules are still accepted.
+- Export metadata comes from `EXPORT_SPEC`, `EXPORT_FIELD`, `VALUE_DOMAIN`, `MAPPING_SET`, and `MAPPING_RULE`.
+
+The local seed script `sql_admin/populate_app2_export_catalog.sql` creates the current staging export catalog. It covers the known 20-field prealpha fixed-width slice, not the full Navy DD2975 layout.
+
 ## Ink UI
 
 Run the dashboard with:
@@ -45,7 +60,8 @@ Saved demo data must be sanitized JSON. Do not put passwords, connection strings
 Live UI export prerequisites:
 
 - One database namespace is configured for the Application 2 export-schema database. `APP2_DB_*` wins when present; otherwise App2 falls back to `EXPORT_DB_*`, then `DB_*`.
-- Required tables exist, including `RUN`, `RESPONSE`, `EXPORT_SPEC`, `EXPORT_FIELD`, `MAPPING_SET`, `MAPPING_RULE`, `EXPORT_FILE`, and `VALIDATION_ERROR`.
+- Required tables and views exist, including `RUN`, `ASSESSMENT`, `FIELD`, `RESPONSE`, `dbo.vw_Response`, `EXPORT_SPEC`, `EXPORT_FIELD`, `MAPPING_SET`, `MAPPING_RULE`, `EXPORT_FILE`, and `VALIDATION_ERROR`.
+- `sql_admin/populate_fields.sql` and `sql_admin/populate_app2_export_catalog.sql` have been run against the selected staging database.
 - `GET /database/summary` can find a latest run.
 - `db-summary` can find at least one form with an export spec ID and mapping set ID.
 
@@ -113,6 +129,51 @@ APP2_DB_PASSWORD="$EXPORT_DB_PASSWORD" \
 APP2_DB_ENCRYPT="${EXPORT_DB_ENCRYPT:-${DB_ENCRYPT:-false}}" \
 APP2_DB_TRUST_SERVER_CERTIFICATE="${EXPORT_DB_TRUST_SERVER_CERTIFICATE:-${DB_TRUST_SERVER_CERTIFICATE:-true}}" \
 node --import tsx Application/02/main.ts db-summary
+```
+
+## Seed And Verification Workflow
+
+For an already-created updated staging database, run the field and export-catalog seeds in this order:
+
+```bash
+sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" \
+  -U "$APP2_DB_USER" \
+  -P "$APP2_DB_PASSWORD" \
+  -d "$APP2_DB_DATABASE" \
+  -i sql_admin/populate_fields.sql
+
+sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" \
+  -U "$APP2_DB_USER" \
+  -P "$APP2_DB_PASSWORD" \
+  -d "$APP2_DB_DATABASE" \
+  -i sql_admin/populate_app2_export_catalog.sql
+```
+
+Then generate Application 1 data against the same database. Use either the Application 1 UI:
+
+```bash
+npm run ui:app1
+```
+
+or run the generator directly with `MSSQL_CONN_STRING` set in the shell, not committed to project files:
+
+```bash
+RANDOM_ROWS_ASSESSMENTS=5 RANDOM_ROWS_SEED=490 python3 Application/01/random_rows.py --mode full
+```
+
+After Application 1 inserts rows, confirm the selected database has a `RUN` row and target `ASSESSMENT` rows associated with that run. Then verify App2 metadata and export readiness:
+
+```bash
+node --env-file=.env --import tsx Application/02/main.ts db-summary
+node --env-file=.env --import tsx Application/02/main.ts export --run-id <run-id> --export-spec-id <export-spec-id> --mapping-set-id <mapping-set-id> --out out/application_02_export.txt
+```
+
+On the updated database, the Application 1 generator creates a `RUN` row and prints `Run ID: <run-id>`. Use that `run_id`, plus the `export_spec_id` and `mapping_set_id` from `db-summary`. Saved demo data is useful for UI rehearsal, but it is not live App1-to-App2 verification.
+
+DB-gated tests are skipped unless explicitly enabled:
+
+```bash
+RUN_APP2_DB_E2E=1 npm run test:app2:db
 ```
 
 The export command pulls existing database records, transforms them with an existing mapping set, writes a fixed-width output file, persists validation errors, and finalizes the run.
@@ -292,7 +353,9 @@ Success returns HTTP `200`:
     "RUN": true,
     "ASSESSMENT": true,
     "DEPLOYER": true,
+    "FIELD": true,
     "RESPONSE": true,
+    "vw_Response": true,
     "PROVIDER_REVIEW": true,
     "EXPORT_SPEC": true,
     "EXPORT_FIELD": true,
@@ -304,7 +367,7 @@ Success returns HTTP `200`:
 }
 ```
 
-Missing environment configuration, connection failures, and missing required tables return HTTP `503`:
+Missing environment configuration, connection failures, and missing required tables or views return HTTP `503`:
 
 ```json
 {
@@ -382,7 +445,7 @@ Summary responses do not include raw table rows, response values, validation pay
 
 ### `db-summary` Returns `Database form summary check failed`
 
-The CLI sanitizes database errors, so this message means the connection or metadata query failed. App2 checks `APP2_DB_*`, `EXPORT_DB_*`, then `DB_*`; confirm that at least one of those namespaces points at the export-schema database.
+The CLI sanitizes database errors, so this message means the connection or metadata query failed. App2 checks `APP2_DB_*`, `EXPORT_DB_*`, then `DB_*`; confirm that at least one of those namespaces points at the updated export-schema database.
 
 If the UI opens and shows:
 
@@ -390,15 +453,18 @@ If the UI opens and shows:
 Name: DD2975_PreDHA
 ```
 
-then App2 connected to the older alpha1 database. The UI can show status and aggregate counts for that legacy schema, but `db-summary` and UI export need the Application 2 export schema.
+then App2 connected to the older alpha1 database. The UI can show status and aggregate counts for that legacy schema, but `db-summary` and UI export need the updated Application 2 export schema.
 
-The command expects an Application 2 export-schema database with these tables:
+The command expects Application 2 export catalog tables:
 
 ```text
 dbo.EXPORT_SPEC
 dbo.EXPORT_FIELD
 dbo.MAPPING_SET
+dbo.MAPPING_RULE
 ```
+
+Live export also requires `dbo.vw_Response` for response-backed fields.
 
 If the database has only the older alpha1 tables:
 
@@ -408,7 +474,7 @@ dbo.FIELD
 dbo.RESPONSE
 ```
 
-then `db-summary` cannot run against it. Point `APP2_DB_DATABASE` at the database created from `sql/00_schema.sql`, or apply the export schema to the intended export database before running the command.
+then `db-summary` cannot run against it. Point `APP2_DB_DATABASE` at a database whose schema matches `sql_admin/create_db.sql`, then run `sql_admin/populate_fields.sql` and `sql_admin/populate_app2_export_catalog.sql`.
 
 To confirm the selected database without exposing connection values in project files:
 
@@ -420,7 +486,7 @@ sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" \
   -Q "SELECT DB_NAME() AS database_name;"
 ```
 
-To list visible user tables in the selected database:
+To list visible user tables and views in the selected database:
 
 ```bash
 sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" \
@@ -429,10 +495,11 @@ sqlcmd -No -S "$APP2_DB_SERVER,$APP2_DB_PORT" \
   -d "$APP2_DB_DATABASE" \
   -Q "
 SELECT DB_NAME() AS database_name;
-SELECT s.name + '.' + t.name AS table_name
-FROM sys.tables t
-JOIN sys.schemas s ON s.schema_id = t.schema_id
-ORDER BY s.name, t.name;
+SELECT s.name + '.' + o.name AS object_name, o.type_desc
+FROM sys.objects o
+JOIN sys.schemas s ON s.schema_id = o.schema_id
+WHERE o.type IN ('U', 'V')
+ORDER BY s.name, o.name;
 "
 ```
 

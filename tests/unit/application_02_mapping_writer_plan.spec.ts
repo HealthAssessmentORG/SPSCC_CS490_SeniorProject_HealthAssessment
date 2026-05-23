@@ -38,6 +38,10 @@ test.describe("Application 2 mapping rule parsing", () => {
       question_code: "DEM",
       field_name: "EMAIL"
     });
+    expect(parseSourceExpression("RESP_FIELD:EMAIL")).toEqual({
+      kind: "resp_field",
+      field_name: "EMAIL"
+    });
     expect(parseTransformPipeline("trim|lower|date:yyyymmdd").map((op) => op.kind)).toEqual([
       "trim",
       "lower",
@@ -52,6 +56,10 @@ test.describe("Application 2 mapping rule parsing", () => {
     expect(() => parseSourceExpression("COL:ASSESSMENT")).toThrow("Bad COL source_expression");
     expect(() => parseSourceExpression("RESP:DEM")).toThrow("Bad RESP source_expression");
     expect(() => parseSourceExpression("RESP:DEM:EMAIL:EXTRA")).toThrow("Bad RESP source_expression");
+    expect(() => parseSourceExpression("RESP_FIELD:")).toThrow("Bad RESP_FIELD source_expression");
+    expect(() => parseSourceExpression("RESP_FIELD:DEM:EMAIL")).toThrow(
+      "Bad RESP_FIELD source_expression"
+    );
     expect(() => parseSourceExpression("WAT:???")).toThrow("Unknown source_expression");
     expect(() => parseTransformPipeline("trim|wut")).toThrow("Unknown transform op: wut");
   });
@@ -66,6 +74,13 @@ test.describe("Application 2 writer plan", () => {
         transform_pipeline: "trim|lower",
         default_value: null,
         pad_rule: "pad:right:space"
+      },
+      {
+        export_field_id: "F_DOB",
+        source_expression: "RESP_FIELD:DOB",
+        transform_pipeline: "date:yyyymmdd",
+        default_value: null,
+        pad_rule: "pad:right:space"
       }
     ];
 
@@ -75,6 +90,13 @@ test.describe("Application 2 writer plan", () => {
       export_field_id: "F_EMAIL",
       source: { kind: "resp", question_code: "DEM", field_name: "EMAIL" },
       transforms: [{ kind: "trim" }, { kind: "lower" }],
+      pad: { kind: "right_space" },
+      default_value: ""
+    });
+    expect(rules.get("F_DOB")).toMatchObject({
+      export_field_id: "F_DOB",
+      source: { kind: "resp_field", field_name: "DOB" },
+      transforms: [{ kind: "date_yyyymmdd" }],
       pad: { kind: "right_space" },
       default_value: ""
     });
@@ -235,6 +257,173 @@ test.describe("Application 2 writer plan", () => {
 
     expect(plan[0]!.getValue(recordContext)).toBe("test@example.com".padEnd(20, " "));
     expect(plan[1]!.getValue(recordContext)).toBe("ABCDE");
+  });
+
+  test("RESP_FIELD sources use field_name while legacy RESP sources still work", () => {
+    const fields: Application2ExportFieldRow[] = [
+      {
+        export_field_id: "F_EMAIL",
+        field_name: "EMAIL",
+        start_pos: 1,
+        end_pos: 18,
+        field_length: 18,
+        domain_type: null
+      },
+      {
+        export_field_id: "F_LNAME",
+        field_name: "LNAME",
+        start_pos: 19,
+        end_pos: 28,
+        field_length: 10,
+        domain_type: null
+      }
+    ];
+
+    const rules = buildParsedRuleMap([
+      {
+        export_field_id: "F_EMAIL",
+        source_expression: "RESP_FIELD:EMAIL",
+        transform_pipeline: "trim|lower",
+        default_value: null,
+        pad_rule: "pad:right:space"
+      },
+      {
+        export_field_id: "F_LNAME",
+        source_expression: "RESP:DEM:LNAME",
+        transform_pipeline: "trim",
+        default_value: null,
+        pad_rule: "pad:right:space"
+      }
+    ]);
+
+    const plan = buildWriterPlan(fields, rules);
+    const recordContext = ctx({
+      responses: new Map([
+        ["EMAIL", " User@EXAMPLE.MIL "],
+        ["DEM:LNAME", " Smith "]
+      ])
+    });
+
+    expect(plan[0]!.getValue(recordContext)).toBe("user@example.mil  ");
+    expect(plan[1]!.getValue(recordContext)).toBe("Smith     ");
+  });
+
+  test("representative seeded fields resolve constants, columns, responses, dates, enums, and defaults", () => {
+    const fields: Application2ExportFieldRow[] = [
+      {
+        export_field_id: "F_FORM_TYPE",
+        field_name: "FORM_TYPE",
+        start_pos: 1,
+        end_pos: 5,
+        field_length: 5,
+        domain_type: null
+      },
+      {
+        export_field_id: "F_DODID",
+        field_name: "DODID",
+        start_pos: 6,
+        end_pos: 15,
+        field_length: 10,
+        domain_type: "DODID10"
+      },
+      {
+        export_field_id: "F_D_EVENT",
+        field_name: "D_EVENT",
+        start_pos: 16,
+        end_pos: 23,
+        field_length: 8,
+        domain_type: "DATE_YYYYMMDD"
+      },
+      {
+        export_field_id: "F_EMAIL",
+        field_name: "EMAIL",
+        start_pos: 24,
+        end_pos: 43,
+        field_length: 20,
+        domain_type: null
+      },
+      {
+        export_field_id: "F_SEX",
+        field_name: "SEX",
+        start_pos: 44,
+        end_pos: 44,
+        field_length: 1,
+        domain_type: "ENUM_SEX"
+      },
+      {
+        export_field_id: "F_PROVIDER_TITLE",
+        field_name: "PROVIDER_TITLE",
+        start_pos: 45,
+        end_pos: 45,
+        field_length: 1,
+        domain_type: "ENUM_PROV_TITLE"
+      }
+    ];
+
+    const rules = buildParsedRuleMap([
+      {
+        export_field_id: "F_FORM_TYPE",
+        source_expression: "CONST",
+        transform_pipeline: "trim",
+        default_value: "PRE",
+        pad_rule: "pad:right:space"
+      },
+      {
+        export_field_id: "F_DODID",
+        source_expression: "COL:DEPLOYER.dod_id",
+        transform_pipeline: "trim",
+        default_value: null,
+        pad_rule: "pad:right:space"
+      },
+      {
+        export_field_id: "F_D_EVENT",
+        source_expression: "COL:ASSESSMENT.event_date",
+        transform_pipeline: "date:yyyymmdd",
+        default_value: null,
+        pad_rule: "pad:right:space"
+      },
+      {
+        export_field_id: "F_EMAIL",
+        source_expression: "RESP_FIELD:EMAIL",
+        transform_pipeline: "trim|lower",
+        default_value: null,
+        pad_rule: "pad:right:space"
+      },
+      {
+        export_field_id: "F_SEX",
+        source_expression: "RESP_FIELD:SEX",
+        transform_pipeline: "trim",
+        default_value: null,
+        pad_rule: "pad:right:space"
+      },
+      {
+        export_field_id: "F_PROVIDER_TITLE",
+        source_expression: "COL:PROVIDER_REVIEW.provider_title",
+        transform_pipeline: "trim",
+        default_value: "1",
+        pad_rule: "pad:right:space"
+      }
+    ]);
+
+    const plan = buildWriterPlan(fields, rules);
+    const recordContext = ctx({
+      assessment: { event_date: "2026-05-24T00:00:00.000Z" },
+      deployer: { dod_id: "1234567890" },
+      provider_review: {},
+      responses: new Map([
+        ["EMAIL", " Sailor@EXAMPLE.MIL "],
+        ["SEX", "F"]
+      ])
+    });
+
+    expect(plan.map((field) => field.getValue(recordContext))).toEqual([
+      "PRE  ",
+      "1234567890",
+      "20260524",
+      "sailor@example.mil  ",
+      "F",
+      "1"
+    ]);
   });
 
   test("CONST source and left-zero padding preserve current behavior", () => {

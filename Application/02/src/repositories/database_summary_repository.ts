@@ -18,6 +18,7 @@ function toIsoString(value: unknown): string | null {
 
 function buildApplication2Counts(row: Record<string, unknown> | undefined): Application2DatabaseSummaryCounts {
   return {
+    fields: Number(row?.["fields"] ?? 0),
     runs: Number(row?.["runs"] ?? 0),
     deployers: Number(row?.["deployers"] ?? 0),
     assessments: Number(row?.["assessments"] ?? 0),
@@ -87,6 +88,7 @@ async function loadApplication2DatabaseSummary(
       SELECT
         (SELECT COUNT(*) FROM dbo.[RUN]) AS runs,
         (SELECT COUNT(*) FROM dbo.DEPLOYER) AS deployers,
+        (SELECT COUNT(*) FROM dbo.FIELD) AS fields,
         (SELECT COUNT(*) FROM dbo.ASSESSMENT) AS assessments,
         (SELECT COUNT(*) FROM dbo.RESPONSE) AS responses,
         (SELECT COUNT(*) FROM dbo.PROVIDER_REVIEW) AS provider_reviews,

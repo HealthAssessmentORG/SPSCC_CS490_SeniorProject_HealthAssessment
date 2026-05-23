@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
 
 import { createApplication2Server } from "../../Application/02/src/api/server.js";
 import { closeApplication2Pool, type DbPool } from "../../Application/02/src/db_connect.js";
-import { APPLICATION2_REQUIRED_DATABASE_TABLES } from "../../Application/02/src/repositories/database_status_repository.js";
+import { APPLICATION2_REQUIRED_DATABASE_OBJECTS } from "../../Application/02/src/repositories/database_status_repository.js";
 
 type QueryCall = {
   text: string;
@@ -39,8 +39,8 @@ const app2DbEnvKeys = [
   "APP2_DB_REQUEST_TIMEOUT_MS"
 ] as const;
 
-function allTablesPresent() {
-  return Object.fromEntries(APPLICATION2_REQUIRED_DATABASE_TABLES.map((table) => [table, true]));
+function allObjectsPresent() {
+  return Object.fromEntries(APPLICATION2_REQUIRED_DATABASE_OBJECTS.map((objectName) => [objectName, true]));
 }
 
 function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
@@ -119,7 +119,7 @@ test.describe("Application 2 database status API", () => {
   test("GET /database/status returns database name and required table map", async () => {
     const { pool, calls } = fakePool([
       [{ database_name: "app2_test" }],
-      APPLICATION2_REQUIRED_DATABASE_TABLES.map((table) => ({ TABLE_NAME: table }))
+      APPLICATION2_REQUIRED_DATABASE_OBJECTS.map((objectName) => ({ TABLE_NAME: objectName }))
     ]);
 
     await withServer(createApplication2Server({ getPool: async () => pool }), async (baseUrl) => {
@@ -131,7 +131,7 @@ test.describe("Application 2 database status API", () => {
       expect(body).toEqual({
         ok: true,
         database: "app2_test",
-        tables: allTablesPresent()
+        tables: allObjectsPresent()
       });
     });
 
@@ -216,11 +216,11 @@ test.describe("Application 2 database status API", () => {
     );
   });
 
-  test("GET /database/status reports missing required tables without summary fields", async () => {
+  test("GET /database/status reports missing required objects without summary fields", async () => {
     const { pool } = fakePool([
       [{ database_name: "app2_test" }],
-      APPLICATION2_REQUIRED_DATABASE_TABLES.filter((table) => table !== "RESPONSE").map((table) => ({
-        TABLE_NAME: table
+      APPLICATION2_REQUIRED_DATABASE_OBJECTS.filter((objectName) => objectName !== "RESPONSE").map((objectName) => ({
+        TABLE_NAME: objectName
       }))
     ]);
 
@@ -231,10 +231,30 @@ test.describe("Application 2 database status API", () => {
       expect(response.status).toBe(503);
       expect(body).toEqual({
         ok: false,
-        error: "Missing required database tables: RESPONSE"
+        error: "Missing required Application 2 database objects: tables RESPONSE"
       });
       expect(JSON.stringify(body)).not.toContain("summary");
       expect(JSON.stringify(body)).not.toContain("count");
+    });
+  });
+
+  test("GET /database/status reports a missing vw_Response view", async () => {
+    const { pool } = fakePool([
+      [{ database_name: "app2_test" }],
+      APPLICATION2_REQUIRED_DATABASE_OBJECTS.filter((objectName) => objectName !== "vw_Response").map(
+        (objectName) => ({ TABLE_NAME: objectName })
+      )
+    ]);
+
+    await withServer(createApplication2Server({ getPool: async () => pool }), async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/database/status`);
+      const body = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(body).toEqual({
+        ok: false,
+        error: "Missing required Application 2 database objects: views vw_Response"
+      });
     });
   });
 

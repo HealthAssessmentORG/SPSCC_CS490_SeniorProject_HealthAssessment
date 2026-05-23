@@ -1,6 +1,7 @@
 export type SourceExpr =
   | { kind: "col"; table: "ASSESSMENT" | "DEPLOYER" | "PROVIDER_REVIEW"; column: string }
   | { kind: "resp"; question_code: string; field_name: string }
+  | { kind: "resp_field"; field_name: string }
   | { kind: "const" };
 
 export type TransformOp =
@@ -39,6 +40,13 @@ export function parseSourceExpression(src: string): SourceExpr {
     if (parts.length !== 2) throw new Error(`Bad RESP source_expression: ${src}`);
     const [question_code, field_name] = parts as [string, string];
     return { kind: "resp", question_code, field_name };
+  }
+  if (src.startsWith("RESP_FIELD:")) {
+    const field_name = src.slice("RESP_FIELD:".length);
+    if (!field_name || field_name.includes(":")) {
+      throw new Error(`Bad RESP_FIELD source_expression: ${src}`);
+    }
+    return { kind: "resp_field", field_name };
   }
   throw new Error(`Unknown source_expression: ${src}`);
 }

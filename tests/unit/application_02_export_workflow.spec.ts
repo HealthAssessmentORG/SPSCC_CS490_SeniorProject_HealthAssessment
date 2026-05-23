@@ -65,7 +65,7 @@ test.describe("Application 2 export workflow", () => {
         },
         {
           export_field_id: "f_email",
-          source_expression: "RESP:DEM:EMAIL",
+          source_expression: "RESP_FIELD:EMAIL",
           transform_pipeline: "trim|lower",
           default_value: null,
           pad_rule: "pad:right:space"

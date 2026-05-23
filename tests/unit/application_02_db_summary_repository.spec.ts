@@ -189,7 +189,7 @@ test.describe("Application 2 database form summary repository", () => {
     ]);
 
     await expect(loadDatabaseFormSummary(pool)).rejects.toThrow(
-      "Database form summary requires Application 2 export schema. Selected database DD2975_PreDHA is missing EXPORT_SPEC, EXPORT_FIELD, or MAPPING_SET."
+      "Database form summary requires Application 2 export catalog tables. Selected database DD2975_PreDHA is missing EXPORT_SPEC, EXPORT_FIELD, or MAPPING_SET."
     );
   });
 });

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-import type { DbPool } from "../../Application/02/src/db/db_connect.js";
+import { sql, type DbPool } from "../../Application/02/src/db/db_connect.js";
 import { createExportFile } from "../../Application/02/src/repositories/export_file_repository.js";
 import { loadExportRecordContext } from "../../Application/02/src/repositories/export_repository.js";
 import {
@@ -15,6 +15,7 @@ import { persistValidationErrors } from "../../Application/02/src/repositories/v
 type QueryCall = {
   text: string;
   inputs: Array<{ name: string; value: unknown }>;
+  inputTypes: Array<{ name: string; type: unknown }>;
 };
 
 function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
@@ -23,13 +24,15 @@ function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
   const pool = {
     request() {
       const inputs: Array<{ name: string; value: unknown }> = [];
+      const inputTypes: Array<{ name: string; type: unknown }> = [];
       return {
-        input(name: string, _type: unknown, value: unknown) {
+        input(name: string, type: unknown, value: unknown) {
           inputs.push({ name, value });
+          inputTypes.push({ name, type });
           return this;
         },
         async query(text: string) {
-          calls.push({ text, inputs: [...inputs] });
+          calls.push({ text, inputs: [...inputs], inputTypes: [...inputTypes] });
           return { recordset: recordsets.shift() ?? [] };
         }
       };
@@ -41,34 +44,61 @@ function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
 
 test.describe("Application 2 repositories", () => {
   test("loads export record context and response map", async () => {
+    const assessmentId = "9007199254740993";
     const { pool, calls } = fakePool([
-      [{ assessment_id: "a1", deployer_id: "d1" }],
+      [{ assessment_id: assessmentId, deployer_id: "d1" }],
       [{ deployer_id: "d1", dod_id: "1234567890" }],
-      [{ assessment_id: "a1", provider_name: "Provider" }],
+      [{ assessment_id: assessmentId, provider_name: "Provider" }],
       [
-        { question_code: "DEM", field_name: "EMAIL", value_norm: "USER@EXAMPLE.MIL" },
-        { question_code: "DEM", field_name: "EMPTY", value_norm: null }
+        {
+          question_code: "DEM",
+          field_name: "EMAIL",
+          value_raw: "user@example.mil",
+          value_norm: "USER@EXAMPLE.MIL"
+        },
+        { question_code: "DEM", field_name: "EMPTY", value_raw: "raw-empty", value_norm: null }
       ]
     ]);
 
-    const context = await loadExportRecordContext(pool, "a1");
+    const context = await loadExportRecordContext(pool, assessmentId);
 
-    expect(context.assessment).toMatchObject({ assessment_id: "a1" });
+    expect(context.assessment).toMatchObject({ assessment_id: assessmentId });
     expect(context.deployer).toMatchObject({ deployer_id: "d1" });
     expect(context.provider_review).toMatchObject({ provider_name: "Provider" });
     expect([...context.responses.entries()]).toEqual([
+      ["EMAIL", "USER@EXAMPLE.MIL"],
       ["DEM:EMAIL", "USER@EXAMPLE.MIL"],
-      ["DEM:EMPTY", ""]
+      ["EMPTY", "raw-empty"],
+      ["DEM:EMPTY", "raw-empty"]
     ]);
 
     expect(calls).toHaveLength(4);
     expect(calls[0]!.text).toContain("FROM dbo.ASSESSMENT");
     expect(calls[1]!.text).toContain("JOIN dbo.ASSESSMENT");
     expect(calls[2]!.text).toContain("FROM dbo.PROVIDER_REVIEW");
-    expect(calls[3]!.text).toContain("FROM dbo.RESPONSE");
+    expect(calls[3]!.text).toContain("FROM dbo.vw_Response");
+    expect(calls[3]!.text).toContain("value_raw");
     for (const call of calls) {
-      expect(call.inputs).toEqual([{ name: "id", value: "a1" }]);
+      expect(call.inputs).toEqual([{ name: "id", value: assessmentId }]);
+      expect(call.inputTypes).toEqual([{ name: "id", type: sql.BigInt }]);
     }
+  });
+
+  test("rejects duplicate response field-name keys", async () => {
+    const assessmentId = "9007199254740993";
+    const { pool } = fakePool([
+      [{ assessment_id: assessmentId }],
+      [],
+      [],
+      [
+        { question_code: "DEM", field_name: "EMAIL", value_raw: "a", value_norm: "a" },
+        { question_code: "ALT", field_name: "EMAIL", value_raw: "b", value_norm: "b" }
+      ]
+    ]);
+
+    await expect(loadExportRecordContext(pool, assessmentId)).rejects.toThrow(
+      "Duplicate response key from dbo.vw_Response: EMAIL"
+    );
   });
 
   test("loads and normalizes export fields", async () => {
@@ -197,9 +227,15 @@ test.describe("Application 2 repositories", () => {
   });
 
   test("loads assessment ids for a run with deterministic ordering", async () => {
-    const { pool, calls } = fakePool([[{ assessment_id: "a2" }, { assessment_id: "a1" }], []]);
+    const { pool, calls } = fakePool([
+      [{ assessment_id: "9007199254740993" }, { assessment_id: "9007199254740994" }],
+      []
+    ]);
 
-    await expect(loadAssessmentIdsForRun(pool, "run1")).resolves.toEqual(["a2", "a1"]);
+    await expect(loadAssessmentIdsForRun(pool, "run1")).resolves.toEqual([
+      "9007199254740993",
+      "9007199254740994"
+    ]);
     await updateRunStatus(pool, "run1", "finished");
 
     expect(calls[0]!.text).toContain("FROM dbo.ASSESSMENT");

@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test";
 
 import { createApplication2Server } from "../../Application/02/src/api/server.js";
 import { closeApplication2Pool, type DbPool } from "../../Application/02/src/db_connect.js";
-import { APPLICATION2_REQUIRED_DATABASE_TABLES } from "../../Application/02/src/repositories/database_status_repository.js";
+import { APPLICATION2_REQUIRED_DATABASE_OBJECTS } from "../../Application/02/src/repositories/database_status_repository.js";
 
 type QueryCall = {
   text: string;
@@ -40,6 +40,7 @@ const app2DbEnvKeys = [
 ] as const;
 
 const zeroCounts = {
+  fields: 0,
   runs: 0,
   deployers: 0,
   assessments: 0,
@@ -54,7 +55,7 @@ const zeroCounts = {
 };
 
 function app2TableRows() {
-  return APPLICATION2_REQUIRED_DATABASE_TABLES.map((table) => ({ TABLE_NAME: table }));
+  return APPLICATION2_REQUIRED_DATABASE_OBJECTS.map((objectName) => ({ TABLE_NAME: objectName }));
 }
 
 function fakePool(recordsets: Array<Array<Record<string, unknown>>>) {
@@ -141,6 +142,7 @@ test.describe("Application 2 database summary API", () => {
         {
           runs: "2",
           deployers: "3",
+          fields: "237",
           assessments: "5",
           responses: "55",
           provider_reviews: "5",
@@ -187,6 +189,7 @@ test.describe("Application 2 database summary API", () => {
         counts: {
           runs: 2,
           deployers: 3,
+          fields: 237,
           assessments: 5,
           responses: 55,
           provider_reviews: 5,

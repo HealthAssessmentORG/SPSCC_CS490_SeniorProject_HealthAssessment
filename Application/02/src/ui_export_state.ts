@@ -7,7 +7,7 @@ import type {
 import type { Application2DashboardData } from "./ui_demo_data.js";
 
 export const APP2_UI_EXPORT_FORM_METADATA_UNAVAILABLE =
-  "Export unavailable: export form metadata is unavailable. Confirm EXPORT_SPEC, EXPORT_FIELD, and MAPPING_SET.";
+  "Export unavailable: export catalog metadata is unavailable. Confirm EXPORT_SPEC, EXPORT_FIELD, MAPPING_SET, and MAPPING_RULE.";
 
 export const APP2_UI_EXPORT_RUNNING_NOTICE = "Export running; wait for completion.";
 

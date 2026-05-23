@@ -4,6 +4,7 @@ export const APPLICATION2_REQUIRED_DATABASE_TABLES = [
   "RUN",
   "ASSESSMENT",
   "DEPLOYER",
+  "FIELD",
   "RESPONSE",
   "PROVIDER_REVIEW",
   "EXPORT_SPEC",
@@ -14,12 +15,19 @@ export const APPLICATION2_REQUIRED_DATABASE_TABLES = [
   "VALIDATION_ERROR"
 ] as const;
 
+export const APPLICATION2_REQUIRED_DATABASE_VIEWS = ["vw_Response"] as const;
+
+export const APPLICATION2_REQUIRED_DATABASE_OBJECTS = [
+  ...APPLICATION2_REQUIRED_DATABASE_TABLES,
+  ...APPLICATION2_REQUIRED_DATABASE_VIEWS
+] as const;
+
 export const LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES = ["ASSESSMENT", "FIELD", "RESPONSE"] as const;
 
 export type SupportedDatabaseSchema = "application2" | "legacy_alpha1";
 
-type TableName =
-  | (typeof APPLICATION2_REQUIRED_DATABASE_TABLES)[number]
+type DatabaseObjectName =
+  | (typeof APPLICATION2_REQUIRED_DATABASE_OBJECTS)[number]
   | (typeof LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES)[number];
 
 export type DatabaseSchemaDetection = {
@@ -28,16 +36,46 @@ export type DatabaseSchemaDetection = {
   tables: Record<string, boolean>;
 };
 
-const SUPPORTED_TABLES = Array.from(
-  new Set<TableName>([...APPLICATION2_REQUIRED_DATABASE_TABLES, ...LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES])
+const SUPPORTED_DATABASE_OBJECTS = Array.from(
+  new Set<DatabaseObjectName>([
+    ...APPLICATION2_REQUIRED_DATABASE_OBJECTS,
+    ...LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES
+  ])
 );
 
-function tableMap(requiredTables: readonly string[], found: Set<string>): Record<string, boolean> {
-  return Object.fromEntries(requiredTables.map((table) => [table, found.has(table)]));
+const LEGACY_SHARED_OBJECTS = new Set<string>(LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES);
+
+function objectMap(requiredObjects: readonly string[], found: Set<string>): Record<string, boolean> {
+  return Object.fromEntries(requiredObjects.map((objectName) => [objectName, found.has(objectName)]));
 }
 
-function missingTables(requiredTables: readonly string[], found: Set<string>): string[] {
-  return requiredTables.filter((table) => !found.has(table));
+function missingObjects(requiredObjects: readonly string[], found: Set<string>): string[] {
+  return requiredObjects.filter((objectName) => !found.has(objectName));
+}
+
+function describeMissingApplication2Objects(missing: string[]): string {
+  const missingTables = missing.filter((objectName) =>
+    (APPLICATION2_REQUIRED_DATABASE_TABLES as readonly string[]).includes(objectName)
+  );
+  const missingViews = missing.filter((objectName) =>
+    (APPLICATION2_REQUIRED_DATABASE_VIEWS as readonly string[]).includes(objectName)
+  );
+  const parts: string[] = [];
+
+  if (missingTables.length > 0) {
+    parts.push(`tables ${missingTables.join(", ")}`);
+  }
+  if (missingViews.length > 0) {
+    parts.push(`views ${missingViews.join(", ")}`);
+  }
+
+  return parts.join("; ");
+}
+
+function hasApplication2SpecificObject(found: Set<string>): boolean {
+  return APPLICATION2_REQUIRED_DATABASE_OBJECTS.some(
+    (objectName) => !LEGACY_SHARED_OBJECTS.has(objectName) && found.has(objectName)
+  );
 }
 
 export async function detectSupportedDatabaseSchema(pool: DbPool): Promise<DatabaseSchemaDetection> {
@@ -49,9 +87,9 @@ export async function detectSupportedDatabaseSchema(pool: DbPool): Promise<Datab
   const params: Record<string, { type: unknown; value: unknown }> = {
     schema: { type: sql.NVarChar(128), value: "dbo" }
   };
-  const placeholders = SUPPORTED_TABLES.map((table, index) => {
+  const placeholders = SUPPORTED_DATABASE_OBJECTS.map((objectName, index) => {
     const key = `table${index}`;
-    params[key] = { type: sql.NVarChar(128), value: table };
+    params[key] = { type: sql.NVarChar(128), value: objectName };
     return `@${key}`;
   });
 
@@ -69,23 +107,25 @@ export async function detectSupportedDatabaseSchema(pool: DbPool): Promise<Datab
   const found = new Set(
     (tableResult.recordset as Array<{ TABLE_NAME: unknown }>).map((row) => String(row.TABLE_NAME))
   );
-  const app2Missing = missingTables(APPLICATION2_REQUIRED_DATABASE_TABLES, found);
+  const app2Missing = missingObjects(APPLICATION2_REQUIRED_DATABASE_OBJECTS, found);
   if (app2Missing.length === 0) {
     return {
       database,
       schema: "application2",
-      tables: tableMap(APPLICATION2_REQUIRED_DATABASE_TABLES, found)
+      tables: objectMap(APPLICATION2_REQUIRED_DATABASE_OBJECTS, found)
     };
   }
 
-  const legacyMissing = missingTables(LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES, found);
-  if (legacyMissing.length === 0) {
+  const legacyMissing = missingObjects(LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES, found);
+  if (legacyMissing.length === 0 && !hasApplication2SpecificObject(found)) {
     return {
       database,
       schema: "legacy_alpha1",
-      tables: tableMap(LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES, found)
+      tables: objectMap(LEGACY_ALPHA1_REQUIRED_DATABASE_TABLES, found)
     };
   }
 
-  throw new Error(`Missing required database tables: ${app2Missing.join(", ")}`);
+  throw new Error(
+    `Missing required Application 2 database objects: ${describeMissingApplication2Objects(app2Missing)}`
+  );
 }
