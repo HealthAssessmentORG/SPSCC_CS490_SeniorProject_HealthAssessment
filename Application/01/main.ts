@@ -2,12 +2,20 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
 
+function resolvePythonCommand(): string {
+	if (process.platform === "win32") {
+		return resolve(process.cwd(), ".venv", "Scripts", "python.exe");
+	}
+
+	return resolve(process.cwd(), ".venv", "bin", "python");
+}
+
 async function run(): Promise<void> {
 	// Edit this if the Python script moves to a different location.
 	const scriptPath = resolve(process.cwd(), "Application", "01", "random_rows.py");
 
 	// Edit this if your Python executable differs.
-	const pythonCommand = resolve(process.cwd(), ".venv", "Scripts", "python.exe");
+	const pythonCommand = resolvePythonCommand();
 
     const runRandomRows = async (
 		seed: number | null,
