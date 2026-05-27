@@ -247,7 +247,7 @@ If you want Node to load the repository `.env` file directly, include `--env-fil
 node --env-file=.env --import tsx Application/02/main.ts db-summary
 ```
 
-Application 2 reads database settings in this order: `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`. This lets App2 use the same physical database as the existing export or root DB configuration when that database has the Application 2 export schema.
+Application 1 and Application 2 share the same database selection rules: `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`. This lets both apps use the same physical database when it has the Application 2 export schema.
 
 Explicit `APP2_DB_*` values are still useful when you want App2 to ignore the other database settings:
 
@@ -328,7 +328,7 @@ less -S ./out/dd2975_prealpha_seed0.txt
 
 ### `db-summary`: `Database form summary check failed`
 
-This command checks `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`. Loading `.env` with `--env-file=.env` is enough when one of those namespaces is complete and points at the Application 2 export-schema database.
+This command selects `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`. Loading `.env` with `--env-file=.env` is enough when one of those namespaces is complete and points at the Application 2 export-schema database.
 
 If `node --env-file=.env --import tsx Application/02/main.ts ui` opens and shows `Name: DD2975_PreDHA`, App2 is connected to the older alpha1 database. The UI can show status and counts for that database, but `db-summary` and UI export need the Application 2 export-schema tables listed below.
 

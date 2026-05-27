@@ -19,7 +19,7 @@ export function safeApplication2DbConfigError(error: unknown): string | null {
   }
 
   if (
-    /^Application 2 database connection failed after trying (APP2_DB_\*|EXPORT_DB_\*|DB_\*)(, (APP2_DB_\*|EXPORT_DB_\*|DB_\*))*\.$/.test(
+    /^Application 2 database connection failed (for|after trying) (APP2_DB_\*|EXPORT_DB_\*|DB_\*)(, (APP2_DB_\*|EXPORT_DB_\*|DB_\*))*\.$/.test(
       message
     )
   ) {

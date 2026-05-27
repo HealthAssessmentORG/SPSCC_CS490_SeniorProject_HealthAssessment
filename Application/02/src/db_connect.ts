@@ -167,6 +167,29 @@ export function getApplication2DbConfigFromEnv(): sql.config {
   return getApplication2DbConfigResolutionFromEnv().candidates[0]!.config;
 }
 
+function boolToConnectionStringValue(value: unknown, fallback: boolean): string {
+  if (typeof value === "boolean") {
+    return value ? "yes" : "no";
+  }
+
+  return fallback ? "yes" : "no";
+}
+
+export function getApplication2MssqlConnectionStringFromEnv(): string {
+  const cfg = getApplication2DbConfigFromEnv();
+  const server = cfg.port ? `${cfg.server},${cfg.port}` : cfg.server;
+  const options = cfg.options ?? {};
+
+  return [
+    `SERVER=${server}`,
+    `DATABASE=${cfg.database}`,
+    `UID=${cfg.user}`,
+    `PWD=${cfg.password}`,
+    `Encrypt=${boolToConnectionStringValue(options.encrypt, false)}`,
+    `TrustServerCertificate=${boolToConnectionStringValue(options.trustServerCertificate, true)}`
+  ].join(";");
+}
+
 function writeDbLog(message: string) {
   process.stderr.write(`${message}\n`);
 }
@@ -180,25 +203,16 @@ export async function getApplication2Pool(): Promise<DbPool> {
     writeDbLog(diagnostic);
   }
 
-  const attempted: string[] = [];
-  for (const [index, candidate] of resolution.candidates.entries()) {
-    attempted.push(candidate.namespace);
+  const candidate = resolution.candidates[0]!;
 
-    try {
-      const pool = await new sql.ConnectionPool(candidate.config).connect();
-      poolCache.set("application2", pool);
-      return pool;
-    } catch {
-      const next = resolution.candidates[index + 1];
-      writeDbLog(
-        next
-          ? `Application 2 DB warning: connection failed for ${candidate.namespace}; trying ${next.namespace}.`
-          : `Application 2 DB warning: connection failed for ${candidate.namespace}; no fallback remains.`
-      );
-    }
+  try {
+    const pool = await new sql.ConnectionPool(candidate.config).connect();
+    poolCache.set("application2", pool);
+    return pool;
+  } catch {
+    writeDbLog(`Application 2 DB warning: connection failed for ${candidate.namespace}.`);
+    throw new Error(`Application 2 database connection failed for ${candidate.namespace}.`);
   }
-
-  throw new Error(`Application 2 database connection failed after trying ${attempted.join(", ")}.`);
 }
 
 export async function closeApplication2Pool(): Promise<void> {

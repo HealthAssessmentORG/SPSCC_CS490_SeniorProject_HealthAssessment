@@ -3,7 +3,8 @@ import { test, expect } from "@playwright/test";
 import {
   getApplication2DbConfigFromEnv,
   getApplication2DbConfigResolutionFromEnv,
-  getApplication2DbLogContext
+  getApplication2DbLogContext,
+  getApplication2MssqlConnectionStringFromEnv
 } from "../../Application/02/src/db/db_connect.js";
 
 const DB_ENV_KEYS = [
@@ -241,6 +242,32 @@ test.describe("Application 2 db config", () => {
           pwdLen: 6
         });
         expect(logContext).not.toHaveProperty("password");
+      }
+    );
+  });
+
+  test("builds the shared MSSQL connection string from the selected namespace", () => {
+    withEnv(
+      {
+        DB_SERVER: "alpha-host",
+        DB_PORT: "1500",
+        DB_DATABASE: "AlphaDb",
+        DB_USER: "alpha_user",
+        DB_PASSWORD: "alpha_password",
+        DB_ENCRYPT: "false",
+        DB_TRUST_SERVER_CERTIFICATE: "true",
+        APP2_DB_SERVER: "app2-host",
+        APP2_DB_PORT: "1444",
+        APP2_DB_DATABASE: "App2Db",
+        APP2_DB_USER: "app2_user",
+        APP2_DB_PASSWORD: "app2_password",
+        APP2_DB_ENCRYPT: "true",
+        APP2_DB_TRUST_SERVER_CERTIFICATE: "false"
+      },
+      () => {
+        expect(getApplication2MssqlConnectionStringFromEnv()).toBe(
+          "SERVER=app2-host,1444;DATABASE=App2Db;UID=app2_user;PWD=app2_password;Encrypt=yes;TrustServerCertificate=no"
+        );
       }
     );
   });

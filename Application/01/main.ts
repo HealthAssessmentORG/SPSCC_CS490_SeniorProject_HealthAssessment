@@ -1,23 +1,33 @@
+import "dotenv/config";
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
+import { getRandomRowsMssqlConnString, renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
 
 function resolvePythonCommand(): string {
-	if (process.platform === "win32") {
-		return resolve(process.cwd(), ".venv", "Scripts", "python.exe");
+	const configuredPython = process.env["APP1_PYTHON"] ?? process.env["PYTHON"];
+	if (configuredPython?.trim()) {
+		return configuredPython.trim();
 	}
 
-	return resolve(process.cwd(), ".venv", "bin", "python");
+	const venvPython = process.platform === "win32"
+		? resolve(process.cwd(), ".venv", "Scripts", "python.exe")
+		: resolve(process.cwd(), ".venv", "bin", "python");
+
+	if (existsSync(venvPython)) {
+		return venvPython;
+	}
+
+	return process.platform === "win32" ? "python" : "python3";
 }
 
 async function run(): Promise<void> {
 	// Edit this if the Python script moves to a different location.
 	const scriptPath = resolve(process.cwd(), "Application", "01", "random_rows.py");
 
-	// Edit this if your Python executable differs.
 	const pythonCommand = resolvePythonCommand();
 
-    const runRandomRows = async (
+	const runRandomRows = async (
 		seed: number | null,
 		assessmentCount: number,
 		editedResponses: Array<{ assessment_number: number; field_id: number; field_name: string; response: string }> = [],
@@ -26,6 +36,7 @@ async function run(): Promise<void> {
 		return new Promise((resolveResult, rejectResult) => {
 			const env: NodeJS.ProcessEnv = {
 				...process.env,
+				MSSQL_CONN_STRING: getRandomRowsMssqlConnString(),
 				RANDOM_ROWS_ASSESSMENTS: String(assessmentCount),
 			};
 			if (seed !== null) {
@@ -37,16 +48,26 @@ async function run(): Promise<void> {
 
 			const child = spawn(pythonCommand, [scriptPath, "--mode", mode], {
 				cwd: process.cwd(),
-				stdio: ["ignore", "pipe", "inherit"],
+				stdio: ["ignore", "pipe", "pipe"],
 				env,
 			});
 
 			let stdout = "";
+			let stderr = "";
 			child.stdout?.on("data", (chunk: Buffer) => {
 				stdout += chunk.toString("utf8");
 			});
+			child.stderr?.on("data", (chunk: Buffer) => {
+				stderr += chunk.toString("utf8");
+			});
 
 			child.on("error", (error: unknown) => {
+				if (error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+					rejectResult(
+						new Error(`Failed to start Python command "${pythonCommand}". Set APP1_PYTHON to your Python executable.`)
+					);
+					return;
+				}
 				rejectResult(error);
 			});
 
@@ -72,7 +93,14 @@ async function run(): Promise<void> {
 					return;
 				}
 
-				rejectResult(new Error(`random_rows.py exited with code ${String(code)}`));
+				const detail = stderr.trim() || stdout.trim();
+				rejectResult(
+					new Error(
+						detail
+							? `random_rows.py exited with code ${String(code)}:\n${detail}`
+							: `random_rows.py exited with code ${String(code)}`
+					)
+				);
 			});
 		});
 	};

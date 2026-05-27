@@ -8,10 +8,7 @@ import random
 from faker import Faker
 import mssql_python
 
-CONN_STRING = os.getenv(
-    "MSSQL_CONN_STRING",
-    "SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;",
-)
+CONN_STRING = os.getenv("MSSQL_CONN_STRING")
 ASSESSMENT_COUNT = int(os.getenv("RANDOM_ROWS_ASSESSMENTS", "1"))
 SEED = os.getenv("RANDOM_ROWS_SEED") or None  # None if not set or blank
 EDITED_RESPONSES_JSON = os.getenv("RANDOM_ROWS_EDITED_RESPONSES_JSON") or None
@@ -48,6 +45,8 @@ def make_response(fake: Faker, rng: random.Random, field_name: str) -> str:
         return fake.email().lower()
     if "phone" in name or "dsn" in name:
         return fake.numerify(text="##########")
+    if name == "dob":
+        return fake.date_of_birth(minimum_age=18, maximum_age=55).strftime("%Y%m%d")
     if "date" in name:
         return fake.date_between(start_date="-5y", end_date="today").strftime("%Y%m%d")
     if "gender" in name or "sex" in name:
@@ -156,6 +155,45 @@ def load_existing_dod_ids(cursor) -> set[str]:
     return {str(row[0]).strip() for row in rows}
 
 
+def build_run_insert_sql() -> str:
+    return """
+        INSERT INTO dbo.[RUN] (run_id, run_name, seed, target_record_count, status)
+        OUTPUT INSERTED.run_id
+        VALUES (NEWID(), %(run_name)s, %(seed)s, %(target_record_count)s, N'running');
+        """
+
+
+def build_run_insert_params(seed_value: str | None) -> dict[str, int | str | None]:
+    return {
+        "run_name": "Application 1 random_rows",
+        "seed": int(seed_value) if seed_value is not None else None,
+        "target_record_count": ASSESSMENT_COUNT,
+    }
+
+
+def create_run(cursor, seed_value: str | None) -> str:
+    cursor.execute(build_run_insert_sql(), build_run_insert_params(seed_value))
+    row = cursor.fetchone()
+    if not row:
+        raise RuntimeError("Failed to create run row.")
+    return str(row[0])
+
+
+def update_run_status(cursor, run_id: str, status: str) -> None:
+    cursor.execute(
+        """
+        UPDATE dbo.[RUN]
+        SET status = %(status)s,
+            finished_at = SYSUTCDATETIME()
+        WHERE run_id = %(run_id)s;
+        """,
+        {
+            "run_id": run_id,
+            "status": status,
+        },
+    )
+
+
 def build_deployer_insert_sql() -> str:
     return """
         INSERT INTO dbo.DEPLOYER (deployer_id, dod_id)
@@ -188,20 +226,35 @@ def create_deployer(cursor, fake: Faker, used_dod_ids: set[str]) -> str:
 
 def build_assessment_insert_sql() -> str:
     return """
-        INSERT INTO dbo.ASSESSMENT (deployer_id)
+        INSERT INTO dbo.ASSESSMENT (
+            run_id,
+            deployer_id,
+            form_type_observed,
+            form_version_observed,
+            event_date
+        )
         OUTPUT INSERTED.assessment_id
-        VALUES (%(deployer_id)s);
+        VALUES (
+            %(run_id)s,
+            %(deployer_id)s,
+            N'PRE',
+            N'DD2795_202006',
+            CONVERT(date, SYSUTCDATETIME())
+        );
         """
 
 
-def build_assessment_insert_params(deployer_id: str) -> dict[str, str]:
-    return {"deployer_id": deployer_id}
+def build_assessment_insert_params(run_id: str, deployer_id: str) -> dict[str, str]:
+    return {
+        "run_id": run_id,
+        "deployer_id": deployer_id,
+    }
 
 
-def insert_assessment(cursor, deployer_id: str) -> int:
+def insert_assessment(cursor, run_id: str, deployer_id: str) -> int:
     cursor.execute(
         build_assessment_insert_sql(),
-        build_assessment_insert_params(deployer_id),
+        build_assessment_insert_params(run_id, deployer_id),
     )
     row = cursor.fetchone()
     if not row:
@@ -247,16 +300,12 @@ def run_faker_mode(fake: Faker, seed_value: str | None, fields: list[tuple[int, 
 
 def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]], edited_responses: dict[tuple[int, int], str] | None = None) -> None:
     executed_statements = 0
+    run_id = create_run(cursor, seed_value)
     used_dod_ids = load_existing_dod_ids(cursor)
 
     for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
         deployer_id = create_deployer(cursor, fake, used_dod_ids)
-        cursor.execute(build_assessment_insert_sql(), build_assessment_insert_params(deployer_id))
-        row = cursor.fetchone()
-        if not row:
-            raise RuntimeError("Failed to create assessment row.")
-
-        assessment_id = int(row[0])
+        assessment_id = insert_assessment(cursor, run_id, deployer_id)
         executed_statements += 1
 
         for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
@@ -264,27 +313,34 @@ def run_sql_mode(connection, cursor, fake: Faker, seed_value: str | None, fields
             cursor.execute(render_response_insert_sql(assessment_id, field_id, value))
             executed_statements += 1
 
+    update_run_status(cursor, run_id, "generated")
     connection.commit()
+    print(f"Run ID: {run_id}")
     print(f"Executed {executed_statements} SQL statement(s) for {ASSESSMENT_COUNT} assessment row(s).")
 
 
 def run_full_mode(connection, cursor, fake: Faker, seed_value: str | None, fields: list[tuple[int, str]], edited_responses: dict[tuple[int, int], str] | None = None) -> None:
     inserted_responses = 0
+    run_id = create_run(cursor, seed_value)
     used_dod_ids = load_existing_dod_ids(cursor)
     for assessment_idx in range(1, ASSESSMENT_COUNT + 1):
         deployer_id = create_deployer(cursor, fake, used_dod_ids)
-        assessment_id = insert_assessment(cursor, deployer_id)
+        assessment_id = insert_assessment(cursor, run_id, deployer_id)
         for field_id, value in build_response_rows(fake, seed_value, assessment_idx, fields):
             value = edited_responses.get((assessment_idx, field_id), value) if edited_responses else value
             insert_response(cursor, assessment_id, field_id, value)
             inserted_responses += 1
 
+    update_run_status(cursor, run_id, "generated")
     connection.commit()
+    print(f"Run ID: {run_id}")
     print(f"Inserted {ASSESSMENT_COUNT} assessment row(s) and {inserted_responses} response row(s).")
 
 
 def main() -> None:
     args = build_parser().parse_args()
+    if not CONN_STRING:
+        raise RuntimeError("MSSQL_CONN_STRING is required. Use npm run ui:app1 or set the shared database connection explicitly.")
     if ASSESSMENT_COUNT < 1:
         raise ValueError("RANDOM_ROWS_ASSESSMENTS must be at least 1")
 

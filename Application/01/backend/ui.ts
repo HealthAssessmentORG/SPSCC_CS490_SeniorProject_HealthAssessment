@@ -1,6 +1,8 @@
 import React from "react";
 import { Box, Text, render, useInput, useApp } from "ink";
 import sql from "mssql";
+import type { ConnectionPool } from "mssql";
+import { getApplication2MssqlConnectionStringFromEnv } from "../../02/src/db_connect.js";
 
 export type ExampleUiModel = {
 	status: string;
@@ -44,9 +46,9 @@ type GeneratedResponse = {
 
 const VIEW_EDIT_ASSESSMENT_OPTION = "View/Edit Assessment";
 
-const RANDOM_ROWS_MSSQL_CONN_STRING =
-	process.env["MSSQL_CONN_STRING"] ??
-	"SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;";
+export function getRandomRowsMssqlConnString(): string {
+	return getApplication2MssqlConnectionStringFromEnv();
+}
 
 function readConnectionTarget(connectionString: string): string {
 	const serverMatch = connectionString.match(/(?:^|;)\s*SERVER=([^;]+)/i);
@@ -61,15 +63,24 @@ function readConnectionTarget(connectionString: string): string {
 	return "random_rows.py MSSQL server";
 }
 
+function readConfiguredConnectionTarget(): string {
+	try {
+		return readConnectionTarget(getRandomRowsMssqlConnString());
+	} catch (error) {
+		return error instanceof Error ? error.message : String(error);
+	}
+}
+
 async function validateRandomRowsConnection(
 	onProgress: (progress: ValidationProgress) => void
 ): Promise<void> {
+	const connectionString = getRandomRowsMssqlConnString();
 	onProgress({
 		current: 1,
 		total: 3,
-		message: `Opening SQL Server connection for ${readConnectionTarget(RANDOM_ROWS_MSSQL_CONN_STRING)}`
+		message: `Opening SQL Server connection for ${readConnectionTarget(connectionString)}`
 	});
-	const pool = await sql.connect(RANDOM_ROWS_MSSQL_CONN_STRING);
+	const pool = await sql.connect(connectionString);
 
 	try {
 		onProgress({ current: 2, total: 3, message: "Running validation query (SELECT 1)..." });
@@ -559,9 +570,9 @@ function DataViewUiDuplicate(props: {
 			setError(null);
 			setStatus("Querying ASSESSMENT table...");
 
-			const pool = await sql.connect(RANDOM_ROWS_MSSQL_CONN_STRING);
-
+			let pool: ConnectionPool | null = null;
 			try {
+				pool = await sql.connect(getRandomRowsMssqlConnString());
 				const assessmentResult = await pool
 					.request()
 					.query<AssessmentIdRow>("SELECT assessment_id FROM ASSESSMENT ORDER BY assessment_id");
@@ -583,7 +594,7 @@ function DataViewUiDuplicate(props: {
 					setStatus("Failed to load assessments from MSSQL.");
 				}
 			} finally {
-				await pool.close();
+				await pool?.close();
 				if (!cancelled) {
 					setLoading(false);
 				}
@@ -612,9 +623,9 @@ function DataViewUiDuplicate(props: {
 			setError(null);
 			setStatus(`Querying RESPONSE table for assessment_id ${selectedAssessmentId}...`);
 
-			const pool = await sql.connect(RANDOM_ROWS_MSSQL_CONN_STRING);
-
+			let pool: ConnectionPool | null = null;
 			try {
+				pool = await sql.connect(getRandomRowsMssqlConnString());
 				const responseResult = await pool
 					.request()
 					.input("assessment_id", selectedAssessmentId)
@@ -662,7 +673,7 @@ function DataViewUiDuplicate(props: {
 					setStatus(`Failed to load responses for assessment_id ${selectedAssessmentId}.`);
 				}
 			} finally {
-				await pool.close();
+				await pool?.close();
 				if (!cancelled) {
 					setLoading(false);
 				}
@@ -872,7 +883,7 @@ function WelcomeUi(props: { onContinue: () => void }) {
 		React.createElement(Text, { bold: true, color: "cyan" }, title),
 		React.createElement(Text, null, connectionStatus),
 		React.createElement(Text, null, `Progress: [${progressBar}] ${progressPercent}% (${connectionProgress.current}/${connectionProgress.total})`),
-		React.createElement(Text, null, `Target: ${readConnectionTarget(RANDOM_ROWS_MSSQL_CONN_STRING)}`),
+		React.createElement(Text, null, `Target: ${readConfiguredConnectionTarget()}`),
 		connectionError ? React.createElement(Text, { color: "red" }, `Error: ${connectionError}`) : null,
 		connectionReady
 			? React.createElement(Text, { color: "green" }, "Connection validated. Press Enter or Space to continue.")

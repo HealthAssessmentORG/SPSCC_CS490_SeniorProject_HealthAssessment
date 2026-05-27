@@ -244,6 +244,9 @@ test.describe("Application 2 UI export state", () => {
     expect(
       sanitizeApplication2UiExportError(new Error("application2 DB server is required (APP2_DB_SERVER)"))
     ).toBe("application2 DB server is required (APP2_DB_SERVER)");
+    expect(
+      sanitizeApplication2UiExportError(new Error("Application 2 database connection failed for APP2_DB_*."))
+    ).toBe("Application 2 database connection failed for APP2_DB_*.");
     expect(sanitizeApplication2UiExportError(new Error("clear message\nat internal frame"))).toBe(
       "clear message"
     );

@@ -33,7 +33,7 @@ The same UI is also available through the Application 2 entrypoint:
 node --import tsx Application/02/main.ts ui
 ```
 
-By default, the dashboard uses the live Application 2 database status and summary helpers. It reads database settings in this order: `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`.
+By default, the dashboard uses the live Application 2 database status and summary helpers. It selects one configured database namespace in this order: `APP2_DB_*`, then `EXPORT_DB_*`, then `DB_*`.
 
 With a live App2 export-schema database, the UI also shows an export section. When a latest run, export spec, and mapping set are available, press `e` to run export from the UI. Progress is shown record by record, and completion shows the output path, record count, export file ID, and validation error count.
 
@@ -59,7 +59,7 @@ Saved demo data must be sanitized JSON. Do not put passwords, connection strings
 
 Live UI export prerequisites:
 
-- One database namespace is configured for the Application 2 export-schema database. `APP2_DB_*` wins when present; otherwise App2 falls back to `EXPORT_DB_*`, then `DB_*`.
+- One database namespace is configured for the Application 2 export-schema database. `APP2_DB_*` wins when present; otherwise App2 selects `EXPORT_DB_*`, then `DB_*`.
 - Required tables and views exist, including `RUN`, `ASSESSMENT`, `FIELD`, `RESPONSE`, `dbo.vw_Response`, `EXPORT_SPEC`, `EXPORT_FIELD`, `MAPPING_SET`, `MAPPING_RULE`, `EXPORT_FILE`, and `VALIDATION_ERROR`.
 - `sql_admin/populate_fields.sql` and `sql_admin/populate_app2_export_catalog.sql` have been run against the selected staging database.
 - `GET /database/summary` can find a latest run.
@@ -114,7 +114,7 @@ If you want Node to load the repository `.env` file directly, include `--env-fil
 node --env-file=.env --import tsx Application/02/main.ts db-summary
 ```
 
-App2 prefers `APP2_DB_*`, but it can use the same physical database as the export or root DB settings. If `APP2_DB_*` is missing, App2 logs an info message and falls back to `EXPORT_DB_*`, then `DB_*`.
+App1 and App2 share the same database selection rules. App2 prefers `APP2_DB_*`, but it can use the same physical database as the export or root DB settings. If `APP2_DB_*` is missing, App2 logs an info message and selects `EXPORT_DB_*`, then `DB_*`. Once a namespace is selected, a connection failure is reported instead of silently connecting to a lower-priority database.
 
 Explicit `APP2_DB_*` values are still useful when you want App2 to ignore other database settings:
 
@@ -218,12 +218,12 @@ Stage 4 emits:
 - success path: `connect_start`, `connect_ok`, zero or more `record_progress`, `complete`
 - failure path before export completion: `connect_start`, `error`
 
-Fallback logs are written to stderr and name only the environment namespace, not passwords or connection strings:
+Selection and connection logs are written to stderr and name only the environment namespace, not passwords or connection strings:
 
 ```text
 Application 2 DB info: APP2_DB_* is not fully configured; using EXPORT_DB_* fallback.
-Application 2 DB warning: connection failed for APP2_DB_*; trying EXPORT_DB_*.
-Application 2 database connection failed after trying APP2_DB_*, EXPORT_DB_*, DB_*.
+Application 2 DB warning: connection failed for APP2_DB_*.
+Application 2 database connection failed for APP2_DB_*.
 ```
 
 The `db-summary` command is read-only. It opens the Application 2 database, reads form-definition metadata from `EXPORT_SPEC`, field metadata from `EXPORT_FIELD`, associated mapping UUIDs from `MAPPING_SET`, and prints a stable Markdown-style summary to stdout:
@@ -267,7 +267,7 @@ On failure, human-readable mode writes only sanitized error text to stderr. JSON
 ## Boundaries
 
 - No nested package is required.
-- The CLI opens one Application 2 database connection using `APP2_DB_*`, `EXPORT_DB_*`, or `DB_*` fallback order.
+- The CLI opens one Application 2 database connection using the selected `APP2_DB_*`, `EXPORT_DB_*`, or `DB_*` namespace.
 - The export command writes only the requested output path and database export/validation/run-status rows.
 - The `db-summary` command is read-only and does not write files.
 - The API uses Node's built-in `node:http`; no HTTP framework is required.
@@ -445,7 +445,7 @@ Summary responses do not include raw table rows, response values, validation pay
 
 ### `db-summary` Returns `Database form summary check failed`
 
-The CLI sanitizes database errors, so this message means the connection or metadata query failed. App2 checks `APP2_DB_*`, `EXPORT_DB_*`, then `DB_*`; confirm that at least one of those namespaces points at the updated export-schema database.
+The CLI sanitizes database errors, so this message means the connection or metadata query failed. App2 selects `APP2_DB_*`, `EXPORT_DB_*`, then `DB_*`; confirm that the selected namespace points at the updated export-schema database.
 
 If the UI opens and shows:
 
