@@ -36,6 +36,33 @@ The UI first asks for the fixed-width output file, then asks for the layout JSON
 
 `APP3_MAX_DISPLAY_LINES` controls the bounded preview size and defaults to 20.
 
+## Avoiding Invalid JSON
+
+Application 2 writes fixed-width text output, not JSON. This is expected.
+
+Application 3 needs two separate files:
+
+1. The Application 2 fixed-width output file.
+2. A layout JSON file that describes the fixed-width fields.
+
+In the App 3 UI:
+
+1. On `Select Application 2 fixed-width output file`, select the `.txt` output from App 2.
+2. On `Select Application 3 layout JSON file`, select a `.json` layout file.
+3. Do not select the App 2 output file on the layout screen.
+
+If `APP3_LAYOUT_PATH` is set, confirm it points to a layout JSON file, not the App 2 output file. When `APP3_LAYOUT_PATH` points at fixed-width output, the UI skips the layout picker and App 3 reports `invalid JSON`.
+
+CLI usage follows the same rule:
+
+```bash
+node --import tsx Application/03/src/main.ts validate \
+  --input <app2-fixed-width-output.txt> \
+  --layout <layout.json>
+```
+
+If App 3 reports `<path>: invalid JSON`, the path shown is being read as the layout file. Go back with `b` in the UI, or unset/fix `APP3_LAYOUT_PATH`, then select the correct layout JSON.
+
 Press `w` after validation completes to write a human-readable report. The UI uses `APP3_REPORT_PATH` when set; otherwise it writes:
 
 ```text
