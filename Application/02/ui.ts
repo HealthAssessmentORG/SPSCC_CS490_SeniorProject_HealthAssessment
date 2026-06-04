@@ -157,7 +157,7 @@ function ConnectionTestUi(props: { onContinue: () => void }) {
           setConnectionReady(false);
           setConnectionProgress((current) => ({
             ...current,
-            message: "Validation failed. Press r to retry or q to quit."
+            message: "Validation failed. Press r to retry or Ctrl+C to quit."
           }));
         }
       }
@@ -190,7 +190,7 @@ function ConnectionTestUi(props: { onContinue: () => void }) {
       return;
     }
 
-    if (input.toLowerCase() === "q" || (key.ctrl && input === "c")) {
+    if (key.ctrl && input === "c") {
       requestExit(exit);
     }
   });
@@ -227,7 +227,9 @@ function ConnectionTestUi(props: { onContinue: () => void }) {
     React.createElement(
       Text,
       { dimColor: true },
-      connectionReady ? "Press r to recheck, q to quit." : "Wait for validation to finish; press r to retry or q to quit."
+      connectionReady
+        ? "Press r to recheck, Ctrl+C to quit."
+        : "Wait for validation to finish; press r to retry or Ctrl+C to quit."
     )
   );
 }
@@ -373,9 +375,6 @@ function renderExportSection(content: DashboardContent, exportStatus: ExportStat
     React.createElement(Text, { bold: true }, "Export"),
     React.createElement(Text, { color: "green" }, "  Export: ready | Press e to export"),
     React.createElement(Text, null, `  Run ID: ${readiness.plan.runId}`),
-    React.createElement(Text, null, `  Form: ${readiness.plan.formName}`),
-    React.createElement(Text, null, `  Export spec ID: ${readiness.plan.exportSpecId}`),
-    React.createElement(Text, null, `  Mapping set ID: ${readiness.plan.mappingSetId}`),
     React.createElement(Text, null, `  Output: ${readiness.plan.out}`)
   );
 }
@@ -501,15 +500,6 @@ function DashboardUi() {
       return;
     }
 
-    if (input.toLowerCase() === "q") {
-      if (blockedNotice) {
-        setState((current) => ({ ...current, notice: blockedNotice }));
-        return;
-      }
-      exit();
-      return;
-    }
-
     if (input.toLowerCase() === "r" && !state.loading) {
       if (blockedNotice) {
         setState((current) => ({ ...current, notice: blockedNotice }));
@@ -542,6 +532,19 @@ function DashboardUi() {
 
   const content = state.data;
   const spinner = SPINNER_FRAMES[state.spinnerIndex];
+  const hiddenCountKeys = new Set([
+    "runs",
+    "provider_reviews",
+    "export_specs",
+    "export_fields",
+    "mapping_sets",
+    "mapping_rules",
+    "export_files",
+    "validation_errors"
+  ]);
+  const visibleCounts = content
+    ? Object.entries(content.summary.counts).filter(([key]) => !hiddenCountKeys.has(key))
+    : [];
 
   return React.createElement(
     Box,
@@ -561,7 +564,7 @@ function DashboardUi() {
         ? `Status: loading ${spinner}`
         : state.error
           ? "Status: error"
-          : `Status: ready | loaded ${formatTimestamp(content?.loadedAt ?? null)}`
+          : "Status: ready"
     ),
     React.createElement(Text, null, `Data source: ${content?.dataSource ?? selectedDataSource()}`),
     state.error ? React.createElement(Text, { color: "red" }, state.error) : null,
@@ -570,49 +573,11 @@ function DashboardUi() {
       ? React.createElement(
           React.Fragment,
           null,
-          React.createElement(Text, { bold: true }, "Database"),
-          React.createElement(Text, null, `Name: ${content.summary.database}`),
-          React.createElement(
-            Text,
-            null,
-            `Connected tables: ${Object.values(content.status.tables).filter(Boolean).length}/${Object.keys(content.status.tables).length}`
-          ),
           React.createElement(Text, { bold: true }, "Counts"),
-          ...Object.entries(content.summary.counts).map(([key, value]) =>
+          ...visibleCounts.map(([key, value]) =>
             React.createElement(Text, { key }, `  ${formatLabel(key)}: ${formatValue(value)}`)
           ),
-          React.createElement(Text, { bold: true }, "Latest run"),
-          React.createElement(Text, null, `  Run ID: ${formatValue(content.summary.latest_run?.run_id)}`),
-          React.createElement(Text, null, `  Name: ${formatValue(content.summary.latest_run?.run_name)}`),
-          React.createElement(Text, null, `  Status: ${formatValue(content.summary.latest_run?.status)}`),
-          React.createElement(Text, null, `  Started: ${formatTimestamp(content.summary.latest_run?.started_at ?? null)}`),
-          React.createElement(Text, null, `  Finished: ${formatTimestamp(content.summary.latest_run?.finished_at ?? null)}`),
-          React.createElement(Text, { bold: true }, "Latest export file"),
-          React.createElement(
-            Text,
-            null,
-            `  Export file ID: ${formatValue(content.summary.latest_export_file?.export_file_id)}`
-          ),
-          React.createElement(Text, null, `  Path: ${formatValue(content.summary.latest_export_file?.file_path)}`),
-          React.createElement(
-            Text,
-            null,
-            `  Record count: ${formatValue(content.summary.latest_export_file?.record_count)}`
-          ),
-          React.createElement(
-            Text,
-            null,
-            `  Created: ${formatTimestamp(content.summary.latest_export_file?.created_at ?? null)}`
-          ),
           renderExportSection(content, state.exportStatus),
-          React.createElement(Text, { bold: true }, "Required tables"),
-          ...Object.entries(content.status.tables).map(([table, exists]) =>
-            React.createElement(
-              Text,
-              { key: table, color: exists ? "green" : "red" },
-              `  ${exists ? "OK" : "MISSING"} ${table}`
-            )
-          )
         )
       : null,
     React.createElement(
@@ -620,7 +585,7 @@ function DashboardUi() {
       { dimColor: true },
       state.exportStatus.phase === "running"
         ? "Keys: export running; wait for completion"
-        : "Keys: r refresh, e export when ready, q quit, Ctrl+C quit"
+        : "Keys: r refresh, e export when ready, Ctrl+C quit"
     ),
     state.loading ? React.createElement(Text, { color: "yellow" }, `Loading ${spinner}`) : null
   );
