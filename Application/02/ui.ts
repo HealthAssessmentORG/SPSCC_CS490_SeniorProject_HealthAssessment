@@ -4,7 +4,12 @@ import dotenv from "dotenv";
 
 dotenv.config({ quiet: true });
 
-import { closeApplication2Pool, getApplication2Pool } from "./src/db_connect.js";
+import {
+  closeApplication2Pool,
+  getApplication2DbConfigFromEnv,
+  getApplication2Pool,
+  sql
+} from "./src/db_connect.js";
 import { getApplication2DatabaseStatus } from "./src/api/database_status.js";
 import { getApplication2DatabaseSummary } from "./src/api/database_summary.js";
 import { loadDatabaseFormSummary } from "./src/repositories/database_form_summary_repository.js";
@@ -46,7 +51,186 @@ type DashboardState = {
   spinnerIndex: number;
 };
 
+type ValidationProgress = {
+  current: number;
+  total: number;
+  message: string;
+};
+
+type UiPhase = "welcome" | "dashboard";
+
 const SPINNER_FRAMES = ["|", "/", "-", "\\"];
+
+function requestExit(exit: () => void) {
+  exit();
+  process.exit(0);
+}
+
+function readConnectionTarget(): string {
+  try {
+    const config = getApplication2DbConfigFromEnv();
+    const server = config.port ? `${config.server},${config.port}` : config.server;
+
+    if (server && config.database) {
+      return `${server} / ${config.database}`;
+    }
+  } catch {
+    // Keep the validation screen resilient when the environment is misconfigured.
+  }
+
+  return "Application 2 MSSQL database";
+}
+
+async function validateApplication2Connection(
+  onProgress: (progress: ValidationProgress) => void
+): Promise<void> {
+  const config = getApplication2DbConfigFromEnv();
+  onProgress({
+    current: 1,
+    total: 3,
+    message: `Opening SQL Server connection for ${readConnectionTarget()}`
+  });
+
+  const pool = await new sql.ConnectionPool(config).connect();
+
+  try {
+    onProgress({ current: 2, total: 3, message: "Running validation query (SELECT 1)..." });
+    const result = await pool.request().query("SELECT 1 AS ok");
+    if (!result.recordset || result.recordset.length === 0) {
+      throw new Error("Validation query returned no rows.");
+    }
+  } finally {
+    onProgress({ current: 3, total: 3, message: "Closing validation connection..." });
+    await pool.close();
+  }
+}
+
+function PhaseTitle(props: { phase: UiPhase }) {
+  if (props.phase === "welcome") {
+    return "Checking Application 2 Connection";
+  }
+
+  return "Application 2 Dashboard";
+}
+
+function ConnectionTestUi(props: { onContinue: () => void }) {
+  const { exit } = useApp();
+  const [connectionStatus, setConnectionStatus] = React.useState("Preparing validation target...");
+  const [connectionError, setConnectionError] = React.useState<string | null>(null);
+  const [connectionReady, setConnectionReady] = React.useState(false);
+  const [validationAttempt, setValidationAttempt] = React.useState(0);
+  const [connectionProgress, setConnectionProgress] = React.useState<ValidationProgress>({
+    current: 0,
+    total: 3,
+    message: "Preparing validation target..."
+  });
+  const [spinnerIndex, setSpinnerIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const runValidation = async () => {
+      setConnectionReady(false);
+      setConnectionError(null);
+      setConnectionStatus("Preparing validation target...");
+      setConnectionProgress({ current: 0, total: 3, message: "Preparing validation target..." });
+
+      try {
+        await validateApplication2Connection((progress: ValidationProgress) => {
+          if (!cancelled) {
+            setConnectionStatus(progress.message);
+            setConnectionProgress(progress);
+          }
+        });
+        if (!cancelled) {
+          setConnectionStatus("Connection verified. Press Enter or Space to continue.");
+          setConnectionReady(true);
+          setConnectionProgress({
+            current: 3,
+            total: 3,
+            message: "Connection verified. Press Enter or Space to continue."
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setConnectionError(error instanceof Error ? error.message : String(error));
+          setConnectionReady(false);
+          setConnectionProgress((current) => ({
+            ...current,
+            message: "Validation failed. Press r to retry or q to quit."
+          }));
+        }
+      }
+    };
+
+    void runValidation();
+    return () => {
+      cancelled = true;
+    };
+  }, [validationAttempt]);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setSpinnerIndex((current: number) => (current + 1) % 4);
+    }, 120);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useInput((input, key) => {
+    if (connectionReady && (key.return || input === " ")) {
+      props.onContinue();
+      return;
+    }
+
+    if (input.toLowerCase() === "r") {
+      setConnectionError(null);
+      setConnectionReady(false);
+      setValidationAttempt((current) => current + 1);
+      return;
+    }
+
+    if (input.toLowerCase() === "q" || (key.ctrl && input === "c")) {
+      requestExit(exit);
+    }
+  });
+
+  const spinner = ["|", "/", "-", "\\"][spinnerIndex];
+  const title = connectionReady
+    ? "Application 2 Connection Verified"
+    : connectionError
+      ? "Application 2 Connection Failed"
+      : PhaseTitle({ phase: "welcome" });
+  const progressPercent = Math.min(
+    100,
+    Math.round((connectionProgress.current / connectionProgress.total) * 100)
+  );
+  const progressBarLength = 12;
+  const progressFilled = Math.round((progressPercent / 100) * progressBarLength);
+  const progressBar = `${"█".repeat(progressFilled)}${"░".repeat(progressBarLength - progressFilled)}`;
+
+  return React.createElement(
+    Box,
+    { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0, width: 96 },
+    React.createElement(Text, { bold: true, color: "cyan" }, title),
+    React.createElement(Text, null, connectionStatus),
+    React.createElement(
+      Text,
+      null,
+      `Progress: [${progressBar}] ${progressPercent}% (${connectionProgress.current}/${connectionProgress.total})`
+    ),
+    React.createElement(Text, null, `Target: ${readConnectionTarget()}`),
+    connectionError ? React.createElement(Text, { color: "red" }, `Error: ${connectionError}`) : null,
+    connectionReady
+      ? React.createElement(Text, { color: "green" }, "Connection validated. Press Enter or Space to continue.")
+      : React.createElement(Text, { color: "yellow" }, `Connecting ${spinner}`),
+    React.createElement(
+      Text,
+      { dimColor: true },
+      connectionReady ? "Press r to recheck, q to quit." : "Wait for validation to finish; press r to retry or q to quit."
+    )
+  );
+}
 
 function formatLabel(value: string): string {
   return value.replace(/_/g, " ");
@@ -442,8 +626,20 @@ function DashboardUi() {
   );
 }
 
+function Application2UiApp() {
+  const [phase, setPhase] = React.useState<UiPhase>("welcome");
+
+  if (phase === "welcome") {
+    return React.createElement(ConnectionTestUi, {
+      onContinue: () => setPhase("dashboard")
+    });
+  }
+
+  return React.createElement(DashboardUi);
+}
+
 async function main() {
-  const app = render(React.createElement(DashboardUi));
+  const app = render(React.createElement(Application2UiApp));
 
   try {
     await app.waitUntilExit();
