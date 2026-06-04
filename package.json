@@ -39,6 +39,6 @@
     "test:app3": "playwright test tests/unit/application_03_*.spec.ts tests/app/application_03_cli.spec.ts",
     "ui:app1": "node --import tsx Application/01/main.ts",
     "ui:app2": "node --import tsx Application/02/ui.ts",
-    "ui:app3": "node --import tsx Application/03/picker.tsx"
+    "ui:app3": "node --import tsx Application/03/main.ts ui"
   }
 }
