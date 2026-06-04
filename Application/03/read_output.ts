@@ -52,9 +52,10 @@ export type Application3VerificationOptions = {
 	pool?: DbPool;
 };
 
-const DEFAULT_OUT_PATH = path.join("out", "output.txt");
+export const APPLICATION_3_OUTPUT_FILE = path.join("out", "output.txt");
+export const APPLICATION_3_REPORT_FILE = path.join("out", "verification", "app3_report.txt");
+
 const DEFAULT_SPEC_PATH = path.join("Application", "02", "spec.json");
-const DEFAULT_REPORT_PATH = path.join("out", "milestones", "demo", "app3_ui_report.txt");
 
 function resolvePathOrDefault(candidate: string | undefined, fallback: string): string {
 	if (!candidate || candidate.trim() === "") {
@@ -62,6 +63,11 @@ function resolvePathOrDefault(candidate: string | undefined, fallback: string): 
 	}
 
 	return path.isAbsolute(candidate) ? candidate : path.resolve(process.cwd(), candidate);
+}
+
+function formatShortPath(filePath: string): string {
+	const relativePath = path.relative(process.cwd(), filePath);
+	return `\\${relativePath.split(path.sep).join("\\")}`;
 }
 
 function normalizeKey(value: string | null | undefined): string {
@@ -267,11 +273,12 @@ function formatIssue(issue: Application3VerificationIssue): string {
 }
 
 export function renderApplication3VerificationReport(result: Application3VerificationResult): string {
+	const reportPath = result.reportPath ?? path.resolve(process.cwd(), APPLICATION_3_REPORT_FILE);
 	const lines = [
 		`Application 3 output verification`,
 		`Status: ${result.ok ? "PASS" : "FAIL"}`,
-		`Output file: ${result.outPath}`,
-		`Spec file: ${result.specPath}`,
+		`Output file: ${formatShortPath(result.outPath)}`,
+		`Report file: ${formatShortPath(reportPath)}`,
 		`Rows: ${result.rowCount}/${result.expectedRowCount}`,
 		`Matched rows: ${result.matchedRows}`,
 		`Issues: ${result.issueCount}`,
@@ -292,7 +299,7 @@ export function renderApplication3VerificationReport(result: Application3Verific
 export async function verifyApplication3OutputFile(
 	options: Application3VerificationOptions = {}
 ): Promise<Application3VerificationResult> {
-	const outPath = resolvePathOrDefault(options.outPath, DEFAULT_OUT_PATH);
+	const outPath = resolvePathOrDefault(options.outPath, APPLICATION_3_OUTPUT_FILE);
 	const specPath = resolvePathOrDefault(options.specPath, DEFAULT_SPEC_PATH);
 	const layout = loadApplication2Spec(specPath);
 	const pool = options.pool ?? (await getApplication2Pool());
@@ -340,7 +347,7 @@ export async function verifyApplication3OutputFile(
 export async function writeApplication3VerificationReport(
 	options: Application3VerificationOptions = {}
 ): Promise<Application3VerificationResult> {
-	const reportPath = resolvePathOrDefault(options.reportPath, DEFAULT_REPORT_PATH);
+	const reportPath = resolvePathOrDefault(options.reportPath, APPLICATION_3_REPORT_FILE);
 	const result = await verifyApplication3OutputFile({ ...options, reportPath });
 
 	fs.mkdirSync(path.dirname(reportPath), { recursive: true });

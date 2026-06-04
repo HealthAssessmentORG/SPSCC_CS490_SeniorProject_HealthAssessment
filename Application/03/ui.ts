@@ -4,7 +4,13 @@ import sql from "mssql";
 import path from "node:path";
 
 import { getApplication2DbConfigFromEnv } from "../02/src/db_connect.js";
-import { verifyApplication3OutputFile, writeApplication3VerificationReport, type Application3VerificationResult } from "./read_output.js";
+import {
+	APPLICATION_3_OUTPUT_FILE,
+	APPLICATION_3_REPORT_FILE,
+	verifyApplication3OutputFile,
+	writeApplication3VerificationReport,
+	type Application3VerificationResult
+} from "./read_output.js";
 
 type ValidationProgress = {
 	current: number;
@@ -26,6 +32,9 @@ type DashboardState = {
 
 const SPINNER_FRAMES = ["|", "/", "-", "\\"];
 
+const OUTPUT_FILE_LABEL = `\\${APPLICATION_3_OUTPUT_FILE.split(path.sep).join("\\")}`;
+const REPORT_FILE_LABEL = `\\${APPLICATION_3_REPORT_FILE.split(path.sep).join("\\")}`;
+
 function requestExit(exit: () => void) {
 	exit();
 	process.exit(0);
@@ -44,6 +53,11 @@ function readConnectionTarget(): string {
 	}
 
 	return "Application 3 MSSQL database";
+}
+
+function formatShortPath(filePath: string): string {
+	const relativePath = path.relative(process.cwd(), filePath);
+	return `\\${relativePath.split(path.sep).join("\\")}`;
 }
 
 async function validateApplication3Connection(onProgress: (progress: ValidationProgress) => void): Promise<void> {
@@ -195,7 +209,7 @@ function DashboardUi() {
 		verification: null,
 		notice: null,
 		spinnerIndex: 0,
-		reportPath: path.resolve(process.cwd(), "out", "milestones", "demo", "app3_ui_report.txt")
+		reportPath: path.resolve(process.cwd(), APPLICATION_3_REPORT_FILE)
 	});
 
 	React.useEffect(() => {
@@ -242,7 +256,7 @@ function DashboardUi() {
 				...current,
 				loading: false,
 				verification: report,
-				notice: `Wrote report to ${report.reportPath}`,
+				notice: `Wrote report to ${formatShortPath(report.reportPath ?? state.reportPath)}`,
 				status: report.ok ? "Report written." : "Report written with differences."
 			}));
 		} catch (error) {
@@ -287,8 +301,8 @@ function DashboardUi() {
 		state.notice ? React.createElement(Text, { color: "yellow" }, state.notice) : null,
 		React.createElement(Text, { bold: true }, "Verification"),
 		renderVerificationSection(state.verification),
-		React.createElement(Text, null, `  Output file: ${path.resolve(process.cwd(), "out", "output.txt")}`),
-		React.createElement(Text, null, `  Report file: ${state.reportPath}`),
+		React.createElement(Text, null, `  Output file: ${OUTPUT_FILE_LABEL}`),
+		React.createElement(Text, null, `  Report file: ${REPORT_FILE_LABEL}`),
 		React.createElement(Text, { dimColor: true }, "Keys: v verify, w write report, r refresh, Ctrl+C quit"),
 		state.loading ? React.createElement(Text, { color: "yellow" }, `Working ${spinner}`) : null
 	);
