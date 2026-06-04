@@ -1,0 +1,1424 @@
+[
+  {
+    "field_name":"FORM_TYPE",
+    "LENGTH":5,
+    "START POS":1,
+    "END POS":5
+  },
+  {
+    "field_name":"FORM_VERSION",
+    "LENGTH":15,
+    "START POS":6,
+    "END POS":20
+  },
+  {
+    "field_name":"LNAME",
+    "LENGTH":25,
+    "START POS":21,
+    "END POS":45
+  },
+  {
+    "field_name":"FNAME",
+    "LENGTH":25,
+    "START POS":46,
+    "END POS":70
+  },
+  {
+    "field_name":"MI",
+    "LENGTH":1,
+    "START POS":71,
+    "END POS":71
+  },
+  {
+    "field_name":"DODID",
+    "LENGTH":10,
+    "START POS":72,
+    "END POS":81
+  },
+  {
+    "field_name":"D_EVENT",
+    "LENGTH":8,
+    "START POS":82,
+    "END POS":89
+  },
+  {
+    "field_name":"DOB",
+    "LENGTH":8,
+    "START POS":90,
+    "END POS":97
+  },
+  {
+    "field_name":"SEX",
+    "LENGTH":1,
+    "START POS":98,
+    "END POS":98
+  },
+  {
+    "field_name":"FORM_SERVICE",
+    "LENGTH":1,
+    "START POS":99,
+    "END POS":99
+  },
+  {
+    "field_name":"SERVICE_OTHER",
+    "LENGTH":25,
+    "START POS":100,
+    "END POS":124
+  },
+  {
+    "field_name":"FORM_COMPONENT",
+    "LENGTH":3,
+    "START POS":125,
+    "END POS":127
+  },
+  {
+    "field_name":"GRADE",
+    "LENGTH":3,
+    "START POS":128,
+    "END POS":130
+  },
+  {
+    "field_name":"GRADE_OTHER",
+    "LENGTH":25,
+    "START POS":131,
+    "END POS":155
+  },
+  {
+    "field_name":"UNIT_NAME",
+    "LENGTH":75,
+    "START POS":156,
+    "END POS":230
+  },
+  {
+    "field_name":"UNIT_LOC",
+    "LENGTH":75,
+    "START POS":231,
+    "END POS":305
+  },
+  {
+    "field_name":"PHONE",
+    "LENGTH":20,
+    "START POS":306,
+    "END POS":325
+  },
+  {
+    "field_name":"CELL",
+    "LENGTH":20,
+    "START POS":326,
+    "END POS":345
+  },
+  {
+    "field_name":"DSN",
+    "LENGTH":20,
+    "START POS":346,
+    "END POS":365
+  },
+  {
+    "field_name":"EMAIL",
+    "LENGTH":75,
+    "START POS":366,
+    "END POS":440
+  },
+  {
+    "field_name":"ADDR",
+    "LENGTH":60,
+    "START POS":441,
+    "END POS":500
+  },
+  {
+    "field_name":"CITY",
+    "LENGTH":25,
+    "START POS":501,
+    "END POS":525
+  },
+  {
+    "field_name":"STATE",
+    "LENGTH":2,
+    "START POS":526,
+    "END POS":527
+  },
+  {
+    "field_name":"ZIP",
+    "LENGTH":10,
+    "START POS":528,
+    "END POS":537
+  },
+  {
+    "field_name":"POC_NAME",
+    "LENGTH":50,
+    "START POS":538,
+    "END POS":587
+  },
+  {
+    "field_name":"POC_PHONE",
+    "LENGTH":20,
+    "START POS":588,
+    "END POS":607
+  },
+  {
+    "field_name":"POC_EMAIL",
+    "LENGTH":75,
+    "START POS":608,
+    "END POS":682
+  },
+  {
+    "field_name":"POC_ADDR",
+    "LENGTH":60,
+    "START POS":683,
+    "END POS":742
+  },
+  {
+    "field_name":"POC_CITY",
+    "LENGTH":25,
+    "START POS":743,
+    "END POS":767
+  },
+  {
+    "field_name":"POC_STATE",
+    "LENGTH":2,
+    "START POS":768,
+    "END POS":769
+  },
+  {
+    "field_name":"POC_ZIP",
+    "LENGTH":10,
+    "START POS":770,
+    "END POS":779
+  },
+  {
+    "field_name":"D_DEPLOY",
+    "LENGTH":8,
+    "START POS":780,
+    "END POS":787
+  },
+  {
+    "field_name":"COUNTRY",
+    "LENGTH":15,
+    "START POS":788,
+    "END POS":802
+  },
+  {
+    "field_name":"OPERATION_NAME",
+    "LENGTH":15,
+    "START POS":803,
+    "END POS":817
+  },
+  {
+    "field_name":"DEPLOY_PREV",
+    "LENGTH":1,
+    "START POS":818,
+    "END POS":818
+  },
+  {
+    "field_name":"DEP_PRIMARY",
+    "LENGTH":15,
+    "START POS":819,
+    "END POS":833
+  },
+  {
+    "field_name":"D_RET_PREV",
+    "LENGTH":8,
+    "START POS":834,
+    "END POS":841
+  },
+  {
+    "field_name":"HEALTH_ASSESSMENT",
+    "LENGTH":1,
+    "START POS":842,
+    "END POS":842
+  },
+  {
+    "field_name":"LIGHT_DUTY",
+    "LENGTH":1,
+    "START POS":843,
+    "END POS":843
+  },
+  {
+    "field_name":"LIGHT_DUTY_REASON",
+    "LENGTH":20,
+    "START POS":844,
+    "END POS":863
+  },
+  {
+    "field_name":"TOBACCO",
+    "LENGTH":1,
+    "START POS":864,
+    "END POS":864
+  },
+  {
+    "field_name":"PREGNANT",
+    "LENGTH":1,
+    "START POS":865,
+    "END POS":865
+  },
+  {
+    "field_name":"CONTRA_COUNSEL",
+    "LENGTH":1,
+    "START POS":866,
+    "END POS":866
+  },
+  {
+    "field_name":"CARE_HEAD",
+    "LENGTH":1,
+    "START POS":867,
+    "END POS":867
+  },
+  {
+    "field_name":"CARE_HEAD_TEXT",
+    "LENGTH":25,
+    "START POS":868,
+    "END POS":892
+  },
+  {
+    "field_name":"CURRENT_MEDS",
+    "LENGTH":1,
+    "START POS":893,
+    "END POS":893
+  },
+  {
+    "field_name":"CURRENT_MEDS_TEXT",
+    "LENGTH":100,
+    "START POS":894,
+    "END POS":993
+  },
+  {
+    "field_name":"CARE_MENTAL",
+    "LENGTH":1,
+    "START POS":994,
+    "END POS":994
+  },
+  {
+    "field_name":"CARE_MENTAL_TEXT",
+    "LENGTH":100,
+    "START POS":995,
+    "END POS":1094
+  },
+  {
+    "field_name":"NOISES",
+    "LENGTH":1,
+    "START POS":1095,
+    "END POS":1095
+  },
+  {
+    "field_name":"HEARING",
+    "LENGTH":1,
+    "START POS":1096,
+    "END POS":1096
+  },
+  {
+    "field_name":"ETOH_OFTEN",
+    "LENGTH":1,
+    "START POS":1097,
+    "END POS":1097
+  },
+  {
+    "field_name":"ETOH_DAY",
+    "LENGTH":1,
+    "START POS":1098,
+    "END POS":1098
+  },
+  {
+    "field_name":"ETOH_BINGE",
+    "LENGTH":1,
+    "START POS":1099,
+    "END POS":1099
+  },
+  {
+    "field_name":"NIGHTMARES",
+    "LENGTH":1,
+    "START POS":1100,
+    "END POS":1100
+  },
+  {
+    "field_name":"AVOID_SITUATIONS",
+    "LENGTH":1,
+    "START POS":1101,
+    "END POS":1101
+  },
+  {
+    "field_name":"ON_GUARD",
+    "LENGTH":1,
+    "START POS":1102,
+    "END POS":1102
+  },
+  {
+    "field_name":"DETACHED",
+    "LENGTH":1,
+    "START POS":1103,
+    "END POS":1103
+  },
+  {
+    "field_name":"BLAME",
+    "LENGTH":1,
+    "START POS":1104,
+    "END POS":1104
+  },
+  {
+    "field_name":"MEMORIES",
+    "LENGTH":1,
+    "START POS":1105,
+    "END POS":1105
+  },
+  {
+    "field_name":"DREAMS",
+    "LENGTH":1,
+    "START POS":1106,
+    "END POS":1106
+  },
+  {
+    "field_name":"RELIVING",
+    "LENGTH":1,
+    "START POS":1107,
+    "END POS":1107
+  },
+  {
+    "field_name":"UPSET",
+    "LENGTH":1,
+    "START POS":1108,
+    "END POS":1108
+  },
+  {
+    "field_name":"PHYS_REACTION",
+    "LENGTH":1,
+    "START POS":1109,
+    "END POS":1109
+  },
+  {
+    "field_name":"AVOID_THINK",
+    "LENGTH":1,
+    "START POS":1110,
+    "END POS":1110
+  },
+  {
+    "field_name":"AVOID_ACTIVITIES",
+    "LENGTH":1,
+    "START POS":1111,
+    "END POS":1111
+  },
+  {
+    "field_name":"TROUBLE_MEMORY",
+    "LENGTH":1,
+    "START POS":1112,
+    "END POS":1112
+  },
+  {
+    "field_name":"DISINTEREST",
+    "LENGTH":1,
+    "START POS":1113,
+    "END POS":1113
+  },
+  {
+    "field_name":"DISTANT",
+    "LENGTH":1,
+    "START POS":1114,
+    "END POS":1114
+  },
+  {
+    "field_name":"NUMB",
+    "LENGTH":1,
+    "START POS":1115,
+    "END POS":1115
+  },
+  {
+    "field_name":"DOOM",
+    "LENGTH":1,
+    "START POS":1116,
+    "END POS":1116
+  },
+  {
+    "field_name":"INSOMNIA",
+    "LENGTH":1,
+    "START POS":1117,
+    "END POS":1117
+  },
+  {
+    "field_name":"ANGRY_OUTBURSTS",
+    "LENGTH":1,
+    "START POS":1118,
+    "END POS":1118
+  },
+  {
+    "field_name":"CONCENTRATE",
+    "LENGTH":1,
+    "START POS":1119,
+    "END POS":1119
+  },
+  {
+    "field_name":"WATCHFUL",
+    "LENGTH":1,
+    "START POS":1120,
+    "END POS":1120
+  },
+  {
+    "field_name":"ALERT",
+    "LENGTH":1,
+    "START POS":1121,
+    "END POS":1121
+  },
+  {
+    "field_name":"LIFE_DIFFICULT",
+    "LENGTH":1,
+    "START POS":1122,
+    "END POS":1122
+  },
+  {
+    "field_name":"WEEKS_LITTLE_INTEREST",
+    "LENGTH":1,
+    "START POS":1123,
+    "END POS":1123
+  },
+  {
+    "field_name":"WEEKS_DEPRESSED",
+    "LENGTH":1,
+    "START POS":1124,
+    "END POS":1124
+  },
+  {
+    "field_name":"WEEKS_SLEEP",
+    "LENGTH":1,
+    "START POS":1125,
+    "END POS":1125
+  },
+  {
+    "field_name":"WEEKS_TIRED",
+    "LENGTH":1,
+    "START POS":1126,
+    "END POS":1126
+  },
+  {
+    "field_name":"WEEKS_APPETITE",
+    "LENGTH":1,
+    "START POS":1127,
+    "END POS":1127
+  },
+  {
+    "field_name":"WEEKS_FAILURE",
+    "LENGTH":1,
+    "START POS":1128,
+    "END POS":1128
+  },
+  {
+    "field_name":"WEEKS_CONCENTRATE",
+    "LENGTH":1,
+    "START POS":1129,
+    "END POS":1129
+  },
+  {
+    "field_name":"WEEKS_LETHARGIC_JUMPY",
+    "LENGTH":1,
+    "START POS":1130,
+    "END POS":1130
+  },
+  {
+    "field_name":"WEEKS_PROBLEMS",
+    "LENGTH":1,
+    "START POS":1131,
+    "END POS":1131
+  },
+  {
+    "field_name":"STRESSOR_NONE",
+    "LENGTH":1,
+    "START POS":1132,
+    "END POS":1132
+  },
+  {
+    "field_name":"STRESSOR_LEGAL",
+    "LENGTH":1,
+    "START POS":1133,
+    "END POS":1133
+  },
+  {
+    "field_name":"STRESSOR_MONEY",
+    "LENGTH":1,
+    "START POS":1134,
+    "END POS":1134
+  },
+  {
+    "field_name":"STRESSOR_SPIRIT",
+    "LENGTH":1,
+    "START POS":1135,
+    "END POS":1135
+  },
+  {
+    "field_name":"STRESSOR_SUB",
+    "LENGTH":1,
+    "START POS":1136,
+    "END POS":1136
+  },
+  {
+    "field_name":"STRESSOR_FAM",
+    "LENGTH":1,
+    "START POS":1137,
+    "END POS":1137
+  },
+  {
+    "field_name":"STRESSOR_WORK",
+    "LENGTH":1,
+    "START POS":1138,
+    "END POS":1138
+  },
+  {
+    "field_name":"STRESSOR_SLEEP",
+    "LENGTH":1,
+    "START POS":1139,
+    "END POS":1139
+  },
+  {
+    "field_name":"STRESSOR_MH",
+    "LENGTH":1,
+    "START POS":1140,
+    "END POS":1140
+  },
+  {
+    "field_name":"STRESSOR_OTH",
+    "LENGTH":1,
+    "START POS":1141,
+    "END POS":1141
+  },
+  {
+    "field_name":"STRESSORS_TEXT",
+    "LENGTH":100,
+    "START POS":1142,
+    "END POS":1241
+  },
+  {
+    "field_name":"STRESSORS_HELP",
+    "LENGTH":1,
+    "START POS":1242,
+    "END POS":1242
+  },
+  {
+    "field_name":"CONCERN_OTHER",
+    "LENGTH":1,
+    "START POS":1243,
+    "END POS":1243
+  },
+  {
+    "field_name":"CONCERN_TEXT",
+    "LENGTH":100,
+    "START POS":1244,
+    "END POS":1343
+  },
+  {
+    "field_name":"DEPLOYING_TO_PROVIDER",
+    "LENGTH":15,
+    "START POS":1344,
+    "END POS":1358
+  },
+  {
+    "field_name":"HAS_DEPLOYED_PROVIDER",
+    "LENGTH":2,
+    "START POS":1359,
+    "END POS":1360
+  },
+  {
+    "field_name":"LAST_RETURNED_PROVIDER",
+    "LENGTH":8,
+    "START POS":1361,
+    "END POS":1368
+  },
+  {
+    "field_name":"SELF_HEALTH_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":1369,
+    "END POS":1369
+  },
+  {
+    "field_name":"SELF_HEALTH_DEPLOYER",
+    "LENGTH":100,
+    "START POS":1370,
+    "END POS":1469
+  },
+  {
+    "field_name":"SELF_HEALTH_PROVIDER",
+    "LENGTH":100,
+    "START POS":1470,
+    "END POS":1569
+  },
+  {
+    "field_name":"MEB_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":1570,
+    "END POS":1570
+  },
+  {
+    "field_name":"MEB_DEPLOYER",
+    "LENGTH":100,
+    "START POS":1571,
+    "END POS":1670
+  },
+  {
+    "field_name":"MEB_PROVIDER",
+    "LENGTH":100,
+    "START POS":1671,
+    "END POS":1770
+  },
+  {
+    "field_name":"MDM_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":1771,
+    "END POS":1771
+  },
+  {
+    "field_name":"MDM_DEPLOYER",
+    "LENGTH":100,
+    "START POS":1772,
+    "END POS":1871
+  },
+  {
+    "field_name":"MDM_PROVIDER",
+    "LENGTH":100,
+    "START POS":1872,
+    "END POS":1971
+  },
+  {
+    "field_name":"PREGNANT_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":1972,
+    "END POS":1972
+  },
+  {
+    "field_name":"PREGNANT_DEPLOYER",
+    "LENGTH":100,
+    "START POS":1973,
+    "END POS":2072
+  },
+  {
+    "field_name":"PREGNANT_PROVIDER",
+    "LENGTH":100,
+    "START POS":2073,
+    "END POS":2172
+  },
+  {
+    "field_name":"DELIVERED6_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":2173,
+    "END POS":2173
+  },
+  {
+    "field_name":"DELIVERED6_DEPLOYER",
+    "LENGTH":100,
+    "START POS":2174,
+    "END POS":2273
+  },
+  {
+    "field_name":"DELIVERED6_PROVIDER",
+    "LENGTH":100,
+    "START POS":2274,
+    "END POS":2373
+  },
+  {
+    "field_name":"DELIVERED12_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":2374,
+    "END POS":2374
+  },
+  {
+    "field_name":"DELIVERED12_DEPLOYER",
+    "LENGTH":100,
+    "START POS":2375,
+    "END POS":2474
+  },
+  {
+    "field_name":"DELIVERED12_PROVIDER",
+    "LENGTH":100,
+    "START POS":2475,
+    "END POS":2574
+  },
+  {
+    "field_name":"DELIVERED00_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":2575,
+    "END POS":2575
+  },
+  {
+    "field_name":"DELIVERED00_DEPLOYER",
+    "LENGTH":100,
+    "START POS":2576,
+    "END POS":2675
+  },
+  {
+    "field_name":"DELIVERED00_PROVIDER",
+    "LENGTH":100,
+    "START POS":2676,
+    "END POS":2775
+  },
+  {
+    "field_name":"CONTRA_COUNSEL_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":2776,
+    "END POS":2776
+  },
+  {
+    "field_name":"CONTRA_COUNSEL_DEPLOYER",
+    "LENGTH":100,
+    "START POS":2777,
+    "END POS":2876
+  },
+  {
+    "field_name":"CONTRA_COUNSEL_PROVIDER",
+    "LENGTH":100,
+    "START POS":2877,
+    "END POS":2976
+  },
+  {
+    "field_name":"HEAD_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":2977,
+    "END POS":2977
+  },
+  {
+    "field_name":"HEAD_DEPLOYER",
+    "LENGTH":100,
+    "START POS":2978,
+    "END POS":3077
+  },
+  {
+    "field_name":"HEAD_PROVIDER",
+    "LENGTH":100,
+    "START POS":3078,
+    "END POS":3177
+  },
+  {
+    "field_name":"MED_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":3178,
+    "END POS":3178
+  },
+  {
+    "field_name":"MED_DEPLOYER",
+    "LENGTH":100,
+    "START POS":3179,
+    "END POS":3278
+  },
+  {
+    "field_name":"MED_PROVIDER",
+    "LENGTH":100,
+    "START POS":3279,
+    "END POS":3378
+  },
+  {
+    "field_name":"HX_MH_FOLLOWUP",
+    "LENGTH":1,
+    "START POS":3379,
+    "END POS":3379
+  },
+  {
+    "field_name":"HX_MH_DEPLOYER",
+    "LENGTH":100,
+    "START POS":3380,
+    "END POS":3479
+  },
+  {
+    "field_name":"HX_MH_PROVIDER",
+    "LENGTH":100,
+    "START POS":3480,
+    "END POS":3579
+  },
+  {
+    "field_name":"HEARING_REPORTED",
+    "LENGTH":1,
+    "START POS":3580,
+    "END POS":3580
+  },
+  {
+    "field_name":"REF_HEARING",
+    "LENGTH":1,
+    "START POS":3581,
+    "END POS":3581
+  },
+  {
+    "field_name":"REF_HEARING_NEG",
+    "LENGTH":1,
+    "START POS":3582,
+    "END POS":3582
+  },
+  {
+    "field_name":"REF_HEARING_TEXT",
+    "LENGTH":50,
+    "START POS":3583,
+    "END POS":3632
+  },
+  {
+    "field_name":"AUDITC_SCREEN",
+    "LENGTH":2,
+    "START POS":3633,
+    "END POS":3634
+  },
+  {
+    "field_name":"ETOH_WEEK_PROVIDER",
+    "LENGTH":2,
+    "START POS":3635,
+    "END POS":3636
+  },
+  {
+    "field_name":"ETOH_TOTAL_PROVIDER",
+    "LENGTH":2,
+    "START POS":3637,
+    "END POS":3638
+  },
+  {
+    "field_name":"REF_ETOH",
+    "LENGTH":1,
+    "START POS":3639,
+    "END POS":3639
+  },
+  {
+    "field_name":"REF_ETOH_NEG",
+    "LENGTH":1,
+    "START POS":3640,
+    "END POS":3640
+  },
+  {
+    "field_name":"REF_ETOH_TEXT",
+    "LENGTH":50,
+    "START POS":3641,
+    "END POS":3690
+  },
+  {
+    "field_name":"PTSD_REPORTED",
+    "LENGTH":1,
+    "START POS":3691,
+    "END POS":3691
+  },
+  {
+    "field_name":"PCLC_SCORE",
+    "LENGTH":2,
+    "START POS":3692,
+    "END POS":3693
+  },
+  {
+    "field_name":"PCLC_INCOMPLETE",
+    "LENGTH":1,
+    "START POS":3694,
+    "END POS":3694
+  },
+  {
+    "field_name":"PCLC_MATRIX",
+    "LENGTH":1,
+    "START POS":3695,
+    "END POS":3695
+  },
+  {
+    "field_name":"REF_PTSD",
+    "LENGTH":1,
+    "START POS":3696,
+    "END POS":3696
+  },
+  {
+    "field_name":"REF_PTSD_NEG",
+    "LENGTH":1,
+    "START POS":3697,
+    "END POS":3697
+  },
+  {
+    "field_name":"REF_PTSD_TEXT",
+    "LENGTH":50,
+    "START POS":3698,
+    "END POS":3747
+  },
+  {
+    "field_name":"DEPRESSION_REPORTED",
+    "LENGTH":1,
+    "START POS":3748,
+    "END POS":3748
+  },
+  {
+    "field_name":"PHQ8_SCORE",
+    "LENGTH":2,
+    "START POS":3749,
+    "END POS":3750
+  },
+  {
+    "field_name":"PHQ8_INCOMPLETE",
+    "LENGTH":1,
+    "START POS":3751,
+    "END POS":3751
+  },
+  {
+    "field_name":"PHQ8_MATRIX",
+    "LENGTH":1,
+    "START POS":3752,
+    "END POS":3752
+  },
+  {
+    "field_name":"REF_DEPRESSION",
+    "LENGTH":1,
+    "START POS":3753,
+    "END POS":3753
+  },
+  {
+    "field_name":"REF_DEPRESSION_NEG",
+    "LENGTH":1,
+    "START POS":3754,
+    "END POS":3754
+  },
+  {
+    "field_name":"REF_DEPRESSION_TEXT",
+    "LENGTH":50,
+    "START POS":3755,
+    "END POS":3804
+  },
+  {
+    "field_name":"STRESSORS_REPORTED",
+    "LENGTH":1,
+    "START POS":3805,
+    "END POS":3805
+  },
+  {
+    "field_name":"STRESSORS_DEPLOYERS_CONCERN",
+    "LENGTH":50,
+    "START POS":3806,
+    "END POS":3855
+  },
+  {
+    "field_name":"STRESSORS_COMMENTS",
+    "LENGTH":100,
+    "START POS":3856,
+    "END POS":3955
+  },
+  {
+    "field_name":"REF_STRESSORS",
+    "LENGTH":1,
+    "START POS":3956,
+    "END POS":3956
+  },
+  {
+    "field_name":"REF_STRESSORS_NEG",
+    "LENGTH":1,
+    "START POS":3957,
+    "END POS":3957
+  },
+  {
+    "field_name":"REF_STRESSORS_OTHER",
+    "LENGTH":50,
+    "START POS":3958,
+    "END POS":4007
+  },
+  {
+    "field_name":"SUICIDE_A",
+    "LENGTH":1,
+    "START POS":4008,
+    "END POS":4008
+  },
+  {
+    "field_name":"SUICIDE_B",
+    "LENGTH":1,
+    "START POS":4009,
+    "END POS":4009
+  },
+  {
+    "field_name":"SUICIDE_C",
+    "LENGTH":1,
+    "START POS":4010,
+    "END POS":4010
+  },
+  {
+    "field_name":"SUICIDE_D",
+    "LENGTH":1,
+    "START POS":4011,
+    "END POS":4011
+  },
+  {
+    "field_name":"SUICIDE_E1",
+    "LENGTH":1,
+    "START POS":4012,
+    "END POS":4012
+  },
+  {
+    "field_name":"SUICIDE_E2",
+    "LENGTH":1,
+    "START POS":4013,
+    "END POS":4013
+  },
+  {
+    "field_name":"SUICIDE_F1",
+    "LENGTH":1,
+    "START POS":4014,
+    "END POS":4014
+  },
+  {
+    "field_name":"SUICIDE_F2",
+    "LENGTH":1,
+    "START POS":4015,
+    "END POS":4015
+  },
+  {
+    "field_name":"SUICIDE_G_TEXT",
+    "LENGTH":100,
+    "START POS":4016,
+    "END POS":4115
+  },
+  {
+    "field_name":"SUICIDE_RISK",
+    "LENGTH":1,
+    "START POS":4116,
+    "END POS":4116
+  },
+  {
+    "field_name":"VIOLENCE",
+    "LENGTH":1,
+    "START POS":4117,
+    "END POS":4117
+  },
+  {
+    "field_name":"VIOLENCE_TEXT",
+    "LENGTH":100,
+    "START POS":4118,
+    "END POS":4217
+  },
+  {
+    "field_name":"VIOLENCE_RISK",
+    "LENGTH":1,
+    "START POS":4218,
+    "END POS":4218
+  },
+  {
+    "field_name":"VIOLENCE_RISK_TEXT",
+    "LENGTH":100,
+    "START POS":4219,
+    "END POS":4318
+  },
+  {
+    "field_name":"MED_HX_REV",
+    "LENGTH":1,
+    "START POS":4319,
+    "END POS":4319
+  },
+  {
+    "field_name":"SIGNIF_FDN",
+    "LENGTH":250,
+    "START POS":4320,
+    "END POS":4569
+  },
+  {
+    "field_name":"MED_LIMIT_DEPLOY",
+    "LENGTH":1,
+    "START POS":4570,
+    "END POS":4570
+  },
+  {
+    "field_name":"DEP_DEC_FORM",
+    "LENGTH":1,
+    "START POS":4571,
+    "END POS":4571
+  },
+  {
+    "field_name":"DEP_DEC_ASSESS",
+    "LENGTH":1,
+    "START POS":4572,
+    "END POS":4572
+  },
+  {
+    "field_name":"REFER_NONE",
+    "LENGTH":1,
+    "START POS":4573,
+    "END POS":4573
+  },
+  {
+    "field_name":"REFER_PH",
+    "LENGTH":1,
+    "START POS":4574,
+    "END POS":4574
+  },
+  {
+    "field_name":"REFER_DENTAL",
+    "LENGTH":1,
+    "START POS":4575,
+    "END POS":4575
+  },
+  {
+    "field_name":"REFER_ETOH",
+    "LENGTH":1,
+    "START POS":4576,
+    "END POS":4576
+  },
+  {
+    "field_name":"REFER_PTSD",
+    "LENGTH":1,
+    "START POS":4577,
+    "END POS":4577
+  },
+  {
+    "field_name":"REFER_DEPRESSION",
+    "LENGTH":1,
+    "START POS":4578,
+    "END POS":4578
+  },
+  {
+    "field_name":"REFER_MH",
+    "LENGTH":1,
+    "START POS":4579,
+    "END POS":4579
+  },
+  {
+    "field_name":"REFER_HARM",
+    "LENGTH":1,
+    "START POS":4580,
+    "END POS":4580
+  },
+  {
+    "field_name":"REFER_VIOLENCE",
+    "LENGTH":1,
+    "START POS":4581,
+    "END POS":4581
+  },
+  {
+    "field_name":"REFER_OTHER",
+    "LENGTH":1,
+    "START POS":4582,
+    "END POS":4582
+  },
+  {
+    "field_name":"REFER_OTHER_TEXT",
+    "LENGTH":50,
+    "START POS":4583,
+    "END POS":4632
+  },
+  {
+    "field_name":"REFTIME_PRIMARY",
+    "LENGTH":1,
+    "START POS":4633,
+    "END POS":4633
+  },
+  {
+    "field_name":"REFTIME_MENTAL_PRIMARY",
+    "LENGTH":1,
+    "START POS":4634,
+    "END POS":4634
+  },
+  {
+    "field_name":"REFTIME_MENTAL_SPECIAL",
+    "LENGTH":1,
+    "START POS":4635,
+    "END POS":4635
+  },
+  {
+    "field_name":"REFTIME_DENTAL",
+    "LENGTH":1,
+    "START POS":4636,
+    "END POS":4636
+  },
+  {
+    "field_name":"REFTIME_OTHER_SPEC",
+    "LENGTH":1,
+    "START POS":4637,
+    "END POS":4637
+  },
+  {
+    "field_name":"REFTIME_AUDIOLOGY",
+    "LENGTH":1,
+    "START POS":4638,
+    "END POS":4638
+  },
+  {
+    "field_name":"REFTIME_DERM",
+    "LENGTH":1,
+    "START POS":4639,
+    "END POS":4639
+  },
+  {
+    "field_name":"REFTIME_GYN",
+    "LENGTH":1,
+    "START POS":4640,
+    "END POS":4640
+  },
+  {
+    "field_name":"REFTIME_PT",
+    "LENGTH":1,
+    "START POS":4641,
+    "END POS":4641
+  },
+  {
+    "field_name":"REFTIME_TBI",
+    "LENGTH":1,
+    "START POS":4642,
+    "END POS":4642
+  },
+  {
+    "field_name":"REFTIME_PODIATRY",
+    "LENGTH":1,
+    "START POS":4643,
+    "END POS":4643
+  },
+  {
+    "field_name":"REFTIME_SPEC_OTHER",
+    "LENGTH":1,
+    "START POS":4644,
+    "END POS":4644
+  },
+  {
+    "field_name":"REFTIME_SPEC_OTH_TEXT",
+    "LENGTH":50,
+    "START POS":4645,
+    "END POS":4694
+  },
+  {
+    "field_name":"REFTIME_CARE",
+    "LENGTH":1,
+    "START POS":4695,
+    "END POS":4695
+  },
+  {
+    "field_name":"REFTIME_ABUSE",
+    "LENGTH":1,
+    "START POS":4696,
+    "END POS":4696
+  },
+  {
+    "field_name":"REFTIME_OTHER",
+    "LENGTH":1,
+    "START POS":4697,
+    "END POS":4697
+  },
+  {
+    "field_name":"REFTIME_OTHER_TEXT",
+    "LENGTH":50,
+    "START POS":4698,
+    "END POS":4747
+  },
+  {
+    "field_name":"REFTIME_COMMENTS",
+    "LENGTH":100,
+    "START POS":4748,
+    "END POS":4847
+  },
+  {
+    "field_name":"MED_DISP",
+    "LENGTH":1,
+    "START POS":4848,
+    "END POS":4848
+  },
+  {
+    "field_name":"APPOINTMENT_ASSIST",
+    "LENGTH":1,
+    "START POS":4849,
+    "END POS":4849
+  },
+  {
+    "field_name":"APPOINT_ASSIST_TEXT",
+    "LENGTH":50,
+    "START POS":4850,
+    "END POS":4899
+  },
+  {
+    "field_name":"CONTRACT_SUP",
+    "LENGTH":1,
+    "START POS":4900,
+    "END POS":4900
+  },
+  {
+    "field_name":"CONTRACT_SUP_TEXT",
+    "LENGTH":50,
+    "START POS":4901,
+    "END POS":4950
+  },
+  {
+    "field_name":"COMMUNITY",
+    "LENGTH":1,
+    "START POS":4951,
+    "END POS":4951
+  },
+  {
+    "field_name":"COMMUNITY_TEXT",
+    "LENGTH":50,
+    "START POS":4952,
+    "END POS":5001
+  },
+  {
+    "field_name":"CHAPLAIN",
+    "LENGTH":1,
+    "START POS":5002,
+    "END POS":5002
+  },
+  {
+    "field_name":"HEALTH_ED",
+    "LENGTH":1,
+    "START POS":5003,
+    "END POS":5003
+  },
+  {
+    "field_name":"HEALTH_RESOURCES",
+    "LENGTH":1,
+    "START POS":5004,
+    "END POS":5004
+  },
+  {
+    "field_name":"IN_TRANS",
+    "LENGTH":1,
+    "START POS":5005,
+    "END POS":5005
+  },
+  {
+    "field_name":"FAM_SUPPORT",
+    "LENGTH":1,
+    "START POS":5006,
+    "END POS":5006
+  },
+  {
+    "field_name":"ONE_SOURCE",
+    "LENGTH":1,
+    "START POS":5007,
+    "END POS":5007
+  },
+  {
+    "field_name":"TRICARE",
+    "LENGTH":1,
+    "START POS":5008,
+    "END POS":5008
+  },
+  {
+    "field_name":"VA_MED",
+    "LENGTH":1,
+    "START POS":5009,
+    "END POS":5009
+  },
+  {
+    "field_name":"VET",
+    "LENGTH":1,
+    "START POS":5010,
+    "END POS":5010
+  },
+  {
+    "field_name":"OTHER_SUPPORT",
+    "LENGTH":1,
+    "START POS":5011,
+    "END POS":5011
+  },
+  {
+    "field_name":"OTHER_SUPPORT_TEXT",
+    "LENGTH":100,
+    "START POS":5012,
+    "END POS":5111
+  },
+  {
+    "field_name":"APPOINTMENT_NONE",
+    "LENGTH":1,
+    "START POS":5112,
+    "END POS":5112
+  },
+  {
+    "field_name":"PROVIDER_NAME",
+    "LENGTH":50,
+    "START POS":5113,
+    "END POS":5162
+  },
+  {
+    "field_name":"CERTIFY_DATE",
+    "LENGTH":8,
+    "START POS":5163,
+    "END POS":5170
+  },
+  {
+    "field_name":"PROVIDER_TITLE",
+    "LENGTH":1,
+    "START POS":5171,
+    "END POS":5171
+  },
+  {
+    "field_name":"CERT_PROVIDER",
+    "LENGTH":1,
+    "START POS":5172,
+    "END POS":5172
+  }
+]

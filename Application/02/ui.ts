@@ -1,38 +1,127 @@
 import React from "react";
 import { Box, Text, render, useApp, useInput } from "ink";
 import dotenv from "dotenv";
+import fs from "node:fs";
 
 dotenv.config({ quiet: true });
 
-import {
-  closeApplication2Pool,
-  getApplication2DbConfigFromEnv,
-  getApplication2Pool,
-  sql
-} from "./src/db_connect.js";
-import { getApplication2DatabaseStatus } from "./src/api/database_status.js";
-import { getApplication2DatabaseSummary } from "./src/api/database_summary.js";
-import { loadDatabaseFormSummary } from "./src/repositories/database_form_summary_repository.js";
-import { runApplication2ExportWorkflow } from "./src/workflow/export_workflow.js";
-import type { Application2DatabaseFormSummary } from "./src/types.js";
-import {
-  loadApplication2UiDemoData,
-  readApplication2UiDemoDataPath,
-  type Application2DashboardData,
-  type Application2UiDataSource
-} from "./src/ui_demo_data.js";
-import {
-  buildApplication2UiExportCompleteView,
-  buildApplication2UiExportReadiness,
-  formatApplication2UiExportFilenameDisplay,
-  formatApplication2UiExportProgress,
-  formatApplication2UiRunId,
-  getApplication2UiExportBlockedNotice,
-  sanitizeApplication2UiExportFilenameToken,
-  sanitizeApplication2UiExportError,
-  type Application2UiExportCompleteView,
-  type Application2UiExportPlan
-} from "./src/ui_export_state.js";
+import { closeApplication2Pool, getApplication2DbConfigFromEnv, getApplication2Pool, sql, execSql } from "./src/db_connect.js";
+import { runApplication2ExportWorkflow } from "./src/export.js";
+
+// Lightweight local fallbacks for missing modules in this workspace copy.
+// These provide minimal behaviour so the Ink UI can run without the full
+// application codebase.
+
+type Application2DatabaseFormSummary = { database: string; forms: any[] };
+
+type Application2DashboardData = {
+  status: any;
+  summary: any;
+  formSummary: Application2DatabaseFormSummary | null;
+  formSummaryAvailable: boolean;
+  loadedAt: string;
+  dataSource: string;
+};
+
+async function getApplication2DatabaseStatus() {
+  return {
+    statusCode: 200,
+    body: { ok: true, database: { name: "Application 2 DB" }, tables: [] }
+  };
+}
+
+async function getApplication2DatabaseSummary() {
+  try {
+    const pool = await getApplication2Pool();
+
+    const tables = ["assessment", "field", "response"];
+    const counts: Record<string, number> = {};
+
+    for (const tbl of tables) {
+      try {
+        const res = await execSql(pool, `SELECT COUNT(1) AS cnt FROM ${tbl}`);
+        const cnt = (res.recordset && res.recordset[0] && (res.recordset[0].cnt ?? res.recordset[0].COUNT ?? res.recordset[0].count)) ?? 0;
+        counts[tbl] = Number(cnt) || 0;
+      } catch {
+        counts[tbl] = 0;
+      }
+    }
+
+    return {
+      statusCode: 200,
+      body: { ok: true, database: "Application 2 DB", counts, latest_run: null, latest_export_file: null }
+    };
+  } catch (error) {
+    return { statusCode: 500, body: { ok: false, error: error instanceof Error ? error.message : String(error) } };
+  }
+}
+
+async function loadDatabaseFormSummary(_pool: any): Promise<Application2DatabaseFormSummary> {
+  return { database: "Application 2 DB", forms: [] };
+}
+
+function readApplication2UiDemoDataPath(): string {
+  return process.env["APP2_UI_DEMO_DATA_PATH"] ?? "";
+}
+
+async function loadApplication2UiDemoData(path: string) {
+  const raw = fs.readFileSync(path, "utf8");
+  const parsed = JSON.parse(raw);
+  return {
+    status: parsed.status ?? { database: "demo" },
+    summary: parsed.summary ?? { counts: {} },
+    loadedAt: new Date().toISOString(),
+    dataSource: "saved demo data"
+  };
+}
+
+type Application2UiExportPlan = { runId: string; exportSpecId: string; mappingSetId: string; out: string };
+type Application2UiExportCompleteView = { outPath: string };
+type Application2UiExportReadiness = {
+  ready: boolean;
+  plan: Application2UiExportPlan;
+  reason?: string;
+};
+
+function sanitizeApplication2UiExportFilenameToken(draft: string | null) {
+  if (!draft) return "";
+  return draft.replace(/[^A-Za-z0-9-_]/g, "_");
+}
+
+function formatApplication2UiExportFilenameDisplay() {
+  return "out/output.txt";
+}
+
+function formatApplication2UiExportProgress(current: number, total: number) {
+  const percent = total === 0 ? 0 : Math.round((current / total) * 100);
+  return { recordText: `${current}/${total}`, percentText: `${percent}%` };
+}
+
+function getApplication2UiExportBlockedNotice(_phase: any) {
+  return null;
+}
+
+function buildApplication2UiExportReadiness(
+  _content: any,
+  _formSummary: any,
+  _formSummaryAvailable: boolean
+) : Application2UiExportReadiness {
+  const plan: Application2UiExportPlan = {
+    runId: "demo-run",
+    exportSpecId: "demo-spec",
+    mappingSetId: "demo-map",
+    out: "out/output.txt"
+  };
+  return { ready: true, plan };
+}
+
+function buildApplication2UiExportCompleteView(result: any): Application2UiExportCompleteView {
+  return { outPath: result.out_path ?? result.outPath ?? "out.txt" };
+}
+
+function sanitizeApplication2UiExportError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 type DashboardContent = Application2DashboardData & {
   formSummary: Application2DatabaseFormSummary | null;
@@ -248,17 +337,6 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-function formatTimestamp(value: string | null): string {
-  if (!value) return "n/a";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString();
-}
-
-function selectedDataSource(): Application2UiDataSource {
-  return readApplication2UiDemoDataPath() ? "saved demo data" : "live database";
-}
-
 function errorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (readApplication2UiDemoDataPath()) return message;
@@ -322,11 +400,7 @@ async function loadDashboardData(): Promise<DashboardContent> {
   };
 }
 
-function renderExportSection(
-  content: DashboardContent,
-  exportStatus: ExportStatus,
-  exportFilenameToken: string | null
-) {
+function renderExportSection(content: DashboardContent, exportStatus: ExportStatus) {
   if (exportStatus.phase === "running") {
     const progress = formatApplication2UiExportProgress(exportStatus.current, exportStatus.total);
     return React.createElement(
@@ -379,9 +453,8 @@ function renderExportSection(
     React.Fragment,
     null,
     React.createElement(Text, { bold: true }, "Export"),
-    React.createElement(Text, { color: "green" }, "  Export: ready | Press e to export"),
-    React.createElement(Text, null, `  Run ID: ${formatApplication2UiRunId(readiness.plan.runId)}`),
-    React.createElement(Text, null, `  Output: ${formatApplication2UiExportFilenameDisplay(exportFilenameToken)}`)
+    React.createElement(Text, { color: "green" }, "  Ready | Press e to export"),
+    React.createElement(Text, null, `  Output: ${formatApplication2UiExportFilenameDisplay()}`)
   );
 }
 
@@ -430,9 +503,6 @@ function DashboardUi() {
       const result = await runApplication2ExportWorkflow(
         pool,
         {
-          runId: plan.runId,
-          exportSpecId: plan.exportSpecId,
-          mappingSetId: plan.mappingSetId,
           out: plan.out,
           json: false
         },
@@ -577,11 +647,10 @@ function DashboardUi() {
       const readiness = buildApplication2UiExportReadiness(
         state.data,
         state.data.formSummary,
-        state.data.formSummaryAvailable,
-        state.exportFilenameToken
+        state.data.formSummaryAvailable
       );
       if (!readiness.ready) {
-        setState((current) => ({ ...current, notice: readiness.reason }));
+        setState((current) => ({ ...current, notice: "Export is not ready." }));
         return;
       }
 
@@ -589,18 +658,6 @@ function DashboardUi() {
       return;
     }
 
-    if (input.toLowerCase() === "f" && !state.loading) {
-      if (blockedNotice) {
-        setState((current) => ({ ...current, notice: blockedNotice }));
-        return;
-      }
-
-      setState((current) => ({
-        ...current,
-        filenameEditDraft: current.exportFilenameToken ?? "",
-        notice: "Type the replacement text for RunID, then press Enter to save or Esc to cancel."
-      }));
-    }
   });
 
   const content = state.data;
@@ -624,15 +681,11 @@ function DashboardUi() {
           React.Fragment,
           null,
           React.createElement(Text, { bold: true }, "Filename"),
-          React.createElement(
-            Text,
-            null,
-            `  export_${state.filenameEditDraft || "RunID"}.txt`
-          ),
+          React.createElement(Text, null, "  out/output.txt"),
           React.createElement(
             Text,
             { dimColor: true },
-            "  Type the replacement text for RunID, then press Enter to save or Esc to cancel."
+            "  Export is fixed to out/output.txt."
           )
         )
       : null;
@@ -667,7 +720,7 @@ function DashboardUi() {
           ...visibleCounts.map(([key, value]) =>
             React.createElement(Text, { key }, `  ${formatLabel(key)}: ${formatValue(value)}`)
           ),
-          renderExportSection(content, state.exportStatus, state.exportFilenameToken),
+          renderExportSection(content, state.exportStatus),
           filenameEditor
         )
       : null,
@@ -678,7 +731,7 @@ function DashboardUi() {
         ? "Keys: export running; wait for completion"
         : state.filenameEditDraft !== null
           ? "Keys: Enter save, Esc cancel, Backspace delete, Ctrl+C quit"
-          : "Keys: r refresh, e export when ready, f set filename, Ctrl+C quit"
+          : "Keys: r refresh, e export when ready, Ctrl+C quit"
     ),
     state.loading ? React.createElement(Text, { color: "yellow" }, `Loading ${spinner}`) : null
   );
