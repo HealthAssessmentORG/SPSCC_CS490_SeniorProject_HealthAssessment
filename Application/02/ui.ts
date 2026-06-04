@@ -24,8 +24,11 @@ import {
 import {
   buildApplication2UiExportCompleteView,
   buildApplication2UiExportReadiness,
+  formatApplication2UiExportFilenameDisplay,
   formatApplication2UiExportProgress,
+  formatApplication2UiRunId,
   getApplication2UiExportBlockedNotice,
+  sanitizeApplication2UiExportFilenameToken,
   sanitizeApplication2UiExportError,
   type Application2UiExportCompleteView,
   type Application2UiExportPlan
@@ -46,8 +49,10 @@ type DashboardState = {
   data: DashboardContent | null;
   error: string | null;
   exportStatus: ExportStatus;
+  exportFilenameToken: string | null;
   loading: boolean;
   notice: string | null;
+  filenameEditDraft: string | null;
   spinnerIndex: number;
 };
 
@@ -317,7 +322,11 @@ async function loadDashboardData(): Promise<DashboardContent> {
   };
 }
 
-function renderExportSection(content: DashboardContent, exportStatus: ExportStatus) {
+function renderExportSection(
+  content: DashboardContent,
+  exportStatus: ExportStatus,
+  exportFilenameToken: string | null
+) {
   if (exportStatus.phase === "running") {
     const progress = formatApplication2UiExportProgress(exportStatus.current, exportStatus.total);
     return React.createElement(
@@ -337,10 +346,7 @@ function renderExportSection(content: DashboardContent, exportStatus: ExportStat
       null,
       React.createElement(Text, { bold: true }, "Export"),
       React.createElement(Text, { color: "green" }, "  Export: complete"),
-      React.createElement(Text, null, `  Output: ${exportStatus.result.outPath}`),
-      React.createElement(Text, null, `  Record count: ${exportStatus.result.recordCount}`),
-      React.createElement(Text, null, `  Export file ID: ${exportStatus.result.exportFileId}`),
-      React.createElement(Text, null, `  Validation errors: ${exportStatus.result.validationErrorCount}`)
+      React.createElement(Text, null, `  Output: ${exportStatus.result.outPath}`)
     );
   }
 
@@ -351,7 +357,7 @@ function renderExportSection(content: DashboardContent, exportStatus: ExportStat
       React.createElement(Text, { bold: true }, "Export"),
       React.createElement(Text, { color: "red" }, "  Export: failed"),
       React.createElement(Text, null, `  Error: ${exportStatus.error}`),
-      React.createElement(Text, null, `  Output: ${exportStatus.plan.out}`)
+      React.createElement(Text, null, `  Output: ${formatApplication2UiExportFilenameDisplay()}`)
     );
   }
 
@@ -374,8 +380,8 @@ function renderExportSection(content: DashboardContent, exportStatus: ExportStat
     null,
     React.createElement(Text, { bold: true }, "Export"),
     React.createElement(Text, { color: "green" }, "  Export: ready | Press e to export"),
-    React.createElement(Text, null, `  Run ID: ${readiness.plan.runId}`),
-    React.createElement(Text, null, `  Output: ${readiness.plan.out}`)
+    React.createElement(Text, null, `  Run ID: ${formatApplication2UiRunId(readiness.plan.runId)}`),
+    React.createElement(Text, null, `  Output: ${formatApplication2UiExportFilenameDisplay(exportFilenameToken)}`)
   );
 }
 
@@ -385,15 +391,37 @@ function DashboardUi() {
     data: null,
     error: null,
     exportStatus: { phase: "idle" },
+    exportFilenameToken: null,
     loading: true,
     notice: null,
+    filenameEditDraft: null,
     spinnerIndex: 0
   });
+
+  const commitExportFilenameToken = React.useCallback((draft: string) => {
+    const token = sanitizeApplication2UiExportFilenameToken(draft);
+    if (!token) {
+      setState((current) => ({
+        ...current,
+        filenameEditDraft: null,
+        notice: "Export filename token cannot be empty."
+      }));
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      exportFilenameToken: token,
+      filenameEditDraft: null,
+      notice: `Export filename token set to ${token}.`
+    }));
+  }, []);
 
   const startExport = React.useCallback(async (plan: Application2UiExportPlan) => {
     setState((current) => ({
       ...current,
       exportStatus: { phase: "running", plan, current: 0, total: 0 },
+      filenameEditDraft: null,
       notice: null
     }));
 
@@ -453,6 +481,7 @@ function DashboardUi() {
       loading: true,
       error: null,
       exportStatus: { phase: "idle" },
+      filenameEditDraft: null,
       notice: null
     }));
 
@@ -464,6 +493,7 @@ function DashboardUi() {
         ...current,
         loading: false,
         exportStatus: { phase: "idle" },
+        filenameEditDraft: null,
         error: errorMessage(error)
       }));
     }
@@ -500,6 +530,34 @@ function DashboardUi() {
       return;
     }
 
+    if (state.filenameEditDraft !== null) {
+      if (key.escape) {
+        setState((current) => ({ ...current, filenameEditDraft: null, notice: null }));
+        return;
+      }
+
+      if (key.backspace) {
+        setState((current) => ({
+          ...current,
+          filenameEditDraft: current.filenameEditDraft ? current.filenameEditDraft.slice(0, -1) : ""
+        }));
+        return;
+      }
+
+      if (key.return) {
+        commitExportFilenameToken(state.filenameEditDraft);
+        return;
+      }
+
+      if (!key.ctrl && !key.meta && input) {
+        setState((current) => ({
+          ...current,
+          filenameEditDraft: `${current.filenameEditDraft ?? ""}${input}`
+        }));
+      }
+      return;
+    }
+
     if (input.toLowerCase() === "r" && !state.loading) {
       if (blockedNotice) {
         setState((current) => ({ ...current, notice: blockedNotice }));
@@ -519,7 +577,8 @@ function DashboardUi() {
       const readiness = buildApplication2UiExportReadiness(
         state.data,
         state.data.formSummary,
-        state.data.formSummaryAvailable
+        state.data.formSummaryAvailable,
+        state.exportFilenameToken
       );
       if (!readiness.ready) {
         setState((current) => ({ ...current, notice: readiness.reason }));
@@ -527,6 +586,20 @@ function DashboardUi() {
       }
 
       void startExport(readiness.plan);
+      return;
+    }
+
+    if (input.toLowerCase() === "f" && !state.loading) {
+      if (blockedNotice) {
+        setState((current) => ({ ...current, notice: blockedNotice }));
+        return;
+      }
+
+      setState((current) => ({
+        ...current,
+        filenameEditDraft: current.exportFilenameToken ?? "",
+        notice: "Type the replacement text for RunID, then press Enter to save or Esc to cancel."
+      }));
     }
   });
 
@@ -545,6 +618,24 @@ function DashboardUi() {
   const visibleCounts = content
     ? Object.entries(content.summary.counts).filter(([key]) => !hiddenCountKeys.has(key))
     : [];
+  const filenameEditor =
+    state.filenameEditDraft !== null
+      ? React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(Text, { bold: true }, "Filename"),
+          React.createElement(
+            Text,
+            null,
+            `  export_${state.filenameEditDraft || "RunID"}.txt`
+          ),
+          React.createElement(
+            Text,
+            { dimColor: true },
+            "  Type the replacement text for RunID, then press Enter to save or Esc to cancel."
+          )
+        )
+      : null;
 
   return React.createElement(
     Box,
@@ -566,7 +657,6 @@ function DashboardUi() {
           ? "Status: error"
           : "Status: ready"
     ),
-    React.createElement(Text, null, `Data source: ${content?.dataSource ?? selectedDataSource()}`),
     state.error ? React.createElement(Text, { color: "red" }, state.error) : null,
     state.notice ? React.createElement(Text, { color: "yellow" }, state.notice) : null,
     content
@@ -577,7 +667,8 @@ function DashboardUi() {
           ...visibleCounts.map(([key, value]) =>
             React.createElement(Text, { key }, `  ${formatLabel(key)}: ${formatValue(value)}`)
           ),
-          renderExportSection(content, state.exportStatus),
+          renderExportSection(content, state.exportStatus, state.exportFilenameToken),
+          filenameEditor
         )
       : null,
     React.createElement(
@@ -585,7 +676,9 @@ function DashboardUi() {
       { dimColor: true },
       state.exportStatus.phase === "running"
         ? "Keys: export running; wait for completion"
-        : "Keys: r refresh, e export when ready, Ctrl+C quit"
+        : state.filenameEditDraft !== null
+          ? "Keys: Enter save, Esc cancel, Backspace delete, Ctrl+C quit"
+          : "Keys: r refresh, e export when ready, f set filename, Ctrl+C quit"
     ),
     state.loading ? React.createElement(Text, { color: "yellow" }, `Loading ${spinner}`) : null
   );

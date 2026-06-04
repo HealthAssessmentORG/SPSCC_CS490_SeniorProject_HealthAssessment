@@ -37,20 +37,38 @@ export type Application2UiExportCompleteView = {
   validationErrorCount: number;
 };
 
+export function sanitizeApplication2UiExportFilenameToken(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  return trimmed.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_");
+}
+
 function latestRunId(summary: Application2DatabaseSummary): string | null {
   const runId = summary.latest_run?.run_id;
   const trimmed = runId?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : null;
 }
 
-export function buildApplication2UiExportOutPath(runId: string): string {
-  return `out/application_02_ui_export_${runId}.txt`;
+export function buildApplication2UiExportOutPath(runId: string, filenameToken?: string | null): string {
+  const token = sanitizeApplication2UiExportFilenameToken(filenameToken ?? "");
+  return `out/export_${token ?? runId}.txt`;
+}
+
+export function formatApplication2UiRunId(runId: string): string {
+  return runId.trim();
+}
+
+export function formatApplication2UiExportFilenameDisplay(filenameToken?: string | null): string {
+  const token = sanitizeApplication2UiExportFilenameToken(filenameToken ?? "");
+  return `export_${token ?? "RunID"}.txt`;
 }
 
 export function buildApplication2UiExportReadiness(
   data: Application2DashboardData,
   formSummary: Application2DatabaseFormSummary | null,
-  formSummaryAvailable: boolean
+  formSummaryAvailable: boolean,
+  filenameToken?: string | null
 ): Application2UiExportReadiness {
   if (data.dataSource === "saved demo data") {
     return {
@@ -97,7 +115,7 @@ export function buildApplication2UiExportReadiness(
       runId,
       exportSpecId,
       mappingSetId,
-      out: buildApplication2UiExportOutPath(runId),
+      out: buildApplication2UiExportOutPath(runId, filenameToken),
       formName: form.form_name
     }
   };
