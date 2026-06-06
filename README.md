@@ -3,6 +3,11 @@ Generitive data fill for Health Assessment form data.
 
 ## Usage Info
 
+### Application Launcher
+```
+npm run ui:launcher
+```
+
 ### Application 01
 ```
 npm run ui:app1
