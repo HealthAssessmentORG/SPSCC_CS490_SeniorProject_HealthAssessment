@@ -251,7 +251,7 @@ function ConnectionTestUi(props: { onContinue: () => void }) {
           setConnectionReady(false);
           setConnectionProgress((current) => ({
             ...current,
-            message: "Validation failed. Press r to retry or Ctrl+C to quit."
+            message: "Validation failed. Press r to retry."
           }));
         }
       }
@@ -321,9 +321,7 @@ function ConnectionTestUi(props: { onContinue: () => void }) {
     React.createElement(
       Text,
       { dimColor: true },
-      connectionReady
-        ? "Press r to recheck, Ctrl+C to quit."
-        : "Wait for validation to finish; press r to retry or Ctrl+C to quit."
+      connectionReady ? "Press r to recheck." : "Wait for validation to finish; press r to retry."
     )
   );
 }
@@ -600,6 +598,15 @@ function DashboardUi() {
       return;
     }
 
+    if (input.toLowerCase() === "q") {
+      if (blockedNotice) {
+        setState((current) => ({ ...current, notice: blockedNotice }));
+        return;
+      }
+      exit();
+      return;
+    }
+
     if (state.filenameEditDraft !== null) {
       if (key.escape) {
         setState((current) => ({ ...current, filenameEditDraft: null, notice: null }));
@@ -730,8 +737,8 @@ function DashboardUi() {
       state.exportStatus.phase === "running"
         ? "Keys: export running; wait for completion"
         : state.filenameEditDraft !== null
-          ? "Keys: Enter save, Esc cancel, Backspace delete, Ctrl+C quit"
-          : "Keys: r refresh, e export when ready, Ctrl+C quit"
+          ? "Keys: Enter save, Esc cancel, Backspace delete"
+          : "Keys: r refresh, e export when ready"
     ),
     state.loading ? React.createElement(Text, { color: "yellow" }, `Loading ${spinner}`) : null
   );

@@ -1,8 +1,6 @@
 import React from "react";
 import { Box, Text, render, useInput, useApp } from "ink";
 import sql from "mssql";
-import type { ConnectionPool } from "mssql";
-import { getApplication2MssqlConnectionStringFromEnv } from "../../02/src/db_connect.js";
 
 export type ExampleUiModel = {
 	status: string;
@@ -29,7 +27,7 @@ export type ExampleUiModel = {
 };
 
 type InputMode = "none" | "seed" | "assessmentCount";
-type UiPhase = "welcome" | "choice" | "menu" | "dataView";
+type UiPhase = "welcome" | "choice" | "menu" | "dataViewing" | "assessmentEditor";
 
 type ValidationProgress = {
 	current: number;
@@ -46,9 +44,9 @@ type GeneratedResponse = {
 
 const VIEW_EDIT_ASSESSMENT_OPTION = "View/Edit Assessment";
 
-export function getRandomRowsMssqlConnString(): string {
-	return getApplication2MssqlConnectionStringFromEnv();
-}
+const RANDOM_ROWS_MSSQL_CONN_STRING =
+	process.env["MSSQL_CONN_STRING"] ??
+	"SERVER=24.18.27.110;DATABASE=DD2975_PreDHA;UID=sa;PWD=3939;Encrypt=no;";
 
 function readConnectionTarget(connectionString: string): string {
 	const serverMatch = connectionString.match(/(?:^|;)\s*SERVER=([^;]+)/i);
@@ -63,24 +61,15 @@ function readConnectionTarget(connectionString: string): string {
 	return "random_rows.py MSSQL server";
 }
 
-function readConfiguredConnectionTarget(): string {
-	try {
-		return readConnectionTarget(getRandomRowsMssqlConnString());
-	} catch (error) {
-		return error instanceof Error ? error.message : String(error);
-	}
-}
-
 async function validateRandomRowsConnection(
 	onProgress: (progress: ValidationProgress) => void
 ): Promise<void> {
-	const connectionString = getRandomRowsMssqlConnString();
 	onProgress({
 		current: 1,
 		total: 3,
-		message: `Opening SQL Server connection for ${readConnectionTarget(connectionString)}`
+		message: `Opening SQL Server connection for ${readConnectionTarget(RANDOM_ROWS_MSSQL_CONN_STRING)}`
 	});
-	const pool = await sql.connect(connectionString);
+	const pool = await sql.connect(RANDOM_ROWS_MSSQL_CONN_STRING);
 
 	try {
 		onProgress({ current: 2, total: 3, message: "Running validation query (SELECT 1)..." });
@@ -108,8 +97,12 @@ function PhaseTitle(props: { phase: UiPhase }) {
 		return "Choose a Screen";
 	}
 
-	if (props.phase === "dataView") {
-		return "Application 1 Data Viewer";
+	if (props.phase === "dataViewing") {
+		return "Application 1 Data Viewing Screen";
+	}
+
+	if (props.phase === "assessmentEditor") {
+		return "Application 1 View/Edit Assessment Screen";
 	}
 
 	return "Application 1 Main Screen";
@@ -364,7 +357,7 @@ function MenuUi(props: ExampleUiModel & { onBackToChoice: () => void; onViewAsse
 	);
 }
 
-function ChoiceUi(props: { onSelectMain: () => void; onSelectDataView: () => void }) {
+function ChoiceUi(props: { onSelectMain: () => void; onSelectDataViewing: () => void }) {
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
 	const options = ["Open Data Filling Screen", "Open Data Viewing Screen"];
@@ -384,7 +377,7 @@ function ChoiceUi(props: { onSelectMain: () => void; onSelectDataView: () => voi
 			if (selectedIndex === 0) {
 				props.onSelectMain();
 			} else {
-				props.onSelectDataView();
+				props.onSelectDataViewing();
 			}
 			return;
 		}
@@ -411,7 +404,7 @@ function ChoiceUi(props: { onSelectMain: () => void; onSelectDataView: () => voi
 	);
 }
 
-function DataViewUi(props: {
+function AssessmentEditorUi(props: {
 	responses: GeneratedResponse[];
 	onBack: () => void;
 	onUpdateResponse: (index: number, response: string) => void;
@@ -497,7 +490,7 @@ function DataViewUi(props: {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Data Viewer"),
+		React.createElement(Text, { bold: true, color: "cyan" }, PhaseTitle({ phase: "assessmentEditor" })),
 		props.responses.length === 0
 			? React.createElement(Text, null, "No generated assessments available yet.")
 			: React.createElement(
@@ -527,198 +520,31 @@ function DataViewUi(props: {
 	);
 }
 
-function DataViewUiDuplicate(props: {
+function DataViewingUi(props: {
+	responses: GeneratedResponse[];
 	onBack: () => void;
 }) {
-	type AssessmentIdRow = {
-		assessment_id: string | number;
-	};
-
-	type ResponseRow = {
-		assessment_id?: number;
-		response_id?: number;
-		field_id?: number;
-		field_name?: string;
-		response?: string;
-		response_value?: string;
-		value?: string;
-		[column: string]: unknown;
-	};
-
-	type FieldQuestionRow = {
-		field_id: string | number;
-		question?: string;
-	};
-
-	// Read-only duplicate that loads from ASSESSMENT/RESPONSE in MSSQL.
 	const { exit } = useApp();
 	const [selectedIndex, setSelectedIndex] = React.useState(0);
-	const [assessmentIds, setAssessmentIds] = React.useState<Array<string | number>>([]);
-	const [selectedAssessmentIndex, setSelectedAssessmentIndex] = React.useState(0);
-	const [responses, setResponses] = React.useState<ResponseRow[]>([]);
-	const [fieldQuestionById, setFieldQuestionById] = React.useState<Record<string, string>>({});
-	const [loading, setLoading] = React.useState(true);
-	const [status, setStatus] = React.useState("Loading assessments...");
-	const [error, setError] = React.useState<string | null>(null);
-	const selectedAssessmentId = assessmentIds[selectedAssessmentIndex];
 
 	React.useEffect(() => {
-		let cancelled = false;
-
-		const loadAssessmentIds = async () => {
-			setLoading(true);
-			setError(null);
-			setStatus("Querying ASSESSMENT table...");
-
-			let pool: ConnectionPool | null = null;
-			try {
-				pool = await sql.connect(getRandomRowsMssqlConnString());
-				const assessmentResult = await pool
-					.request()
-					.query<AssessmentIdRow>("SELECT assessment_id FROM ASSESSMENT ORDER BY assessment_id");
-				if (!cancelled) {
-					const loadedAssessmentIds = (assessmentResult.recordset ?? []).map((row) => row.assessment_id);
-					setAssessmentIds(loadedAssessmentIds);
-					setSelectedAssessmentIndex(0);
-					if (loadedAssessmentIds.length === 0) {
-						setStatus("No assessments found in ASSESSMENT table.");
-					} else {
-						setStatus(`Loaded ${loadedAssessmentIds.length} assessment(s).`);
-					}
-				}
-			} catch (loadError) {
-				if (!cancelled) {
-					setError(loadError instanceof Error ? loadError.message : String(loadError));
-					setAssessmentIds([]);
-					setResponses([]);
-					setStatus("Failed to load assessments from MSSQL.");
-				}
-			} finally {
-				await pool?.close();
-				if (!cancelled) {
-					setLoading(false);
-				}
-			}
-		};
-
-		void loadAssessmentIds();
-
-		return () => {
-			cancelled = true;
-		};
-	}, []);
-
-	React.useEffect(() => {
-		let cancelled = false;
-
-		const loadResponsesForAssessment = async () => {
-			if (selectedAssessmentId === undefined || selectedAssessmentId === null) {
-				setResponses([]);
-				setFieldQuestionById({});
-				setSelectedIndex(0);
-				return;
-			}
-
-			setLoading(true);
-			setError(null);
-			setStatus(`Querying RESPONSE table for assessment_id ${selectedAssessmentId}...`);
-
-			let pool: ConnectionPool | null = null;
-			try {
-				pool = await sql.connect(getRandomRowsMssqlConnString());
-				const responseResult = await pool
-					.request()
-					.input("assessment_id", selectedAssessmentId)
-					.query<ResponseRow>("SELECT * FROM RESPONSE WHERE assessment_id = @assessment_id");
-
-				const loadedResponses = responseResult.recordset ?? [];
-				const uniqueFieldIds = Array.from(
-					new Set(
-						loadedResponses
-							.map((row) => row.field_id)
-							.filter((fieldId): fieldId is number => fieldId !== undefined && fieldId !== null)
-					)
-				);
-
-				let questionById: Record<string, string> = {};
-				if (uniqueFieldIds.length > 0) {
-					const fieldRequest = pool.request();
-					const placeholders = uniqueFieldIds.map((fieldId, index) => {
-						const parameterName = `field_id_${index}`;
-						fieldRequest.input(parameterName, fieldId);
-						return `@${parameterName}`;
-					});
-
-					const fieldResult = await fieldRequest.query<FieldQuestionRow>(
-						`SELECT field_id, question FROM FIELD WHERE field_id IN (${placeholders.join(", ")})`
-					);
-
-					questionById = Object.fromEntries(
-						(fieldResult.recordset ?? []).map((row) => [String(row.field_id), String(row.question ?? "")])
-					);
-				}
-
-				if (!cancelled) {
-					setResponses(loadedResponses);
-					setFieldQuestionById(questionById);
-					setStatus(
-						`Loaded ${loadedResponses.length} response(s) for assessment_id ${selectedAssessmentId}.`
-					);
-				}
-			} catch (loadError) {
-				if (!cancelled) {
-					setError(loadError instanceof Error ? loadError.message : String(loadError));
-					setResponses([]);
-					setFieldQuestionById({});
-					setStatus(`Failed to load responses for assessment_id ${selectedAssessmentId}.`);
-				}
-			} finally {
-				await pool?.close();
-				if (!cancelled) {
-					setLoading(false);
-				}
-			}
-		};
-
-		void loadResponsesForAssessment();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [selectedAssessmentId]);
-
-	React.useEffect(() => {
-		if (responses.length === 0) {
+		if (props.responses.length === 0) {
 			setSelectedIndex(0);
 			return;
 		}
 
-		setSelectedIndex((current) => Math.min(current, responses.length - 1));
-	}, [responses.length]);
+		setSelectedIndex((current) => Math.min(current, props.responses.length - 1));
+	}, [props.responses.length]);
 
 	useInput((input, key) => {
-		if (responses.length > 0) {
-			if (key.leftArrow) {
-				setSelectedIndex((current) => (current === 0 ? responses.length - 1 : current - 1));
+		if (props.responses.length > 0) {
+			if (key.leftArrow || key.upArrow) {
+				setSelectedIndex((current) => (current === 0 ? props.responses.length - 1 : current - 1));
 				return;
 			}
 
-			if (key.rightArrow) {
-				setSelectedIndex((current) => (current + 1) % responses.length);
-				return;
-			}
-		}
-
-		if (assessmentIds.length > 0) {
-			if (key.upArrow) {
-				setSelectedAssessmentIndex((current) =>
-					current === 0 ? assessmentIds.length - 1 : current - 1
-				);
-				return;
-			}
-
-			if (key.downArrow) {
-				setSelectedAssessmentIndex((current) => (current + 1) % assessmentIds.length);
+			if (key.rightArrow || key.downArrow) {
+				setSelectedIndex((current) => (current + 1) % props.responses.length);
 				return;
 			}
 		}
@@ -736,50 +562,22 @@ function DataViewUiDuplicate(props: {
 	return React.createElement(
 		Box,
 		{ flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, paddingY: 0 },
-		React.createElement(Text, { bold: true, color: "cyan" }, "Application 1 Database Viewer"),
-		assessmentIds.length > 0
-			? React.createElement(
-				Text,
-				null,
-				`Assessment ${selectedAssessmentIndex + 1} of ${assessmentIds.length} (ID: ${String(selectedAssessmentId)})`
-			)
-			: null,
-		React.createElement(Text, null, status),
-		error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
-		loading
-			? React.createElement(Text, { color: "yellow" }, "Loading from MSSQL...")
-			: responses.length === 0
-				? React.createElement(Text, null, "No responses found for the first assessment.")
+		React.createElement(Text, { bold: true, color: "cyan" }, PhaseTitle({ phase: "dataViewing" })),
+		props.responses.length === 0
+			? React.createElement(Text, null, "No generated assessments available yet.")
 			: React.createElement(
-				Box,
-				{ flexDirection: "column", marginTop: 1 },
-				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${responses.length}`),
-				React.createElement(Text, null, `Assesment ID: ${String(responses[selectedIndex]?.assessment_id ?? "n/a")}`),
-				React.createElement(Text, null, `Field ID: ${String(responses[selectedIndex]?.field_id ?? "n/a")}`),
-				React.createElement(
-					Text,
-					null,
-					`Question: ${String(
-						fieldQuestionById[String(responses[selectedIndex]?.field_id ?? "")] ??
-							responses[selectedIndex]?.field_name ??
-							"n/a"
-					)}`
-				),
-				React.createElement(
-					Text,
-					null,
-					`Response: ${String(
-						responses[selectedIndex]?.response ??
-							responses[selectedIndex]?.response_value ??
-							responses[selectedIndex]?.value ??
-							""
-					)}`
-				)
+				React.Fragment,
+				null,
+				React.createElement(Text, null, `Response ${selectedIndex + 1} of ${props.responses.length}`),
+				React.createElement(Text, null, `Assessment #: ${props.responses[selectedIndex]?.assessment_number}`),
+				React.createElement(Text, null, `Field ID: ${props.responses[selectedIndex]?.field_id}`),
+				React.createElement(Text, null, `Field Name: ${props.responses[selectedIndex]?.field_name}`),
+				React.createElement(Text, null, `Value: ${props.responses[selectedIndex]?.response}`)
 			),
 		React.createElement(
 			Text,
 			{ dimColor: true },
-			"Left/Right: responses, Up/Down: assessment, Enter or b: back, q: quit."
+			"Use arrows to switch responses, Enter or b to go back, q to quit."
 		)
 	);
 }
@@ -883,7 +681,7 @@ function WelcomeUi(props: { onContinue: () => void }) {
 		React.createElement(Text, { bold: true, color: "cyan" }, title),
 		React.createElement(Text, null, connectionStatus),
 		React.createElement(Text, null, `Progress: [${progressBar}] ${progressPercent}% (${connectionProgress.current}/${connectionProgress.total})`),
-		React.createElement(Text, null, `Target: ${readConfiguredConnectionTarget()}`),
+		React.createElement(Text, null, `Target: ${readConnectionTarget(RANDOM_ROWS_MSSQL_CONN_STRING)}`),
 		connectionError ? React.createElement(Text, { color: "red" }, `Error: ${connectionError}`) : null,
 		connectionReady
 			? React.createElement(Text, { color: "green" }, "Connection validated. Press Enter or Space to continue.")
@@ -899,9 +697,7 @@ function WelcomeUi(props: { onContinue: () => void }) {
 export function renderExampleUi(model: ExampleUiModel) {
 	function ExampleUiApp() {
 		const [phase, setPhase] = React.useState<UiPhase>("welcome");
-		const [dataViewReturnPhase, setDataViewReturnPhase] = React.useState<Exclude<UiPhase, "dataView">>("menu");
 		const [generatedResponses, setGeneratedResponses] = React.useState<GeneratedResponse[]>([]);
-		const [useDuplicateDataView, setUseDuplicateDataView] = React.useState(false);
 
 		if (phase === "welcome") {
 			return React.createElement(WelcomeUi, {
@@ -912,24 +708,23 @@ export function renderExampleUi(model: ExampleUiModel) {
 		if (phase === "choice") {
 			return React.createElement(ChoiceUi, {
 				onSelectMain: () => setPhase("menu"),
-				onSelectDataView: () => {
-					setDataViewReturnPhase("choice");
-					setUseDuplicateDataView(true);
-					setPhase("dataView");
+				onSelectDataViewing: () => {
+					setPhase("dataViewing");
 				}
 			});
 		}
 
-		if (phase === "dataView") {
-			if (useDuplicateDataView) {
-				return React.createElement(DataViewUiDuplicate, {
-					onBack: () => setPhase(dataViewReturnPhase)
-				});
-			}
-
-			return React.createElement(DataViewUi, {
+		if (phase === "dataViewing") {
+			return React.createElement(DataViewingUi, {
 				responses: generatedResponses,
-				onBack: () => setPhase(dataViewReturnPhase),
+				onBack: () => setPhase("choice")
+			});
+		}
+
+		if (phase === "assessmentEditor") {
+			return React.createElement(AssessmentEditorUi, {
+				responses: generatedResponses,
+				onBack: () => setPhase("menu"),
 				onUpdateResponse: (index: number, response: string) => {
 					setGeneratedResponses((current) =>
 						current.map((entry, currentIndex) => (currentIndex === index ? { ...entry, response } : entry))
@@ -944,9 +739,7 @@ export function renderExampleUi(model: ExampleUiModel) {
 			onGeneratedResponses: setGeneratedResponses,
 			onBackToChoice: () => setPhase("choice"),
 			onViewAssessment: () => {
-				setDataViewReturnPhase("menu");
-				setUseDuplicateDataView(false);
-				setPhase("dataView");
+				setPhase("assessmentEditor");
 			}
 		});
 	}

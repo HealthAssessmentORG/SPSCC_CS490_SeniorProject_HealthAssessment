@@ -2,7 +2,7 @@ import "dotenv/config";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { getRandomRowsMssqlConnString, renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
+import { renderExampleUi, type ExampleUiModel } from "./backend/ui.js";
 
 function resolvePythonCommand(): string {
 	const configuredPython = process.env["APP1_PYTHON"] ?? process.env["PYTHON"];
@@ -34,9 +34,10 @@ async function run(): Promise<void> {
 		mode: "full" | "faker" | "sql" = "full"
 	): Promise<{ status: string; generatedResponses?: Array<{ assessment_number: number; field_id: number; field_name: string; response: string }> }> => {
 		return new Promise((resolveResult, rejectResult) => {
+			const connString = process.env["MSSQL_CONN_STRING"] ?? "";
 			const env: NodeJS.ProcessEnv = {
 				...process.env,
-				MSSQL_CONN_STRING: getRandomRowsMssqlConnString(),
+				MSSQL_CONN_STRING: connString,
 				RANDOM_ROWS_ASSESSMENTS: String(assessmentCount),
 			};
 			if (seed !== null) {

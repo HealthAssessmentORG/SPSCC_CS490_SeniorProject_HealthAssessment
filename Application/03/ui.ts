@@ -121,7 +121,7 @@ function ConnectionTestUi(props: { onContinue: () => void }) {
 					setConnectionReady(false);
 					setConnectionProgress((current) => ({
 						...current,
-						message: "Validation failed. Press r to retry or Ctrl+C to quit."
+						message: "Validation failed. Press r to retry."
 					}));
 				}
 			}
@@ -275,6 +275,11 @@ function DashboardUi() {
 			return;
 		}
 
+		if (input.toLowerCase() === "q") {
+			requestExit(exit);
+			return;
+		}
+
 		if (input.toLowerCase() === "v" && !state.loading) {
 			void runVerification();
 			return;
@@ -303,7 +308,7 @@ function DashboardUi() {
 		renderVerificationSection(state.verification),
 		React.createElement(Text, null, `  Output file: ${OUTPUT_FILE_LABEL}`),
 		React.createElement(Text, null, `  Report file: ${REPORT_FILE_LABEL}`),
-		React.createElement(Text, { dimColor: true }, "Keys: v verify, w write report, r refresh, Ctrl+C quit"),
+		React.createElement(Text, { dimColor: true }, "Keys: v verify, w write report, r refresh, q quit"),
 		state.loading ? React.createElement(Text, { color: "yellow" }, `Working ${spinner}`) : null
 	);
 }
